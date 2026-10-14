@@ -1,0 +1,13 @@
+{
+  "name": "changestack",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "bun run --filter @changestack/viewer dev",
+    "build": "bun run --filter @changestack/viewer build && bun run --filter @changestack/cli build",
+    "typecheck": "bun run --filter '*' typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}
