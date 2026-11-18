@@ -3,7 +3,6 @@ import { classify, diffHash, loadCached } from "./classify";
 import { describePr, parsePrTarget, prDiff, resolvePr } from "./gh";
 import { splitDiff } from "./git";
 import { configuredModel, getHarness } from "./harness";
-import { logFromHook, note } from "./log";
 import { repoRoot } from "./paths";
 import { openBrowser, type ReviewState, startServer } from "./serve";
 
@@ -17,8 +16,6 @@ const USAGE = `changestack — review AI-written changes in the order that matte
       --no-open      don't open the browser
       --refresh      ignore the cached classification and run the model again
       --diff         print the PR's raw diff to stdout and exit
-  changestack log                       PostToolUse hook: record a touched file (reads hook JSON on stdin)
-  changestack note [--file p] <text>    record intent / uncertainty while working
 
 Environment: CHANGESTACK_MODEL pins the model; CHANGESTACK_TRANSCRIPT_CHARS caps how much
 session transcript goes into the prompt (default 24000, 0 = off).`;
@@ -102,15 +99,11 @@ const [cmd, ...args] = process.argv.slice(2);
 
 try {
   switch (cmd) {
-    case "log":
-      await logFromHook();
-      break;
-    case "note":
-      note(args);
-      break;
     case "annotate":
     case "serve":
-      throw new Error(`\`${cmd}\` was replaced by \`changestack [<pr>]\`, which classifies, serves and opens the viewer`);
+    case "log":
+    case "note":
+      throw new Error(`\`${cmd}\` was removed: run \`changestack [<pr>]\`, which reads the agent's session transcripts instead, and delete any changestack hooks from .claude/settings.json`);
     case "help":
     case "--help":
     case "-h":

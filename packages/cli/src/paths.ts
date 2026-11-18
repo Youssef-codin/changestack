@@ -7,14 +7,6 @@ export function repoRoot(cwd = process.cwd()): string {
   return res.stdout.toString().trim();
 }
 
-export function stateDir(root: string): string {
-  const dir = join(root, ".changestack");
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-export const intentLogPath = (root: string) => join(stateDir(root), "intent.jsonl");
-
 /**
  * `.git/changestack/`: state that should survive restarts but never be
  * committed (drafts, and anything else private to this clone).

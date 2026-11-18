@@ -61,6 +61,8 @@ type Block =
 interface Entry {
   type?: string;
   isSidechain?: boolean;
+  /** `sdk-cli` marks headless `claude -p` calls (e.g. changestack's own); never the agent's real work. */
+  entrypoint?: string;
   gitBranch?: string;
   cwd?: string;
   timestamp?: string;
@@ -124,7 +126,7 @@ function readSession(file: string, roots: string[], branch: string, changed: Set
     } catch {
       continue;
     }
-    if (e.isSidechain || e.gitBranch !== branch) continue;
+    if (e.isSidechain || e.entrypoint === "sdk-cli" || e.gitBranch !== branch) continue;
     if (e.type !== "user" && e.type !== "assistant") continue;
     started ??= e.timestamp;
     const content = e.message?.content;

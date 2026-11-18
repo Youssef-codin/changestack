@@ -15,15 +15,6 @@ export const FlagKind = z.enum([
 ]);
 export type FlagKind = z.infer<typeof FlagKind>;
 
-/** One line the authoring agent writes while working (`changestack note`). */
-export const IntentEntry = z.object({
-  ts: z.string(),
-  kind: z.enum(["edit", "note"]),
-  file: z.string().optional(),
-  text: z.string().optional(),
-});
-export type IntentEntry = z.infer<typeof IntentEntry>;
-
 /** A reviewable unit: a whole file, or one symbol inside it. */
 export const Section = z.object({
   file: z.string(),
