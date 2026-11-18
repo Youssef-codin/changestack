@@ -67,3 +67,39 @@ export const ReviewPayload = z.object({
   diff: z.string(),
 });
 export type ReviewPayload = z.infer<typeof ReviewPayload>;
+
+/**
+ * Which set of drafts a review belongs to. Today the CLI uses `branch:<name>`;
+ * a PR-based flow will use `pr:<number>` so each PR keeps its own drafts.
+ */
+export const DraftScope = z.string().regex(/^(branch|pr|detached):[^\0]{1,200}$/);
+export type DraftScope = z.infer<typeof DraftScope>;
+
+/**
+ * A line comment the reviewer hasn't sent anywhere yet.
+ * `side` + `line` say which line it sits on: `new` for added/context lines
+ * (new-file numbering), `old` for deleted lines (old-file numbering).
+ * `lineText` is the line's content when the draft was written. It lets the
+ * viewer find the line again after the diff changes.
+ */
+export const Draft = z.object({
+  id: z.string().min(1).max(64),
+  file: z.string().min(1),
+  side: z.enum(["old", "new"]),
+  line: z.number().int().positive(),
+  lineText: z.string(),
+  body: z.string().min(1).max(20_000),
+  /** `outdated` once the line can't be found in the current diff. The draft is kept, not deleted. */
+  status: z.enum(["active", "outdated"]),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Draft = z.infer<typeof Draft>;
+
+/** On-disk drafts file, one per scope, under `.git/changestack/drafts/`. Also the GET /api/drafts payload. */
+export const DraftSet = z.object({
+  version: z.literal(1),
+  scope: DraftScope,
+  drafts: z.array(Draft),
+});
+export type DraftSet = z.infer<typeof DraftSet>;

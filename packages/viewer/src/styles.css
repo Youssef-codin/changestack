@@ -106,3 +106,28 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .sidebar { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--border); }
 }
+
+/* Draft line comments */
+.add-comment { width: 20px; flex-shrink: 0; color: var(--accent); font-weight: 600; opacity: 0; }
+.line:hover .add-comment, .add-comment:focus-visible { opacity: 1; }
+.draft { margin: 4px 12px 8px 124px; max-width: 760px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; font-family: var(--sans); }
+.draft-outdated { border-left-color: var(--muted); }
+.draft-meta { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.draft-meta .link:first-of-type { margin-left: auto; }
+.draft-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.outdated { font-size: 11px; color: var(--muted); border: 1px dashed var(--border); padding: 0 5px; border-radius: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
+.composer textarea { width: 100%; resize: vertical; font: 13px/1.45 var(--sans); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; }
+.composer textarea:focus { outline: 1px solid var(--accent); }
+.composer-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 6px; }
+.link { color: var(--accent); font-size: 12px; }
+.link.danger { color: var(--del-fg); }
+.primary { background: var(--accent); color: var(--bg); border-radius: 4px; padding: 3px 10px; font-size: 12px; }
+.primary:disabled { opacity: .5; cursor: default; }
+.copy-prompt { width: 100%; margin-bottom: 8px; padding: 5px 8px; border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; }
+.copy-prompt:hover { background: var(--bg); }
+.draft-link { display: block; width: 100%; text-align: left; padding: 4px 6px; border-radius: 4px; }
+.draft-link:hover { background: var(--border); }
+.draft-where { display: flex; gap: 6px; align-items: center; font: 12px var(--mono); }
+.draft-preview { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draft-count { background: var(--accent); color: var(--bg); border-radius: 8px; padding: 0 6px; font-size: 11px; }
+@media (max-width: 760px) { .draft { margin-left: 24px; } }

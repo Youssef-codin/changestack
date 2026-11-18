@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, normalize, resolve } from "node:path";
-import { Annotation, type ReviewPayload } from "@changestack/schema";
+import { Annotation, Draft, DraftScope, type ReviewPayload } from "@changestack/schema";
+import { z } from "zod";
+import { currentScope, deleteDraft, loadDrafts, upsertDrafts } from "./drafts";
 import { workingDiff } from "./git";
 import { repoRoot, reviewPath } from "./paths";
 
@@ -12,6 +14,32 @@ function loadAnnotation(root: string): Annotation | null {
   if (!existsSync(path)) return null;
   const parsed = Annotation.safeParse(JSON.parse(readFileSync(path, "utf8")));
   return parsed.success ? parsed.data : null;
+}
+
+const DraftsPut = z.object({ drafts: z.array(Draft).max(1000) });
+
+/**
+ * /api/drafts?scope=…   GET → DraftSet · PUT {drafts} → upsert by id · DELETE /api/drafts/<id>
+ * `scope` defaults to the current branch. Writes use PUT/DELETE with JSON, which browsers
+ * always preflight, and we answer no CORS, so other sites can't write drafts.
+ */
+async function handleDrafts(req: Request, url: URL, root: string): Promise<Response> {
+  const scopeParam = url.searchParams.get("scope");
+  const scope = scopeParam === null ? currentScope(root) : DraftScope.safeParse(scopeParam).data;
+  if (!scope) return Response.json({ error: "bad scope" }, { status: 400 });
+
+  const id = url.pathname.slice("/api/drafts/".length);
+  if (req.method === "GET" && url.pathname === "/api/drafts") return Response.json(loadDrafts(root, scope));
+  if (req.method === "DELETE" && id) return Response.json(deleteDraft(root, scope, decodeURIComponent(id)));
+  if (req.method === "PUT" && url.pathname === "/api/drafts") {
+    if (!req.headers.get("content-type")?.startsWith("application/json")) {
+      return Response.json({ error: "expected application/json" }, { status: 415 });
+    }
+    const body = DraftsPut.safeParse(await req.json().catch(() => null));
+    if (!body.success) return Response.json({ error: body.error.message }, { status: 400 });
+    return Response.json(upsertDrafts(root, scope, body.data.drafts));
+  }
+  return Response.json({ error: "not found" }, { status: 404 });
 }
 
 export function serve(args: string[]): void {
@@ -29,6 +57,10 @@ export function serve(args: string[]): void {
         const annotation = loadAnnotation(root);
         const payload: ReviewPayload = { annotation, diff: workingDiff(root, annotation?.base ?? "HEAD") };
         return Response.json(payload);
+      }
+
+      if (url.pathname === "/api/drafts" || url.pathname.startsWith("/api/drafts/")) {
+        return handleDrafts(req, url, root);
       }
 
       const rel = normalize(url.pathname === "/" ? "/index.html" : url.pathname);

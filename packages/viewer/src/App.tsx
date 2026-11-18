@@ -1,8 +1,20 @@
-import type { Annotation, Flag, ReviewPayload, Tier } from "@changestack/schema";
+import type { Annotation, Draft, Flag, ReviewPayload, Tier } from "@changestack/schema";
 import { TIER_ORDER } from "@changestack/schema/tiers";
 import { createVirtualizer } from "@tanstack/solid-virtual";
-import { createEffect, createMemo, createResource, createSignal, For, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { type DiffLine, type ParsedFile, parseDiff } from "./diff";
+import {
+  anchorKey,
+  anchorOf,
+  copyText,
+  draftsPrompt,
+  fetchDrafts,
+  newId,
+  putDrafts,
+  reanchor,
+  removeDraft,
+  type Side,
+} from "./drafts";
 
 interface ReviewFile extends ParsedFile {
   tier: Tier;
@@ -13,10 +25,23 @@ interface ReviewFile extends ParsedFile {
 
 type Row =
   | { type: "header"; fileIdx: number }
-  | { type: "line"; fileIdx: number; line: DiffLine };
+  | { type: "line"; fileIdx: number; line: DiffLine }
+  | { type: "draft"; fileIdx: number; draft: Draft }
+  | { type: "composer"; fileIdx: number };
+
+/** The open comment box: a new draft on a line, or an existing draft being edited. */
+interface ComposerTarget {
+  file: string;
+  side: Side;
+  line: number;
+  lineText: string;
+  editingId: string | null;
+}
 
 const HEADER_H = 56;
 const LINE_H = 20;
+const DRAFT_H = 72;
+const COMPOSER_H = 128;
 const COLLAPSED_BY_DEFAULT: Tier[] = ["boilerplate", "generated"];
 
 async function fetchReview(): Promise<ReviewPayload> {
@@ -89,6 +114,90 @@ export function App() {
     setReviewed(loadReviewed(storageKey()));
   });
 
+  // Drafts live on the server (`.git/changestack/drafts/`), keyed by branch.
+  const [draftSet, { mutate: setDraftSet }] = createResource(fetchDrafts);
+  const drafts = () => draftSet()?.drafts ?? [];
+  const [draftError, setDraftError] = createSignal<string | null>(null);
+  const [composer, setComposer] = createSignal<ComposerTarget | null>(null);
+  const [composerText, setComposerText] = createSignal("");
+  const [copied, setCopied] = createSignal(false);
+
+  const saveDrafts = async (op: () => Promise<Awaited<ReturnType<typeof fetchDrafts>>>) => {
+    try {
+      setDraftSet(await op());
+      setDraftError(null);
+      return true;
+    } catch (e) {
+      setDraftError(String(e));
+      return false;
+    }
+  };
+
+  // The diff may have moved on since a draft was written: find its line again, or mark it outdated.
+  createEffect(() => {
+    if (!payload() || draftSet.state !== "ready") return;
+    const changed = reanchor(drafts(), files());
+    if (changed.length) void saveDrafts(() => putDrafts(changed));
+  });
+
+  const activeByAnchor = createMemo(() => {
+    const m = new Map<string, Draft[]>();
+    for (const d of drafts()) {
+      if (d.status !== "active") continue;
+      const k = anchorKey(d.file, d.side, d.line);
+      m.set(k, [...(m.get(k) ?? []), d]);
+    }
+    return m;
+  });
+  const outdatedByFile = createMemo(() => {
+    const m = new Map<string, Draft[]>();
+    for (const d of drafts()) if (d.status === "outdated") m.set(d.file, [...(m.get(d.file) ?? []), d]);
+    return m;
+  });
+  const draftCount = (file: string) => drafts().filter((d) => d.file === file).length;
+
+  const openComposer = (target: ComposerTarget, text = "") => {
+    setComposerText(text);
+    setComposer(target);
+  };
+  const commentOn = (file: string, line: DiffLine) => {
+    const a = anchorOf(line);
+    if (a) openComposer({ file, side: a.side, line: a.line, lineText: line.text, editingId: null });
+  };
+  const editDraft = (d: Draft) =>
+    openComposer({ file: d.file, side: d.side, line: d.line, lineText: d.lineText, editingId: d.id }, d.body);
+  const submitComposer = async () => {
+    const c = composer();
+    const body = composerText().trim();
+    if (!c || !body) return;
+    const now = new Date().toISOString();
+    const existing = c.editingId ? drafts().find((d) => d.id === c.editingId) : undefined;
+    const draft: Draft = existing
+      ? { ...existing, body, updatedAt: now }
+      : { id: newId(), file: c.file, side: c.side, line: c.line, lineText: c.lineText, body, status: "active", createdAt: now, updatedAt: now };
+    // Keep the box open with its text if the save fails.
+    if (await saveDrafts(() => putDrafts([draft]))) setComposer(null);
+  };
+  const deleteDraft = (d: Draft) => {
+    if (composer()?.editingId === d.id) setComposer(null);
+    void saveDrafts(() => removeDraft(d.id));
+  };
+
+  const fileOrder = () => files().map((f) => f.file);
+  const sortedDrafts = createMemo(() => {
+    const order = fileOrder();
+    return [...drafts()].sort((a, b) => order.indexOf(a.file) - order.indexOf(b.file) || a.line - b.line);
+  });
+  const copyPrompt = async () => {
+    try {
+      await copyText(draftsPrompt(drafts(), fileOrder()));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      setDraftError(String(e));
+    }
+  };
+
   const toggle = (set: () => Set<string>, write: (s: Set<string>) => void, file: string) => {
     const next = new Set(set());
     next.has(file) ? next.delete(file) : next.add(file);
@@ -106,13 +215,30 @@ export function App() {
     if (reviewed().has(file) && expanded().has(file)) toggleExpanded(file);
   };
 
-  /** Flat row list: one header per file, lines only for expanded files. */
+  /**
+   * Flat row list: one header per file; for expanded files, outdated drafts first,
+   * then each line followed by its drafts and the comment box if it's open there.
+   */
   const rows = createMemo<Row[]>(() => {
     const out: Row[] = [];
     const open = expanded();
+    const c = composer();
+    const byAnchor = activeByAnchor();
+    const pushDraft = (fileIdx: number, draft: Draft) =>
+      out.push(c?.editingId === draft.id ? { type: "composer", fileIdx } : { type: "draft", fileIdx, draft });
     files().forEach((f, fileIdx) => {
       out.push({ type: "header", fileIdx });
-      if (open.has(f.file)) for (const line of f.lines) out.push({ type: "line", fileIdx, line });
+      if (!open.has(f.file)) return;
+      for (const d of outdatedByFile().get(f.file) ?? []) pushDraft(fileIdx, d);
+      for (const line of f.lines) {
+        out.push({ type: "line", fileIdx, line });
+        const a = anchorOf(line);
+        if (!a) continue;
+        for (const d of byAnchor.get(anchorKey(f.file, a.side, a.line)) ?? []) pushDraft(fileIdx, d);
+        if (c && !c.editingId && c.file === f.file && c.side === a.side && c.line === a.line) {
+          out.push({ type: "composer", fileIdx });
+        }
+      }
     });
     return out;
   });
@@ -128,7 +254,10 @@ export function App() {
       return rows().length;
     },
     getScrollElement: () => scroller,
-    estimateSize: (i) => (rows()[i]?.type === "header" ? HEADER_H : LINE_H),
+    estimateSize: (i) => {
+      const t = rows()[i]?.type;
+      return t === "header" ? HEADER_H : t === "draft" ? DRAFT_H : t === "composer" ? COMPOSER_H : LINE_H;
+    },
     overscan: 30,
   });
   // Row indexes shift when files expand/collapse; drop cached sizes.
@@ -146,8 +275,18 @@ export function App() {
     if (row !== undefined) virtualizer.scrollToIndex(row, { align: "start" });
   };
 
+  const jumpToDraft = (d: Draft) => {
+    const fileIdx = files().findIndex((f) => f.file === d.file);
+    if (fileIdx === -1) return;
+    setCursor(fileIdx);
+    if (!expanded().has(d.file)) toggleExpanded(d.file);
+    const row = rows().findIndex((r) => r.type === "draft" && r.draft.id === d.id);
+    if (row !== -1) virtualizer.scrollToIndex(row, { align: "center" });
+  };
+
   const onKey = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey) return;
+    if (e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]")) return;
+    if (e.metaKey || e.ctrlKey) return;
     const current = files()[cursor()];
     if (e.key === "j") jumpTo(cursor() + 1);
     else if (e.key === "k") jumpTo(cursor() - 1);
@@ -188,6 +327,36 @@ export function App() {
 
         <section>
           <h2>
+            Drafts <span class="muted">{drafts().length}</span>
+          </h2>
+          <Show when={draftError()}>
+            <p class="error">{draftError()}</p>
+          </Show>
+          <Show
+            when={drafts().length}
+            fallback={<p class="muted">Click + next to a line to leave a comment. Drafts stay on this machine.</p>}
+          >
+            <button class="copy-prompt" onClick={copyPrompt}>
+              {copied() ? "Copied" : "Copy all as prompt"}
+            </button>
+            <For each={sortedDrafts()}>
+              {(d) => (
+                <button class="draft-link" onClick={() => jumpToDraft(d)}>
+                  <span class="draft-where">
+                    {d.file.split("/").pop()}:{d.line}
+                    <Show when={d.status === "outdated"}>
+                      <span class="outdated">outdated</span>
+                    </Show>
+                  </span>
+                  <span class="draft-preview">{d.body}</span>
+                </button>
+              )}
+            </For>
+          </Show>
+        </section>
+
+        <section>
+          <h2>
             Files <span class="muted">{reviewed().size}/{files().length} reviewed</span>
           </h2>
           <For each={files()}>
@@ -202,11 +371,14 @@ export function App() {
                 <Show when={f.flags.length}>
                   <span class="flag-count">{f.flags.length}</span>
                 </Show>
+                <Show when={draftCount(f.file)}>
+                  {(n) => <span class="draft-count" title="Draft comments">{n()}</span>}
+                </Show>
               </button>
             )}
           </For>
         </section>
-        <p class="muted keys">j/k next/prev · x expand · r reviewed</p>
+        <p class="muted keys">j/k next/prev · x expand · r reviewed · ⌘/Ctrl+Enter save comment · Esc cancel</p>
       </aside>
 
       <main class="diff" ref={scroller}>
@@ -215,23 +387,45 @@ export function App() {
             {(item) => {
               const row = () => rows()[item.index]!;
               const file = () => files()[row().fileIdx]!;
+              // Draft and comment rows vary in height: the virtualizer measures every row element
+              // (a ResizeObserver keeps it current when a row changes type), fixed rows keep their height.
+              const measured = () => row().type === "draft" || row().type === "composer";
               return (
                 <div
                   class="row"
-                  style={{ transform: `translateY(${item.start}px)`, height: `${item.size}px` }}
+                  data-index={item.index}
+                  ref={(el) => queueMicrotask(() => virtualizer.measureElement(el))}
+                  style={{ transform: `translateY(${item.start}px)`, height: measured() ? undefined : `${row().type === "header" ? HEADER_H : LINE_H}px` }}
                 >
-                  <Show
-                    when={row().type === "header"}
-                    fallback={<LineRow line={(row() as Extract<Row, { type: "line" }>).line} />}
-                  >
-                    <FileHeader
-                      file={file()}
-                      expanded={expanded().has(file().file)}
-                      reviewed={reviewed().has(file().file)}
-                      onToggle={() => toggleExpanded(file().file)}
-                      onReviewed={() => toggleReviewed(file().file)}
-                    />
-                  </Show>
+                  <Switch>
+                    <Match when={row().type === "header"}>
+                      <FileHeader
+                        file={file()}
+                        expanded={expanded().has(file().file)}
+                        reviewed={reviewed().has(file().file)}
+                        drafts={draftCount(file().file)}
+                        onToggle={() => toggleExpanded(file().file)}
+                        onReviewed={() => toggleReviewed(file().file)}
+                      />
+                    </Match>
+                    <Match when={row().type === "line" && (row() as Extract<Row, { type: "line" }>)}>
+                      {(lr) => <LineRow line={lr().line} onComment={() => commentOn(file().file, lr().line)} />}
+                    </Match>
+                    <Match when={row().type === "draft" && (row() as Extract<Row, { type: "draft" }>)}>
+                      {(dr) => (
+                        <DraftRow draft={dr().draft} onEdit={() => editDraft(dr().draft)} onDelete={() => deleteDraft(dr().draft)} />
+                      )}
+                    </Match>
+                    <Match when={row().type === "composer"}>
+                      <CommentBox
+                        target={composer()!}
+                        text={composerText()}
+                        onInput={setComposerText}
+                        onSubmit={submitComposer}
+                        onCancel={() => setComposer(null)}
+                      />
+                    </Match>
+                  </Switch>
                 </div>
               );
             }}
@@ -246,6 +440,7 @@ function FileHeader(props: {
   file: ReviewFile;
   expanded: boolean;
   reviewed: boolean;
+  drafts: number;
   onToggle: () => void;
   onReviewed: () => void;
 }) {
@@ -259,6 +454,9 @@ function FileHeader(props: {
         <span class="stat del">−{props.file.deletions}</span>
         <Show when={props.file.overridden}>
           {(rule) => <span class="override" title="Tier forced by rule">rule: {rule()}</span>}
+        </Show>
+        <Show when={props.drafts}>
+          <span class="draft-count" title="Draft comments">{props.drafts} draft{props.drafts === 1 ? "" : "s"}</span>
         </Show>
         <label class="reviewed">
           <input type="checkbox" checked={props.reviewed} onChange={props.onReviewed} /> reviewed
@@ -274,12 +472,71 @@ function FileHeader(props: {
   );
 }
 
-function LineRow(props: { line: DiffLine }) {
+function LineRow(props: { line: DiffLine; onComment: () => void }) {
   return (
     <div class={`line line-${props.line.kind}`}>
+      <Show when={anchorOf(props.line)} fallback={<span class="add-comment" />}>
+        <button class="add-comment" title="Comment on this line" onClick={props.onComment}>
+          +
+        </button>
+      </Show>
       <span class="ln">{props.line.oldNo ?? ""}</span>
       <span class="ln">{props.line.newNo ?? ""}</span>
       <span class="code">{props.line.text}</span>
+    </div>
+  );
+}
+
+function DraftRow(props: { draft: Draft; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div class="draft" classList={{ "draft-outdated": props.draft.status === "outdated" }}>
+      <div class="draft-meta">
+        <span>Draft</span>
+        <Show when={props.draft.status === "outdated"}>
+          <span class="outdated" title="This line changed since the comment was written">
+            outdated · was line {props.draft.line}: <code>{props.draft.lineText.trim()}</code>
+          </span>
+        </Show>
+        <button class="link" onClick={props.onEdit}>edit</button>
+        <button class="link danger" onClick={props.onDelete}>delete</button>
+      </div>
+      <div class="draft-body">{props.draft.body}</div>
+    </div>
+  );
+}
+
+function CommentBox(props: {
+  target: ComposerTarget;
+  text: string;
+  onInput: (text: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      props.onSubmit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      props.onCancel();
+    }
+  };
+  return (
+    <div class="draft composer">
+      <textarea
+        ref={(el) => queueMicrotask(() => el.focus())}
+        rows={3}
+        placeholder={`Comment on ${props.target.file}:${props.target.line}`}
+        value={props.text}
+        onInput={(e) => props.onInput(e.currentTarget.value)}
+        onKeyDown={onKeyDown}
+      />
+      <div class="composer-actions">
+        <button class="link" onClick={props.onCancel}>cancel</button>
+        <button class="primary" disabled={!props.text.trim()} onClick={props.onSubmit}>
+          {props.target.editingId ? "Update draft" : "Save draft"}
+        </button>
+      </div>
     </div>
   );
 }
