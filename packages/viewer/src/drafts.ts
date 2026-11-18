@@ -1,4 +1,4 @@
-import type { Draft, DraftSet } from "@changestack/schema";
+import type { Draft, DraftSet, SubmitResult } from "@changestack/schema";
 import type { DiffLine, ParsedFile } from "./diff";
 
 export type Side = Draft["side"];
@@ -33,6 +33,18 @@ async function call(method: string, path: string, body?: unknown): Promise<Draft
 export const fetchDrafts = () => call("GET", "/api/drafts");
 export const putDrafts = (drafts: Draft[]) => call("PUT", "/api/drafts", { drafts });
 export const removeDraft = (id: string) => call("DELETE", `/api/drafts/${encodeURIComponent(id)}`);
+
+/** Post every draft as one GitHub review. Throws with the server's message on failure. */
+export async function submitReview(body?: string): Promise<SubmitResult> {
+  const res = await fetch("/api/submit", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ body }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((json as { error?: string }).error ?? `POST /api/submit → ${res.status}`);
+  return json as SubmitResult;
+}
 
 /**
  * When the diff changes, find each draft's line again:

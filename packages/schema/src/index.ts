@@ -49,28 +49,59 @@ export const AnnotationDraft = z.object({
 });
 export type AnnotationDraft = z.infer<typeof AnnotationDraft>;
 
-/** What gets written to disk and served to the viewer. */
+/** What gets cached under `.git/changestack/reviews/` and served to the viewer. */
 export const Annotation = AnnotationDraft.extend({
-  version: z.literal(1),
-  base: z.string().describe("Git ref the diff is taken against"),
-  head: z.string().describe("Commit sha, or 'worktree' for uncommitted changes"),
+  version: z.literal(2),
+  pr: z.number().int().positive().describe("Pull request number the annotation was made for"),
+  base: z.string().describe("Full sha of the PR's base commit when the diff was fetched"),
+  head: z.string().describe("Full sha of the PR's head commit when the diff was fetched"),
+  /** sha256 of the diff text plus prompt version and model; the cache key. */
+  diffHash: z.string(),
   createdAt: z.string(),
   model: z.string(),
+  /** Session transcripts that fed the classifier, if any were found. */
+  transcripts: z.array(z.string()),
   /** Sections whose tier was forced up by a deterministic rule. */
   overrides: z.array(z.object({ file: z.string(), from: Tier, to: Tier, rule: z.string() })),
 });
 export type Annotation = z.infer<typeof Annotation>;
 
+/** The PR being reviewed, as the viewer needs it. */
+export const PrInfo = z.object({
+  number: z.number().int().positive(),
+  title: z.string(),
+  url: z.string(),
+  baseRefName: z.string(),
+  headRefName: z.string(),
+  baseRefOid: z.string(),
+  headRefOid: z.string(),
+});
+export type PrInfo = z.infer<typeof PrInfo>;
+
+/** Where classification stands. The viewer polls while it is `classifying`. */
+export const ClassifyStatus = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("classifying"), startedAt: z.string(), files: z.number(), model: z.string(), detail: z.string() }),
+  z.object({ state: z.literal("ready"), cached: z.boolean() }),
+  z.object({ state: z.literal("error"), message: z.string() }),
+]);
+export type ClassifyStatus = z.infer<typeof ClassifyStatus>;
+
 /** Payload of GET /api/review. */
 export const ReviewPayload = z.object({
+  pr: PrInfo,
+  status: ClassifyStatus,
   annotation: Annotation.nullable(),
   diff: z.string(),
 });
 export type ReviewPayload = z.infer<typeof ReviewPayload>;
 
+/** Body of POST /api/submit's success response. */
+export const SubmitResult = z.object({ url: z.string(), posted: z.number(), inBody: z.number() });
+export type SubmitResult = z.infer<typeof SubmitResult>;
+
 /**
- * Which set of drafts a review belongs to. Today the CLI uses `branch:<name>`;
- * a PR-based flow will use `pr:<number>` so each PR keeps its own drafts.
+ * Which set of drafts a review belongs to. PR reviews use `pr:<number>`, so each PR
+ * keeps its own drafts; `branch:` and `detached:` remain valid for older files.
  */
 export const DraftScope = z.string().regex(/^(branch|pr|detached):[^\0]{1,200}$/);
 export type DraftScope = z.infer<typeof DraftScope>;

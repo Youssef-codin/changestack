@@ -9,12 +9,11 @@ export function repoRoot(cwd = process.cwd()): string {
 
 export function stateDir(root: string): string {
   const dir = join(root, ".changestack");
-  mkdirSync(join(dir, "review"), { recursive: true });
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 export const intentLogPath = (root: string) => join(stateDir(root), "intent.jsonl");
-export const reviewPath = (root: string, name: string) => join(stateDir(root), "review", `${name}.json`);
 
 /**
  * `.git/changestack/`: state that should survive restarts but never be
@@ -30,6 +29,10 @@ export function gitStateDir(root: string, ...sub: string[]): string {
   return dir;
 }
 
-/** Drafts for one scope (`branch:<name>`, later `pr:<n>`). The scope is encoded so `/` in branch names is safe. */
+/** Drafts for one scope (`pr:<n>`; older files use `branch:<name>`). The scope is encoded so `/` in branch names is safe. */
 export const draftsPath = (root: string, scope: string) =>
   join(gitStateDir(root, "drafts"), `${encodeURIComponent(scope)}.json`);
+
+/** Cached annotation for one PR at one diff. */
+export const reviewCachePath = (root: string, pr: number, diffHash: string) =>
+  join(gitStateDir(root, "reviews"), `pr-${pr}-${diffHash.slice(0, 16)}.json`);

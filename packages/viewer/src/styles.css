@@ -131,3 +131,21 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .draft-preview { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .draft-count { background: var(--accent); color: var(--bg); border-radius: 8px; padding: 0 6px; font-size: 11px; }
 @media (max-width: 760px) { .draft { margin-left: 24px; } }
+
+.pr { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.pr-title { color: var(--text); font-weight: 600; text-decoration: none; }
+.pr-title:hover { text-decoration: underline; }
+.pr-refs { font: 11px var(--mono); }
+.meta { font-size: 11px; margin: 6px 0 0; }
+.ok { color: var(--add-fg); }
+.ok a, .error a { color: inherit; }
+.progress { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); margin-bottom: 12px; }
+.spinner { flex: none; width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.draft-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.draft-actions .copy-prompt { margin: 0; width: auto; flex: 1; }
+.confirm { border: 1px solid var(--border); border-radius: 6px; background: var(--bg); padding: 10px; margin-bottom: 10px; }
+.confirm p { margin: 0 0 8px; }
+.confirm textarea { width: 100%; font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px; resize: vertical; }
+button:disabled { opacity: .5; cursor: default; }

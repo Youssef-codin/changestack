@@ -2,16 +2,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { Draft, DraftScope, DraftSet } from "@changestack/schema";
 import { draftsPath } from "./paths";
 
-/** Default scope for the working tree: the current branch, or the commit when detached. */
-export function currentScope(root: string): DraftScope {
-  const run = (args: string[]) => {
-    const res = Bun.spawnSync(["git", ...args], { cwd: root });
-    return res.exitCode === 0 ? res.stdout.toString().trim() : null;
-  };
-  const branch = run(["symbolic-ref", "--short", "-q", "HEAD"]);
-  if (branch) return `branch:${branch}`;
-  return `detached:${run(["rev-parse", "--short", "HEAD"]) ?? "unborn"}`;
-}
+export const prScope = (pr: number): DraftScope => `pr:${pr}`;
 
 export function loadDrafts(root: string, scope: DraftScope): DraftSet {
   const path = draftsPath(root, scope);
@@ -39,6 +30,14 @@ export function upsertDrafts(root: string, scope: DraftScope, drafts: Draft[]): 
   const byId = new Map(set.drafts.map((d) => [d.id, d]));
   for (const d of drafts) byId.set(d.id, d);
   const next: DraftSet = { ...set, drafts: [...byId.values()] };
+  save(root, next);
+  return next;
+}
+
+/** Remove several drafts at once (after they were posted). Drafts added meanwhile survive. */
+export function removeDrafts(root: string, scope: DraftScope, ids: Set<string>): DraftSet {
+  const set = loadDrafts(root, scope);
+  const next: DraftSet = { ...set, drafts: set.drafts.filter((d) => !ids.has(d.id)) };
   save(root, next);
   return next;
 }

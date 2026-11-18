@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sessionContext } from "./claude-code-transcripts";
 import type { Harness, RunJsonRequest, RunJsonResult } from "./index";
 
 const TIMEOUT_MS = 5 * 60_000;
@@ -88,6 +89,7 @@ class FatalHarnessError extends Error {}
 export const claudeCode: Harness = {
   name: "claude-code",
   defaultModel: "haiku",
+  sessionContext,
 
   async runJson<T>(req: RunJsonRequest<T>): Promise<RunJsonResult<T>> {
     const model = req.model ?? this.defaultModel;

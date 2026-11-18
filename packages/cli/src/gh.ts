@@ -1,4 +1,7 @@
-/** Thin wrapper over the GitHub CLI. Everything here reads from GitHub; nothing touches the working tree. */
+/**
+ * Thin wrapper over the GitHub CLI. Nothing here touches the working tree. Only
+ * `submitReview` writes to GitHub, and only when the reviewer clicks Submit.
+ */
 
 export interface PullRequest {
   number: number;
@@ -6,11 +9,12 @@ export interface PullRequest {
   url: string;
   baseRefName: string;
   headRefName: string;
+  baseRefOid: string;
   headRefOid: string;
   isDraft: boolean;
 }
 
-const PR_FIELDS = "number,title,url,baseRefName,headRefName,headRefOid,isDraft";
+const PR_FIELDS = "number,title,url,baseRefName,headRefName,baseRefOid,headRefOid,isDraft";
 
 export class GhError extends Error {}
 
@@ -121,3 +125,43 @@ export function resolvePr(root: string, target?: string): PullRequest {
 }
 
 export const describePr = label;
+
+export interface ReviewComment {
+  path: string;
+  line: number;
+  side: "LEFT" | "RIGHT";
+  body: string;
+}
+
+/**
+ * Post one COMMENT review (never approve / request changes) on `pr` as the gh user.
+ * Pinned to `commitId`, the head the reviewer was looking at. Returns the review's URL.
+ */
+export function submitReview(
+  root: string,
+  pr: PullRequest,
+  commitId: string,
+  review: { body: string; comments: ReviewComment[] },
+): string {
+  const m = pr.url.match(/^https?:\/\/([^/]+)\/([^/]+)\/([^/]+)\/pull\/\d+/);
+  if (!m) throw new GhError(`can't tell the repository from ${pr.url}`);
+  const [, host, owner, repo] = m;
+  const args = ["api", "--method", "POST", `repos/${owner}/${repo}/pulls/${pr.number}/reviews`, "--input", "-"];
+  if (host !== "github.com") args.push("--hostname", host!);
+
+  requireGh();
+  const payload = JSON.stringify({ commit_id: commitId, event: "COMMENT", body: review.body, comments: review.comments });
+  const res = Bun.spawnSync(["gh", ...args], { cwd: root, stdin: new Blob([payload]), stdout: "pipe", stderr: "pipe" });
+  const out = res.stdout.toString();
+  if (res.exitCode !== 0) {
+    // gh prints the API's JSON error on stdout; its message is the useful part.
+    let detail = res.stderr.toString().trim();
+    try {
+      const err = JSON.parse(out) as { message?: string; errors?: unknown[] };
+      detail = [err.message, ...(err.errors ?? []).map((e) => (typeof e === "string" ? e : JSON.stringify(e)))].filter(Boolean).join("; ") || detail;
+    } catch {}
+    throw new GhError(`GitHub rejected the review: ${detail || "unknown error"}`);
+  }
+  const posted = JSON.parse(out) as { html_url?: string };
+  return posted.html_url ?? pr.url;
+}

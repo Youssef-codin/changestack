@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { claudeCode } from "./claude-code";
 
+
 export interface RunJsonRequest<T> {
   system: string;
   prompt: string;
@@ -15,6 +16,23 @@ export interface RunJsonResult<T> {
   model: string;
 }
 
+export interface SessionContextRequest {
+  root: string;
+  /** The PR's head branch; sessions on other branches are ignored. */
+  branch: string;
+  /** Repo-relative paths changed in the PR. */
+  files: string[];
+  /** Most characters of transcript to return. 0 turns transcripts off. */
+  budget: number;
+}
+
+export interface SessionContext {
+  /** Condensed transcript text for the classifier prompt. */
+  text: string;
+  /** Transcript files it came from. */
+  sources: string[];
+}
+
 /** A coding-agent CLI that changestack drives headlessly. */
 export interface Harness {
   name: string;
@@ -22,6 +40,8 @@ export interface Harness {
   defaultModel: string;
   /** Run one prompt with no tools and return output validated against `schema`. Retries once on failure. */
   runJson<T>(req: RunJsonRequest<T>): Promise<RunJsonResult<T>>;
+  /** What the agent's own sessions say about this PR, or null when none are found. */
+  sessionContext?(req: SessionContextRequest): SessionContext | null;
 }
 
 /** The configured harness. Only Claude Code exists today. */

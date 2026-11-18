@@ -1,4 +1,4 @@
-import type { Annotation, Draft, Flag, ReviewPayload, Tier } from "@changestack/schema";
+import type { Annotation, Draft, Flag, ReviewPayload, SubmitResult, Tier } from "@changestack/schema";
 import { TIER_ORDER } from "@changestack/schema/tiers";
 import { createVirtualizer } from "@tanstack/solid-virtual";
 import { createEffect, createMemo, createResource, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js";
@@ -14,6 +14,7 @@ import {
   reanchor,
   removeDraft,
   type Side,
+  submitReview,
 } from "./drafts";
 
 interface ReviewFile extends ParsedFile {
@@ -101,10 +102,28 @@ function loadReviewed(key: string): Set<string> {
   }
 }
 
+/** How often the viewer asks whether classification has finished. */
+const POLL_MS = 1000;
+
 export function App() {
-  const [payload] = createResource(fetchReview);
-  const files = createMemo(() => (payload() ? buildFiles(payload()!) : []));
-  const storageKey = () => `changestack:reviewed:${payload()?.annotation?.createdAt ?? "none"}`;
+  const [payload, { refetch }] = createResource(fetchReview);
+  const status = () => payload.latest?.status;
+  // Poll while the model runs; the diff is already on screen, the order arrives with the annotation.
+  createEffect(() => {
+    if (status()?.state !== "classifying") return;
+    const timer = setTimeout(() => void refetch(), POLL_MS);
+    onCleanup(() => clearTimeout(timer));
+  });
+  const [now, setNow] = createSignal(Date.now());
+  const clock = setInterval(() => setNow(Date.now()), 1000);
+  onCleanup(() => clearInterval(clock));
+
+  // Each poll returns a new object; only rebuild (and reset expand state) when the diff or annotation changes.
+  const review = createMemo(() => payload.latest, undefined, {
+    equals: (a, b) => !!a && !!b && a.pr.headRefOid === b.pr.headRefOid && a.annotation?.createdAt === b.annotation?.createdAt,
+  });
+  const files = createMemo(() => (review() ? buildFiles(review()!) : []));
+  const storageKey = () => `changestack:reviewed:pr-${review()?.pr.number ?? 0}:${review()?.pr.headRefOid ?? "none"}`;
 
   const [expanded, setExpanded] = createSignal(new Set<string>());
   const [reviewed, setReviewed] = createSignal(new Set<string>());
@@ -135,7 +154,7 @@ export function App() {
 
   // The diff may have moved on since a draft was written: find its line again, or mark it outdated.
   createEffect(() => {
-    if (!payload() || draftSet.state !== "ready") return;
+    if (!review() || draftSet.state !== "ready") return;
     const changed = reanchor(drafts(), files());
     if (changed.length) void saveDrafts(() => putDrafts(changed));
   });
@@ -195,6 +214,30 @@ export function App() {
       setTimeout(() => setCopied(false), 1500);
     } catch (e) {
       setDraftError(String(e));
+    }
+  };
+
+  // Submit review: two steps (button, then confirm) so nothing posts by accident.
+  const [confirming, setConfirming] = createSignal(false);
+  const [reviewBody, setReviewBody] = createSignal("");
+  const [submitting, setSubmitting] = createSignal(false);
+  const [submitted, setSubmitted] = createSignal<SubmitResult | null>(null);
+  const outdatedCount = () => drafts().filter((d) => d.status === "outdated").length;
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      const result = await submitReview(reviewBody().trim() || undefined);
+      setSubmitted(result);
+      setConfirming(false);
+      setReviewBody("");
+      setComposer(null);
+      setDraftError(null);
+      setDraftSet(await fetchDrafts());
+    } catch (e) {
+      // Drafts are untouched on failure; the server only clears them after GitHub accepts.
+      setDraftError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -296,7 +339,11 @@ export function App() {
   window.addEventListener("keydown", onKey);
   onCleanup(() => window.removeEventListener("keydown", onKey));
 
-  const generalFlags = () => (payload()?.annotation?.flags ?? []).filter((f) => !f.file);
+  const generalFlags = () => (review()?.annotation?.flags ?? []).filter((f) => !f.file);
+  const elapsed = () => {
+    const st = status();
+    return st?.state === "classifying" ? Math.max(0, Math.round((now() - Date.parse(st.startedAt)) / 1000)) : 0;
+  };
 
   return (
     <div class="layout">
@@ -305,11 +352,57 @@ export function App() {
         <Show when={payload.error}>
           <p class="error">Couldn't load review: {String(payload.error)}</p>
         </Show>
-        <Show when={payload() && !payload()!.annotation}>
-          <p class="muted">No annotation yet — run <code>changestack annotate</code>. Showing raw diff.</p>
+        <Show when={review()?.pr}>
+          {(pr) => (
+            <div class="pr">
+              <a class="pr-title" href={pr().url} target="_blank" rel="noreferrer">
+                #{pr().number} {pr().title}
+              </a>
+              <span class="muted pr-refs">
+                {pr().headRefName} → {pr().baseRefName} @ {pr().headRefOid.slice(0, 7)}
+              </span>
+            </div>
+          )}
         </Show>
-        <Show when={payload()?.annotation}>
-          {(ann) => <p class="summary">{ann().summary}</p>}
+        <Switch>
+          <Match when={status()?.state === "classifying" && status()}>
+            {(st) => {
+              const c = st() as Extract<NonNullable<ReturnType<typeof status>>, { state: "classifying" }>;
+              return (
+                <div class="progress" role="status">
+                  <span class="spinner" aria-hidden="true" />
+                  <div>
+                    <div>
+                      Classifying {c.files} file{c.files === 1 ? "" : "s"} with {c.model} · {elapsed()}s
+                    </div>
+                    <div class="muted">{c.detail} Showing the raw diff until it finishes.</div>
+                  </div>
+                </div>
+              );
+            }}
+          </Match>
+          <Match when={status()?.state === "error" && status()}>
+            {(st) => (
+              <p class="error">
+                Classification failed: {(st() as { message: string }).message} Showing the raw diff; rerun with{" "}
+                <code>changestack --refresh</code>.
+              </p>
+            )}
+          </Match>
+        </Switch>
+        <Show when={review()?.annotation}>
+          {(ann) => (
+            <>
+              <p class="summary">{ann().summary}</p>
+              <p class="muted meta">
+                {ann().model}
+                {status()?.state === "ready" && (status() as { cached: boolean }).cached ? " · cached" : ""}
+                {ann().transcripts.length
+                  ? ` · ${ann().transcripts.length} session transcript${ann().transcripts.length === 1 ? "" : "s"}`
+                  : " · diff only, no transcript found"}
+              </p>
+            </>
+          )}
         </Show>
 
         <Show when={generalFlags().length}>
@@ -332,13 +425,50 @@ export function App() {
           <Show when={draftError()}>
             <p class="error">{draftError()}</p>
           </Show>
+          <Show when={submitted()}>
+            {(r) => (
+              <p class="ok">
+                Posted review with {r().posted} comment{r().posted === 1 ? "" : "s"}
+                {r().inBody ? ` (+${r().inBody} outdated in the body)` : ""}.{" "}
+                <a href={r().url} target="_blank" rel="noreferrer">View on GitHub</a>
+              </p>
+            )}
+          </Show>
           <Show
             when={drafts().length}
-            fallback={<p class="muted">Click + next to a line to leave a comment. Drafts stay on this machine.</p>}
+            fallback={<p class="muted">Click + next to a line to leave a comment. Drafts stay on this machine until you submit.</p>}
           >
-            <button class="copy-prompt" onClick={copyPrompt}>
-              {copied() ? "Copied" : "Copy all as prompt"}
-            </button>
+            <div class="draft-actions">
+              <button class="copy-prompt" onClick={copyPrompt}>
+                {copied() ? "Copied" : "Copy all as prompt"}
+              </button>
+              <Show when={!confirming()}>
+                <button class="primary" onClick={() => { setSubmitted(null); setConfirming(true); }}>
+                  Submit review
+                </button>
+              </Show>
+            </div>
+            <Show when={confirming()}>
+              <div class="confirm">
+                <p>
+                  Post {drafts().length} draft{drafts().length === 1 ? "" : "s"} to{" "}
+                  <b>#{review()?.pr.number}</b> on GitHub as you, as one comment-only review
+                  {outdatedCount() ? `; ${outdatedCount()} outdated go in the review body` : ""}.
+                </p>
+                <textarea
+                  rows={3}
+                  placeholder="Optional overall comment"
+                  value={reviewBody()}
+                  onInput={(e) => setReviewBody(e.currentTarget.value)}
+                />
+                <div class="composer-actions">
+                  <button class="link" disabled={submitting()} onClick={() => setConfirming(false)}>cancel</button>
+                  <button class="primary" disabled={submitting()} onClick={submit}>
+                    {submitting() ? "Posting…" : "Post review"}
+                  </button>
+                </div>
+              </div>
+            </Show>
             <For each={sortedDrafts()}>
               {(d) => (
                 <button class="draft-link" onClick={() => jumpToDraft(d)}>
