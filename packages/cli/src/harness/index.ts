@@ -1,0 +1,35 @@
+import type { z } from "zod";
+import { claudeCode } from "./claude-code";
+
+export interface RunJsonRequest<T> {
+  system: string;
+  prompt: string;
+  schema: z.ZodType<T>;
+  /** Overrides the harness default (an alias or an exact model ID). */
+  model?: string;
+}
+
+export interface RunJsonResult<T> {
+  data: T;
+  /** The model that actually answered, as reported by the harness. */
+  model: string;
+}
+
+/** A coding-agent CLI that changestack drives headlessly. */
+export interface Harness {
+  name: string;
+  /** Model used when nothing is pinned. Each harness supplies its own names. */
+  defaultModel: string;
+  /** Run one prompt with no tools and return output validated against `schema`. Retries once on failure. */
+  runJson<T>(req: RunJsonRequest<T>): Promise<RunJsonResult<T>>;
+}
+
+/** The configured harness. Only Claude Code exists today. */
+export function getHarness(): Harness {
+  return claudeCode;
+}
+
+/** `CHANGESTACK_MODEL` pins an exact model ID; otherwise the harness default applies. */
+export function configuredModel(harness: Harness): string {
+  return process.env.CHANGESTACK_MODEL?.trim() || harness.defaultModel;
+}
