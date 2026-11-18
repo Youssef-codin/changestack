@@ -1,6 +1,4 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import {
   type Annotation,
   AnnotationDraft,
@@ -8,13 +6,13 @@ import {
   type Section,
 } from "@changestack/schema";
 import { type FileDiff, headSha, splitDiff, workingDiff } from "./git";
+import { configuredModel, getHarness } from "./harness";
 import { intentLogPath, repoRoot, reviewPath } from "./paths";
 import { applyRules } from "./rules";
 
-const MODEL = "claude-haiku-4-5";
 /** Per-file cap on diff text sent to the model. Trimmed files are labelled as such in the prompt. */
 const MAX_FILE_CHARS = 12_000;
-/** Overall cap, well under Haiku's 200K-token context. */
+/** Overall cap, well under Haiku's context window. */
 const MAX_TOTAL_CHARS = 400_000;
 
 const SYSTEM = `You help a human review code changes written by an AI coding agent.
@@ -111,26 +109,16 @@ export async function annotate(args: string[]): Promise<void> {
   }
 
   const intent = readIntent(root);
-  log(`changestack: annotating ${files.length} file(s) with ${MODEL}…`);
+  const harness = getHarness();
+  const requested = configuredModel(harness);
+  log(`changestack: annotating ${files.length} file(s) with ${harness.name} (${requested})…`);
 
-  const client = new Anthropic();
-  let draft: AnnotationDraft;
-  try {
-    const response = await client.messages.parse({
-      model: MODEL,
-      max_tokens: 16000,
-      system: SYSTEM,
-      messages: [{ role: "user", content: renderPrompt(files, intent) }],
-      output_config: { format: zodOutputFormat(AnnotationDraft) },
-    });
-    if (!response.parsed_output) throw new Error(`model returned no parseable output (stop_reason: ${response.stop_reason})`);
-    draft = response.parsed_output;
-  } catch (err) {
-    if (err instanceof Anthropic.AuthenticationError) throw new Error("Anthropic auth failed: set ANTHROPIC_API_KEY or run `ant auth login`");
-    if (err instanceof Anthropic.RateLimitError) throw new Error("Anthropic rate limit hit; try again shortly");
-    if (err instanceof Anthropic.APIError) throw new Error(`Anthropic API error ${err.status}: ${err.message}`);
-    throw err;
-  }
+  const { data: draft, model } = await harness.runJson({
+    system: SYSTEM,
+    prompt: renderPrompt(files, intent),
+    schema: AnnotationDraft,
+    model: requested,
+  });
 
   const { sections, overrides } = finalize(draft.sections, files);
   const head = headSha(root) ?? "unborn";
@@ -139,7 +127,7 @@ export async function annotate(args: string[]): Promise<void> {
     base,
     head: "worktree",
     createdAt: new Date().toISOString(),
-    model: MODEL,
+    model,
     summary: draft.summary,
     sections,
     flags: draft.flags,
