@@ -1,0 +1,826 @@
+<title>changestack directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Fragment+Mono&display=swap">
+<style>
+/* Layout: notes column, then one direction at a time (tabs), each as four full-size frames: Briefing and Review, light and dark. Frames scroll sideways on narrow screens; the page never does.
+   Every mock uses the Riso role tokens from docs/design/colorways.css (prefixed --r- here). Directions differ in type, density and structure only. */
+:root {
+  --bg: #f6f6f5;
+  --sheet: #fdfdfc;
+  --line: #e1e1de;
+  --fg: #1b1d26;
+  --mute: #6b6d76;
+  --pink: #d1306a;
+  --pink-bg: #fbe9ef;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121214; --sheet: #1a1a1d; --line: #2c2c31; --fg: #ebebee; --mute: #8f9099; --pink: #ff7aa8; --pink-bg: #2c1a22; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #121214; --sheet: #1a1a1d; --line: #2c2c31; --fg: #ebebee; --mute: #8f9099; --pink: #ff7aa8; --pink-bg: #2c1a22; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--sans); margin: 0; }
+.page { max-width: 1260px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 80px; }
+.prose { max-width: 68ch; }
+h1 { font-size: 30px; line-height: 1.2; margin: 0 0 10px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 21px; line-height: 1.3; margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
+p { margin: 0 0 12px; }
+.mute { color: var(--mute); }
+code { font: 13px var(--mono); }
+section.block { margin-top: 44px; }
+.rule { background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 18px 22px; margin: 14px 0; }
+.rule-lead { font-size: 17px; font-weight: 600; margin-bottom: 10px; text-wrap: balance; }
+.rule ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.pick { font: 500 12px var(--mono); color: var(--pink); background: var(--pink-bg); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; margin: 14px 0 6px; padding: 4px; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; max-width: 100%; }
+.tab { font: inherit; color: var(--mute); border-radius: 6px; padding: 7px 14px; text-decoration: none; display: flex; gap: 8px; align-items: baseline; transition: background .15s, color .15s, transform .1s; }
+.tab:hover { color: var(--fg); background: var(--bg); }
+.tab:active { transform: scale(.98); }
+.tab:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.tab[aria-selected="true"] { color: var(--fg); background: var(--pink-bg); }
+.tab b { font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .tab { transition: none; } .tab:active { transform: none; } }
+.dir-intro { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; margin: 22px 0 6px; }
+.dir-intro dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
+.dir-intro dt { color: var(--mute); }
+.dir-intro dd { margin: 0; }
+@media (max-width: 760px) { .dir-intro { grid-template-columns: 1fr; } }
+.frame-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 34px 0 10px; }
+.frame-label b { font-size: 15px; }
+.frame-label span { font-size: 13px; color: var(--mute); }
+.frame-scroll { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+.m { width: 1200px; position: relative; overflow: hidden; }
+
+/* ============================ Riso tokens (from colorways.css) ============================ */
+.m.light {
+  --r-bg: #f4f4f2; --r-surface: #fcfcfb; --r-line: #e0e0dd; --r-text: #1b1d26; --r-mute: #6b6d76; --r-faint: #a9abb6;
+  --r-accent: #1b1d26; --r-on-accent: #fcfcfb; --r-soft: #ebebee; --r-hunk: #ededef;
+  --r-flag-ink: #d1306a; --r-flag-bg: #fbe9ef; --r-flag-on: #6e1438; --r-flag-edge: #ff4f8b;
+  --r-v1: #1b1d26; --r-v1-bg: #ff4f8b; --r-v2: #a8285a; --r-v2-bg: #fbe9ef; --r-v3: #3b3f52; --r-v3-bg: #ebebee; --r-v4: #fcfcfb; --r-v4-bg: #1b1d26;
+  --r-add-bg: #e9edf7; --r-add-fg: #2c3d8a; --r-del-bg: #f3eef0; --r-del-fg: #7d5566;
+  --r-t1: #1b1d26; --r-t2: #4a4d5e; --r-t3: #7c7f8e; --r-t4: #a9abb6; --r-t5: #cbccd3;
+  --r-shadow: rgb(27 29 38 / .16);
+}
+.m.dark {
+  --r-bg: #121214; --r-surface: #1a1a1d; --r-line: #2c2c31; --r-text: #ebebee; --r-mute: #8f9099; --r-faint: #5d5e67;
+  --r-accent: #ebebee; --r-on-accent: #121214; --r-soft: #26262b; --r-hunk: #1f1f23;
+  --r-flag-ink: #ff7aa8; --r-flag-bg: #2c1a22; --r-flag-on: #ffc4d8; --r-flag-edge: #ff4f8b;
+  --r-v1: #121214; --r-v1-bg: #ff4f8b; --r-v2: #ff9cbf; --r-v2-bg: #2c1a22; --r-v3: #c4c6d0; --r-v3-bg: #26262b; --r-v4: #121214; --r-v4-bg: #ebebee;
+  --r-add-bg: #1a2034; --r-add-fg: #a9b6f0; --r-del-bg: #261c21; --r-del-fg: #d9a0b6;
+  --r-t1: #ebebee; --r-t2: #b2b3bb; --r-t3: #83848e; --r-t4: #5d5e67; --r-t5: #45464d;
+  --r-shadow: rgb(4 4 8 / .55);
+}
+.m { background: var(--r-bg); color: var(--r-text); }
+.m button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: default; }
+.ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* shared diff pieces */
+.m .ln-row { display: grid; white-space: pre; }
+.m .ln-row .o, .m .ln-row .n { text-align: right; padding-right: 8px; color: var(--r-faint); user-select: none; }
+.m .ln-row .sg { text-align: center; color: var(--r-faint); }
+.m .ln-row.add { background: var(--r-add-bg); }
+.m .ln-row.add .sg, .m .ln-row.add .tx { color: var(--r-add-fg); }
+.m .ln-row.del { background: var(--r-del-bg); }
+.m .ln-row.del .sg, .m .ln-row.del .tx { color: var(--r-del-fg); }
+.m .ln-row.hunk { display: block; background: var(--r-hunk); color: var(--r-mute); }
+.m .tx .k { font-weight: 700; }
+.m .tx .c { color: var(--r-mute); font-style: italic; }
+.m .add .tx .c { color: inherit; opacity: .75; }
+.m .ln-row.flagged .tx .mk { background: var(--r-flag-bg); color: var(--r-flag-on); box-shadow: 0 0 0 2px var(--r-flag-bg); border-radius: 2px; }
+.m .add-n { color: var(--r-add-fg); }
+.m .del-n { color: var(--r-del-fg); }
+.m .verdict-pill { background: var(--r-v1-bg); color: var(--r-v1); font-weight: 700; white-space: nowrap; }
+.m .picker { position: absolute; z-index: 3; background: var(--r-surface); border: 1px solid var(--r-line); box-shadow: 0 14px 36px var(--r-shadow); color: var(--r-text); }
+.m .picker .opt { display: grid; grid-template-columns: 76px 1fr; gap: 10px; padding: 8px 10px; }
+.m .picker .opt span { color: var(--r-mute); }
+.m .picker .opt.sel { background: var(--r-soft); }
+.m .picker .ask-run { border-top: 1px solid var(--r-line); padding: 10px; }
+.m .picker .ask-run div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* ============================ A · Print ============================
+   Radius rule: none on sheets and notes (print has no rounded corners); 999px only on the verdict pill. */
+.d-print { font: 14px/1.5 "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif; }
+.d-print .disp { font-family: "Bricolage Grotesque", "Hanken Grotesk", sans-serif; }
+.d-print .mono, .d-print code { font: 12.5px/1.5 "JetBrains Mono", ui-monospace, monospace; }
+.d-print .top { height: 48px; display: flex; align-items: center; gap: 14px; padding: 0 20px; background: var(--r-surface); border-bottom: 1px solid var(--r-line); }
+.d-print .top .verdict-pill { font-size: 12.5px; padding: 3px 11px; border-radius: 999px; }
+.d-print .top .title { font-weight: 600; }
+.d-print .chip { font: 12px "JetBrains Mono", monospace; border: 1px solid var(--r-line); padding: 2px 8px; white-space: nowrap; }
+.d-print .grow { flex: 1; }
+.d-print .prog { font-size: 13px; color: var(--r-mute); white-space: nowrap; }
+.d-print .prog b { color: var(--r-text); }
+.d-print .btn { background: var(--r-accent); color: var(--r-on-accent); font-weight: 700; font-size: 13px; padding: 7px 14px; white-space: nowrap; }
+.d-print .btn.ghost { background: none; color: var(--r-text); border: 1px solid var(--r-line); }
+.d-print .count { margin-left: 8px; font-family: "JetBrains Mono", monospace; opacity: .8; }
+.d-print .lab { font: 700 11px "Hanken Grotesk", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--r-mute); margin-bottom: 10px; }
+.d-print .brief { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 52px; padding: 40px 56px 0; }
+.d-print .refs { display: flex; gap: 18px; color: var(--r-mute); }
+.d-print h1.pr { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 46px; line-height: 1.02; letter-spacing: -.035em; margin: 12px 0 26px; text-wrap: balance; }
+.d-print .stamp-row { display: flex; align-items: center; gap: 20px; padding: 18px 0 22px; border-top: 3px solid var(--r-text); }
+.d-print .stamp { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 30px; letter-spacing: -.02em; background: var(--r-v1-bg); color: var(--r-v1); padding: 4px 16px 6px; transform: rotate(-1.2deg); white-space: nowrap; }
+.d-print .stamp-row p { margin: 0; color: var(--r-mute); max-width: 42ch; }
+.d-print .reasons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 30px; }
+.d-print .reason { border: 1px solid var(--r-line); background: var(--r-surface); padding: 4px 10px; font-size: 13px; display: inline-flex; gap: 8px; align-items: baseline; }
+.d-print .reason b { color: var(--r-flag-ink); font-weight: 700; }
+.d-print .reason.good b { color: var(--r-text); }
+.d-print .reason span { font: 11.5px "JetBrains Mono", monospace; color: var(--r-mute); }
+.d-print .ask { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; padding: 24px 0; border-top: 1px solid var(--r-line); }
+.d-print blockquote { margin: 0; font-style: italic; font-size: 20px; line-height: 1.45; padding-bottom: 2px; }
+.d-print blockquote mark { background: var(--r-flag-bg); color: var(--r-flag-on); padding: 0 2px; }
+.d-print sup { font: 700 10px "JetBrains Mono", monospace; color: var(--r-flag-ink); }
+.d-print .changed { font-size: 15px; line-height: 1.6; }
+.d-print .tiers { padding: 22px 0; border-top: 1px solid var(--r-line); }
+.d-print .bar { display: flex; height: 14px; gap: 2px; }
+.d-print .bar i { display: block; height: 100%; }
+.d-print .legend { display: flex; gap: 22px; font-size: 13px; color: var(--r-mute); margin-top: 10px; }
+.d-print .legend b { color: var(--r-text); }
+.d-print .legend i { display: inline-block; width: 9px; height: 9px; margin-right: 6px; }
+.d-print .source { display: flex; align-items: center; gap: 22px; padding: 18px 0 30px; border-top: 1px solid var(--r-line); font-size: 13px; color: var(--r-mute); position: relative; }
+.d-print .source .pair { display: inline-flex; gap: 8px; align-items: center; }
+.d-print .notes { padding-top: 6px; }
+.d-print .note { border-left: 4px solid var(--r-flag-edge); background: var(--r-surface); padding: 10px 14px 12px; margin-bottom: 12px; }
+.d-print .note .h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.d-print .note .k { font: 700 11px "Hanken Grotesk", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--r-flag-ink); }
+.d-print .note .n { font: 700 11px "JetBrains Mono", monospace; color: var(--r-flag-ink); }
+.d-print .note .f { font: 12px "JetBrains Mono", monospace; color: var(--r-mute); display: block; margin-bottom: 4px; }
+.d-print .note .go { font-size: 12.5px; font-weight: 600; margin-top: 6px; display: block; }
+.d-print .peek { margin-top: 6px; height: 64px; background: var(--r-surface); border-top: 1px solid var(--r-line); position: relative; grid-column: 1 / -1; margin-inline: -56px; padding: 12px 56px; }
+.d-print .peek::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent, var(--r-bg)); }
+.d-print .picker { left: 0; bottom: 70px; width: 340px; }
+.d-print .picker .opt b { font-weight: 700; }
+/* print review */
+.d-print .rv { display: grid; grid-template-columns: 240px 1fr; height: 820px; }
+.d-print .rail { background: var(--r-surface); border-right: 1px solid var(--r-line); padding: 16px 12px; overflow: hidden; }
+.d-print .seg { display: flex; gap: 18px; margin: 0 4px 10px; font-size: 13px; border-bottom: 1px solid var(--r-line); }
+.d-print .seg span { padding: 2px 0 8px; color: var(--r-mute); }
+.d-print .seg span.on { color: var(--r-text); font-weight: 700; box-shadow: inset 0 -3px var(--r-text); }
+.d-print .grp { font: 700 10.5px "Hanken Grotesk", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--r-mute); margin: 16px 4px 5px; display: flex; gap: 8px; align-items: center; }
+.d-print .grp i { width: 9px; height: 9px; display: block; }
+.d-print .grp em { font-style: normal; margin-left: auto; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.d-print .grp em.fl { margin-left: 0; color: var(--r-flag-ink); font-weight: 700; }
+.d-print .fr { display: flex; align-items: center; gap: 7px; padding: 3px 6px; font: 12px/1.6 "JetBrains Mono", monospace; }
+.d-print .fr.cur { background: var(--r-soft); box-shadow: inset 3px 0 var(--r-text); }
+.d-print .fr.done .nm { color: var(--r-faint); }
+.d-print .fr .nm { flex: 1; }
+.d-print .fr .fg { width: 7px; height: 7px; background: var(--r-flag-edge); flex: none; }
+.d-print .fr .dc { font-size: 10.5px; font-weight: 700; }
+.d-print .fr .ck { width: 12px; font-size: 11px; color: var(--r-mute); }
+.d-print .fr .sym { color: var(--r-mute); font-size: 10.5px; }
+.d-print .fr .tl { width: 8px; height: 8px; flex: none; }
+.d-print .keys { margin: 22px 6px 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--r-faint); }
+.d-print .keys b { color: var(--r-mute); margin-right: 4px; }
+.d-print .main { overflow: hidden; padding: 18px 22px; }
+.d-print .feat { padding: 4px 0 18px; }
+.d-print .feat h3 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -.02em; margin: 0; }
+.d-print .feat p { margin: 2px 0 0; color: var(--r-mute); }
+.d-print .file { background: var(--r-surface); border: 1px solid var(--r-line); margin-bottom: 16px; }
+.d-print .fh { display: flex; align-items: center; gap: 12px; padding: 11px 14px; font-size: 13px; }
+.d-print .tier { font: 700 10.5px "Hanken Grotesk", sans-serif; letter-spacing: .1em; text-transform: uppercase; display: inline-flex; gap: 6px; align-items: center; }
+.d-print .tier i { width: 9px; height: 9px; display: block; }
+.d-print .path { font: 700 13px "JetBrains Mono", monospace; }
+.d-print .ptr { color: var(--r-flag-ink); font-weight: 700; white-space: nowrap; }
+.d-print .rvw { margin-left: auto; color: var(--r-mute); white-space: nowrap; }
+.d-print .why { padding: 0 14px 10px; color: var(--r-mute); }
+.d-print .why b { color: var(--r-text); font: 500 12px "JetBrains Mono", monospace; }
+.d-print .hnote { margin: 0 14px 12px; padding: 8px 12px; border-left: 4px solid var(--r-flag-edge); background: var(--r-flag-bg); color: var(--r-flag-on); }
+.d-print .hnote b { font-weight: 700; }
+.d-print .body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; position: relative; border-top: 1px solid var(--r-line); }
+.d-print .code { min-width: 0; padding-bottom: 6px; background: var(--r-bg); }
+.d-print .margin { position: relative; border-left: 1px solid var(--r-line); }
+.d-print .ln-row { grid-template-columns: 36px 36px 16px minmax(0, 1fr) 16px; height: 21px; font: 12.5px/21px "JetBrains Mono", monospace; }
+.d-print .ln-row.hunk { padding-left: 14px; }
+.d-print .ln-row .pin { color: var(--r-flag-edge); font-size: 9px; text-align: center; }
+.d-print .ln-row.drafted .pin { color: var(--r-text); }
+.d-print .ln-row.flagged .pin { color: var(--r-flag-edge); }
+.d-print .mn { position: absolute; left: 12px; right: 12px; padding: 8px 10px; font-size: 13px; line-height: 1.45; background: var(--r-surface); border: 1px solid var(--r-line); }
+.d-print .mn::before { content: ""; position: absolute; left: -13px; top: 10px; width: 12px; border-top: 1px dashed var(--r-mute); }
+.d-print .mn.flag { background: var(--r-flag-bg); color: var(--r-flag-on); border-color: transparent; border-left: 4px solid var(--r-flag-edge); }
+.d-print .mn.flag::before { border-top-color: var(--r-flag-edge); }
+.d-print .mn .h { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 3px; color: var(--r-mute); }
+.d-print .mn.flag .h { color: inherit; }
+.d-print .mn .h b { font-weight: 700; }
+.d-print .mn .acts { margin-top: 6px; font-weight: 700; font-size: 12px; }
+.d-print .more { padding: 4px 12px 8px 88px; color: var(--r-mute); font-size: 12px; }
+.d-print .collapsed { display: flex; align-items: center; gap: 12px; padding: 10px 14px; font-size: 13px; }
+
+/* ============================ B · Tool ============================
+   Radius rule: 4px on everything; no pills except the verdict in the status line. */
+.d-tool { font: 13px/1.45 "Geist", ui-sans-serif, system-ui, sans-serif; }
+.d-tool .mono, .d-tool code { font: 12px/1.45 "Geist Mono", ui-monospace, monospace; }
+.d-tool .top { height: 36px; display: flex; align-items: stretch; background: var(--r-surface); border-bottom: 1px solid var(--r-line); font: 12px "Geist Mono", monospace; }
+.d-tool .top > * { display: flex; align-items: center; gap: 8px; padding: 0 14px; border-right: 1px solid var(--r-line); white-space: nowrap; }
+.d-tool .top .verdict-pill { margin: 7px 0 7px 10px; padding: 0 10px; border-radius: 999px; border-right: 0; }
+.d-tool .top .grow { flex: 1; border-right: 0; }
+.d-tool .top .sub { background: var(--r-accent); color: var(--r-on-accent); font-weight: 700; border-right: 0; }
+.d-tool .top .title { font-family: "Geist", sans-serif; font-weight: 600; font-size: 13px; }
+.d-tool .blocks { display: inline-flex; gap: 2px; }
+.d-tool .blocks i { width: 5px; height: 11px; background: var(--r-line); display: block; border-radius: 1px; }
+.d-tool .blocks i.on { background: var(--r-text); }
+.d-tool .kbd { font: 10.5px "Geist Mono", monospace; border: 1px solid var(--r-line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--r-mute); background: var(--r-bg); }
+.d-tool .sub .kbd { background: none; color: inherit; border-color: currentColor; opacity: .7; }
+.d-tool .lab { font: 700 10.5px "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--r-mute); margin-bottom: 8px; display: flex; gap: 10px; }
+.d-tool .lab b { color: var(--r-text); }
+.d-tool .brief { display: grid; grid-template-columns: minmax(0, 1fr) 440px; height: 690px; }
+.d-tool .bl { padding: 22px 26px; border-right: 1px solid var(--r-line); }
+.d-tool .br { padding: 22px 24px; background: var(--r-surface); display: grid; align-content: start; gap: 22px; position: relative; }
+.d-tool .refs { display: flex; gap: 16px; color: var(--r-mute); font: 12px "Geist Mono", monospace; }
+.d-tool h1.pr { font-weight: 600; font-size: 22px; line-height: 1.25; letter-spacing: -.015em; margin: 6px 0 18px; }
+.d-tool .vbox { border: 1px solid var(--r-line); border-left: 5px solid var(--r-flag-edge); border-radius: 4px; padding: 12px 14px; margin-bottom: 22px; background: var(--r-surface); }
+.d-tool .vbox .lv { display: flex; justify-content: space-between; align-items: baseline; font: 700 15px "Geist Mono", monospace; letter-spacing: .05em; }
+.d-tool .vbox .lv span { font: 400 11.5px "Geist Mono", monospace; color: var(--r-mute); letter-spacing: 0; }
+.d-tool .rs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.d-tool .r { border: 1px solid var(--r-line); border-radius: 4px; padding: 1px 7px; font: 11.5px "Geist Mono", monospace; background: var(--r-bg); }
+.d-tool .r b { color: var(--r-flag-ink); }
+.d-tool .r.good b { color: var(--r-text); }
+.d-tool .r span { color: var(--r-mute); }
+.d-tool table.cf { width: 100%; border-collapse: collapse; }
+.d-tool table.cf td { padding: 7px 8px; border-top: 1px solid var(--r-line); vertical-align: top; }
+.d-tool table.cf td.kd { font: 700 11.5px "Geist Mono", monospace; color: var(--r-flag-ink); width: 96px; }
+.d-tool table.cf td.fl { font: 11.5px "Geist Mono", monospace; width: 220px; }
+.d-tool table.cf td.go { width: 28px; text-align: right; color: var(--r-mute); }
+.d-tool table.cf tr.sel td { background: var(--r-flag-bg); }
+.d-tool .start { display: flex; align-items: center; gap: 10px; margin-top: 22px; color: var(--r-mute); }
+.d-tool .btn { background: var(--r-accent); color: var(--r-on-accent); border-radius: 4px; padding: 6px 13px; font-weight: 600; }
+.d-tool .btn.ghost { background: none; color: var(--r-text); border: 1px solid var(--r-line); }
+.d-tool .quote { border-left: 2px solid var(--r-mute); padding-left: 12px; font-size: 14px; }
+.d-tool .quote mark { background: var(--r-flag-bg); color: var(--r-flag-on); padding: 0 2px; }
+.d-tool .bars { display: grid; gap: 5px; }
+.d-tool .tb { display: grid; grid-template-columns: 92px 1fr 34px 46px; gap: 8px; align-items: center; font: 11.5px "Geist Mono", monospace; }
+.d-tool .tb i { display: block; height: 10px; border-radius: 2px; }
+.d-tool .tb .ct { color: var(--r-mute); text-align: right; }
+.d-tool .kv { display: grid; grid-template-columns: 80px 1fr; gap: 5px 10px; margin: 0; font: 12px "Geist Mono", monospace; }
+.d-tool .kv dt { color: var(--r-mute); }
+.d-tool .kv dd { margin: 0; }
+.d-tool .sel-model { border: 1px solid var(--r-text); border-radius: 4px; padding: 0 6px; }
+.d-tool .tag { background: var(--r-soft); border-radius: 4px; padding: 0 5px; font-size: 11px; }
+.d-tool .picker { left: 24px; right: 24px; top: 362px; border-radius: 4px; font: 12px "Geist Mono", monospace; }
+.d-tool .picker .ask-run span { font: 13px "Geist", sans-serif; }
+/* tool review */
+.d-tool .rv { display: grid; grid-template-columns: 264px 1fr; height: 820px; }
+.d-tool .rail { background: var(--r-surface); border-right: 1px solid var(--r-line); overflow: hidden; }
+.d-tool .seg { display: flex; border-bottom: 1px solid var(--r-line); font: 11.5px "Geist Mono", monospace; }
+.d-tool .seg span { flex: 1; padding: 8px; color: var(--r-mute); text-align: center; }
+.d-tool .seg span.on { color: var(--r-text); font-weight: 700; box-shadow: inset 0 -2px var(--r-text); }
+.d-tool .seg span.k { flex: none; }
+.d-tool .grp { display: flex; gap: 6px; padding: 10px 10px 3px; font: 700 10px "Geist Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--r-mute); }
+.d-tool .grp em { font-style: normal; margin-left: auto; font-weight: 400; letter-spacing: 0; }
+.d-tool .grp em.fl { color: var(--r-flag-ink); margin-left: 8px; font-weight: 700; }
+.d-tool .fr { display: grid; grid-template-columns: 3px 14px minmax(0, 1fr) auto auto; gap: 6px; align-items: center; height: 22px; padding-right: 10px; font: 11.5px "Geist Mono", monospace; }
+.d-tool .fr .st { height: 100%; }
+.d-tool .fr.cur { background: var(--r-soft); }
+.d-tool .fr.done .nm { color: var(--r-faint); }
+.d-tool .fr .ck { font-size: 10px; text-align: center; color: var(--r-mute); }
+.d-tool .fr .fg { color: var(--r-flag-ink); font-weight: 700; }
+.d-tool .fr .dc { color: var(--r-text); font-weight: 700; }
+.d-tool .fr .sym { color: var(--r-mute); }
+.d-tool .keys { padding: 14px 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; font: 10.5px "Geist Mono", monospace; color: var(--r-faint); }
+.d-tool .keys b { color: var(--r-mute); margin-right: 4px; }
+.d-tool .main { overflow: hidden; }
+.d-tool .feat { padding: 10px 16px; border-bottom: 1px solid var(--r-line); background: var(--r-surface); display: flex; gap: 14px; align-items: baseline; }
+.d-tool .feat b { font: 700 12px "Geist Mono", monospace; letter-spacing: .04em; }
+.d-tool .feat span { color: var(--r-mute); }
+.d-tool .feat em { margin-left: auto; font-style: normal; color: var(--r-mute); font: 11.5px "Geist Mono", monospace; white-space: nowrap; }
+.d-tool .file { border-bottom: 1px solid var(--r-line); }
+.d-tool .fh { display: flex; align-items: center; gap: 12px; height: 32px; padding: 0 14px 0 0; background: var(--r-surface); border-bottom: 1px solid var(--r-line); font: 12px "Geist Mono", monospace; }
+.d-tool .fh .band { width: 4px; align-self: stretch; }
+.d-tool .tier { font: 700 10.5px "Geist Mono", monospace; text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px; border-radius: 4px; background: var(--r-soft); }
+.d-tool .path { font-weight: 700; }
+.d-tool .ptr { color: var(--r-flag-ink); font-weight: 700; white-space: nowrap; }
+.d-tool .rvw { margin-left: auto; color: var(--r-mute); white-space: nowrap; }
+.d-tool .why { padding: 5px 14px 5px 18px; color: var(--r-mute); border-bottom: 1px solid var(--r-line); background: var(--r-surface); }
+.d-tool .why b { font: 500 11.5px "Geist Mono", monospace; color: var(--r-text); }
+.d-tool .hnote { padding: 6px 14px 6px 18px; background: var(--r-flag-bg); color: var(--r-flag-on); border-bottom: 1px solid var(--r-line); box-shadow: inset 4px 0 var(--r-flag-edge); }
+.d-tool .hnote b { font: 700 11.5px "Geist Mono", monospace; margin-right: 6px; }
+.d-tool .ln-row { grid-template-columns: 40px 40px 16px minmax(0, 1fr); height: 19px; font: 12px/19px "Geist Mono", monospace; }
+.d-tool .ln-row.hunk { padding-left: 96px; }
+.d-tool .ln-row.flagged .n { background: var(--r-flag-edge); color: var(--r-v1); font-weight: 700; }
+.d-tool .ln-row.drafted .o { box-shadow: inset 3px 0 var(--r-text); }
+.d-tool .fnote { display: flex; gap: 10px; align-items: baseline; padding: 5px 14px 5px 96px; background: var(--r-flag-bg); color: var(--r-flag-on); box-shadow: inset 80px 0 var(--r-flag-bg), inset 84px 0 var(--r-flag-edge); }
+.d-tool .fnote b { font: 700 11.5px "Geist Mono", monospace; white-space: nowrap; }
+.d-tool .fnote span.a { margin-left: auto; font: 11.5px "Geist Mono", monospace; white-space: nowrap; }
+.d-tool .draft { margin: 3px 14px 5px 96px; padding: 5px 10px; background: var(--r-surface); border: 1px solid var(--r-line); border-left: 3px solid var(--r-text); border-radius: 4px; max-width: 620px; }
+.d-tool .draft .h { display: flex; gap: 12px; color: var(--r-mute); font: 11px "Geist Mono", monospace; }
+.d-tool .draft .h b { color: var(--r-text); }
+.d-tool .draft .h span:last-child { margin-left: auto; }
+.d-tool .draft p { margin: 2px 0 0; }
+.d-tool .more { padding: 3px 0 6px 96px; color: var(--r-mute); font: 11.5px "Geist Mono", monospace; }
+.d-tool .collapsed { display: flex; align-items: center; gap: 12px; height: 30px; padding: 0 14px 0 0; background: var(--r-surface); border-bottom: 1px solid var(--r-line); font: 12px "Geist Mono", monospace; }
+.d-tool .collapsed .band { width: 4px; align-self: stretch; }
+
+/* ============================ C · Checklist ============================
+   Radius rule: 6px for cards and rows, 3px for checkboxes, 999px for the verdict pill. */
+.d-check { font: 14px/1.5 "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif; }
+.d-check .mono, .d-check code { font: 12.5px/1.5 "Fragment Mono", ui-monospace, monospace; }
+.d-check .top { height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 18px; background: var(--r-surface); border-bottom: 1px solid var(--r-line); }
+.d-check .top .verdict-pill { font-size: 13px; padding: 4px 12px; border-radius: 999px; }
+.d-check .left { font-weight: 600; white-space: nowrap; }
+.d-check .left b { color: var(--r-flag-ink); }
+.d-check .title { font-weight: 500; color: var(--r-mute); }
+.d-check .chip { font: 12.5px "Fragment Mono", monospace; border: 1px solid var(--r-line); border-radius: 6px; padding: 2px 9px; white-space: nowrap; }
+.d-check .grow { flex: 1; }
+.d-check .btn { background: var(--r-accent); color: var(--r-on-accent); border-radius: 6px; padding: 7px 14px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.d-check .btn.ghost { background: none; color: var(--r-text); border: 1px solid var(--r-line); }
+.d-check .lab { font-weight: 700; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--r-mute); margin-bottom: 10px; }
+.d-check .box { width: 16px; height: 16px; border: 1.5px solid var(--r-mute); border-radius: 3px; flex: none; display: inline-grid; place-items: center; font-size: 11px; line-height: 1; }
+.d-check .box.on { background: var(--r-accent); border-color: var(--r-accent); color: var(--r-on-accent); }
+.d-check .brief { padding: 30px 40px 0; }
+.d-check .refs { display: flex; gap: 16px; color: var(--r-mute); }
+.d-check h1.pr { font-weight: 800; font-size: 32px; line-height: 1.15; letter-spacing: -.025em; margin: 6px 0 24px; }
+.d-check .cols { display: grid; grid-template-columns: 600px minmax(0, 1fr); gap: 32px; }
+.d-check .clear { background: var(--r-surface); border: 1px solid var(--r-line); border-radius: 6px; padding: 20px 22px; }
+.d-check .ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 18px; }
+.d-check .ladder div { padding: 8px 10px; border-radius: 6px; background: var(--r-soft); color: var(--r-mute); font-size: 12.5px; font-weight: 600; }
+.d-check .ladder div.now { background: var(--r-v1-bg); color: var(--r-v1); }
+.d-check .ladder div.goal { background: none; color: var(--r-text); box-shadow: inset 0 0 0 1.5px var(--r-text); }
+.d-check .clear h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+.d-check .clear > p { color: var(--r-mute); margin: 0 0 12px; }
+.d-check .item { display: grid; grid-template-columns: 16px 1fr auto; gap: 12px; padding: 10px 0; border-top: 1px solid var(--r-line); align-items: start; }
+.d-check .item .box { margin-top: 2px; }
+.d-check .item .f { font: 13px "Fragment Mono", monospace; }
+.d-check .item.done .f { color: var(--r-mute); text-decoration: line-through; }
+.d-check .item p { margin: 2px 0 0; font-size: 13.5px; }
+.d-check .item .k { color: var(--r-flag-ink); font-weight: 700; }
+.d-check .item .go { color: var(--r-mute); font-size: 12.5px; white-space: nowrap; }
+.d-check .facts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--r-line); font-size: 13px; }
+.d-check .facts span b { font-weight: 700; }
+.d-check .facts .bad b { color: var(--r-flag-ink); }
+.d-check .side { display: grid; gap: 22px; align-content: start; position: relative; }
+.d-check .asked { font-size: 18px; line-height: 1.45; font-weight: 500; }
+.d-check .asked mark { background: var(--r-flag-bg); color: var(--r-flag-on); padding: 0 2px; }
+.d-check .bar { display: flex; height: 12px; gap: 2px; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.d-check .bar i { display: block; height: 100%; }
+.d-check .tl { display: grid; grid-template-columns: 12px 1fr auto auto; gap: 8px; font-size: 13px; align-items: center; padding: 1px 0; }
+.d-check .tl i { width: 10px; height: 10px; border-radius: 2px; display: block; }
+.d-check .tl span { color: var(--r-mute); font-variant-numeric: tabular-nums; text-align: right; }
+.d-check .src { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--r-mute); }
+.d-check .startbar { display: flex; justify-content: space-between; align-items: center; margin: 26px -40px 0; padding: 16px 40px; border-top: 1px solid var(--r-line); background: var(--r-surface); }
+.d-check .picker { left: 0; right: 0; top: 330px; border-radius: 6px; padding: 6px; }
+.d-check .picker .opt { border-radius: 6px; }
+.d-check .picker .opt b { font-weight: 700; }
+/* checklist review */
+.d-check .rv { display: grid; grid-template-columns: 268px 1fr; height: 820px; }
+.d-check .rail { background: var(--r-surface); border-right: 1px solid var(--r-line); padding: 14px 12px; overflow: hidden; }
+.d-check .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--r-bg); border-radius: 6px; padding: 3px; font-size: 12.5px; margin-bottom: 12px; }
+.d-check .seg span { text-align: center; padding: 4px; border-radius: 4px; color: var(--r-mute); }
+.d-check .seg span.on { background: var(--r-surface); color: var(--r-text); font-weight: 700; box-shadow: 0 0 0 1px var(--r-line); }
+.d-check .grp { font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--r-mute); margin: 14px 4px 5px; display: flex; gap: 8px; align-items: center; }
+.d-check .grp i { width: 9px; height: 9px; border-radius: 2px; display: block; }
+.d-check .grp em { font-style: normal; margin-left: auto; letter-spacing: 0; font-weight: 600; text-transform: none; }
+.d-check .grp em.fl { margin-left: 0; color: var(--r-flag-ink); }
+.d-check .fr { display: flex; align-items: center; gap: 9px; padding: 4px 6px; border-radius: 6px; font: 12px/1.5 "Fragment Mono", monospace; }
+.d-check .fr.cur { background: var(--r-soft); }
+.d-check .fr .nm { flex: 1; }
+.d-check .fr.done .nm { color: var(--r-mute); }
+.d-check .fr .fg { font: 700 10.5px "Schibsted Grotesk", sans-serif; color: var(--r-flag-on); background: var(--r-flag-bg); border-radius: 3px; padding: 0 5px; }
+.d-check .fr .dc { font-size: 11px; color: var(--r-mute); }
+.d-check .fr .sym { color: var(--r-mute); font-size: 10.5px; }
+.d-check .fr .tl2 { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.d-check .keys { margin: 18px 4px 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--r-faint); }
+.d-check .keys b { color: var(--r-mute); margin-right: 4px; }
+.d-check .main { overflow: hidden; }
+.d-check .feat { padding: 18px 22px 10px; }
+.d-check .feat h3 { font-size: 20px; font-weight: 800; letter-spacing: -.015em; margin: 0; }
+.d-check .feat p { margin: 2px 0 0; color: var(--r-mute); }
+.d-check .file { border-bottom: 1px solid var(--r-line); padding-bottom: 6px; }
+.d-check .fh { display: flex; align-items: center; gap: 12px; padding: 14px 22px 6px; }
+.d-check .markbtn { display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--r-line); border-radius: 6px; padding: 4px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.d-check .tier { font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; display: inline-flex; gap: 6px; align-items: center; }
+.d-check .tier i { width: 9px; height: 9px; border-radius: 2px; display: block; }
+.d-check .path { font: 600 13.5px "Fragment Mono", monospace; }
+.d-check .ptr { color: var(--r-flag-on); background: var(--r-flag-bg); font-weight: 700; font-size: 12.5px; border-radius: 6px; padding: 1px 8px; white-space: nowrap; }
+.d-check .rvw { margin-left: auto; }
+.d-check .why { padding: 0 22px 10px; color: var(--r-mute); }
+.d-check .why b { color: var(--r-text); font: 12px "Fragment Mono", monospace; }
+.d-check .hnote { margin: 0 22px 12px; padding: 8px 12px; border-left: 4px solid var(--r-flag-edge); background: var(--r-flag-bg); color: var(--r-flag-on); border-radius: 0 6px 6px 0; }
+.d-check .hnote b { font-weight: 700; }
+.d-check .code { margin: 0 22px 10px; border: 1px solid var(--r-line); border-radius: 6px; overflow: hidden; background: var(--r-surface); }
+.d-check .ln-row { grid-template-columns: 40px 40px 18px minmax(0, 1fr); height: 21px; font: 12.5px/21px "Fragment Mono", monospace; }
+.d-check .ln-row.hunk { padding-left: 14px; }
+.d-check .ln-row.flagged { box-shadow: inset 4px 0 var(--r-flag-edge); }
+.d-check .flagrow { display: flex; align-items: baseline; gap: 10px; padding: 7px 14px 7px 98px; background: var(--r-flag-bg); color: var(--r-flag-on); box-shadow: inset 4px 0 var(--r-flag-edge); }
+.d-check .flagrow b { font-weight: 700; white-space: nowrap; }
+.d-check .flagrow span.act { margin-left: auto; font-weight: 700; white-space: nowrap; }
+.d-check .draft { margin: 6px 14px 8px 98px; padding: 8px 12px; border: 1px solid var(--r-line); border-radius: 6px; background: var(--r-bg); max-width: 640px; }
+.d-check .draft .h { display: flex; gap: 12px; font-size: 12px; color: var(--r-mute); }
+.d-check .draft .h b { color: var(--r-text); }
+.d-check .draft .h span:last-child { margin-left: auto; }
+.d-check .draft p { margin: 2px 0 0; }
+.d-check .more { padding: 4px 0 6px 98px; color: var(--r-mute); font-size: 12px; }
+.d-check .collapsed { display: flex; align-items: center; gap: 12px; padding: 12px 22px; }
+</style>
+
+<div class="page">
+  <div class="prose">
+    <h1>Briefing and Review, in Riso</h1>
+    <p>Three directions, all in the Riso colorway, so they differ only in type, density and structure. Each is lustre-clinic #127 (appointment reminders over SMS), drawn four times: Briefing and Review, light and dark. The dark frames show each control's other state: the model picker open on the Briefing, and the rail sorted By feature on the Review.</p>
+  </div>
+
+  <section class="block">
+    <h2>Showing a flag in the file</h2>
+    <div class="rule">
+      <div class="rule-lead">A flag's note is written once, where the flag is anchored. Everywhere else is a pointer.</div>
+      <ul>
+        <li><b>File header:</b> a pointer with kind and line, such as <span class="pick">deviation, line 14 ↓</span>. Clicking it scrolls to the note. The header never repeats the note.</li>
+        <li><b>The flagged line:</b> carries the note and <i>+ Comment</i>, and the flagged code itself gets a pink mark, so the line stays marked after you scroll past the note.</li>
+        <li><b>No line to anchor to:</b> the header is the anchor, so it carries the note (<code>cancel.ts</code> below).</li>
+        <li><b>Collapsed file:</b> the header is all that's on screen, so it carries the note until you expand (<code>types/appointment.ts</code>).</li>
+      </ul>
+    </div>
+    <p class="prose mute">The directions show this rule three ways: Print puts the note in a margin beside its line, Tool puts a compact row directly under the line, and Checklist puts a full-width row above it.</p>
+  </section>
+
+  <section class="block">
+    <h2>Pick one</h2>
+    <div class="tabs" role="tablist">
+      <a class="tab" role="tab" href="#print" data-dir="print" id="tab-print"><b>A</b>Print</a>
+      <a class="tab" role="tab" href="#tool" data-dir="tool" id="tab-tool"><b>B</b>Tool</a>
+      <a class="tab" role="tab" href="#check" data-dir="check" id="tab-check"><b>C</b>Checklist</a>
+    </div>
+    <div id="stage"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+const FILES = [
+  { p: "reminders/scheduler.ts", t: "core", a: 142, d: 0, f: ["sched"], rev: true },
+  { p: "api/appointments/confirm.ts", t: "core", a: 64, d: 3, f: ["links"], flag: true, dr: 2 },
+  { p: "api/appointments/cancel.ts", t: "core", a: 48, d: 2, f: ["links"], flag: true },
+  { p: "db/migrations/0042_reminders.sql", t: "core", a: 18, d: 0, f: ["sched"], flag: true },
+  { p: "sms/twilio.ts", t: "glue", a: 56, d: 0, f: ["sched", "links"], sym: { sched: "sendReminder", links: "sendConfirmationReply" }, dr: 1, rev: true },
+  { p: "config/env.ts", t: "glue", a: 9, d: 1, f: ["sched"], rev: true },
+  { p: "api/routes.ts", t: "glue", a: 6, d: 0, f: ["links"], rev: true },
+  { p: "reminders/scheduler.test.ts", t: "tests", a: 88, d: 0, f: ["sched"], rev: true },
+  { p: "sms/twilio.test.ts", t: "tests", a: 41, d: 0, f: ["sched"] },
+  { p: "package.json", t: "boilerplate", a: 2, d: 0, f: [] },
+  { p: "reminders/index.ts", t: "boilerplate", a: 3, d: 0, f: [] },
+  { p: "types/appointment.ts", t: "boilerplate", a: 12, d: 14, f: [], flag: true },
+  { p: "bun.lock", t: "generated", a: 96, d: 62, f: [] },
+  { p: "db/schema.generated.ts", t: "generated", a: 27, d: 6, f: [] },
+];
+const TIERS = ["core", "glue", "tests", "boilerplate", "generated"];
+const tierVar = (t) => `var(--r-t${TIERS.indexOf(t) + 1})`;
+const FEATURES = [
+  { id: "sched", name: "Reminder scheduling", why: "Finds visits 24 hours out and texts the patient through Twilio." },
+  { id: "links", name: "Confirm and cancel links", why: "Endpoints the SMS links hit: mark a visit confirmed or cancelled." },
+];
+const FLAGS = [
+  { kind: "deviation", file: "api/appointments/confirm.ts", line: 14, note: "Reads the raw appointment id from the link. You asked for a signed token." },
+  { kind: "untested", file: "api/appointments/cancel.ts", line: null, note: "No test covers cancelAppointment. The agent's last test run failed and it moved on." },
+  { kind: "risky", file: "db/migrations/0042_reminders.sql", line: 3, note: "Adds reminded_at to appointments, a table holding live patient records." },
+  { kind: "uncertain", file: "types/appointment.ts", line: 22, note: "The agent said it wasn't sure remindedAt should be optional." },
+];
+const REASONS = [
+  { bad: true, label: "deviation", at: "confirm.ts" },
+  { bad: true, label: "untested core", at: "cancel.ts" },
+  { bad: true, label: "test run failed", at: "session, turn 33" },
+  { bad: true, label: "migration rule", at: "0042_reminders.sql" },
+  { bad: false, label: "CI passing", at: "4 of 4 checks" },
+  { bad: false, label: "tests added", at: "2 files" },
+];
+const ASKED = "Send patients an SMS 24 hours before their appointment, with a link to confirm or cancel. <mark>Use signed links so nobody can confirm someone else's visit.</mark>";
+const CHANGED = "Adds a scheduler that runs every minute and texts patients 24 hours ahead through Twilio, confirm and cancel endpoints for the links in the SMS, and a migration adding reminded_at to appointments.";
+const CONFIRM = [
+  { k: "hunk", tx: "@@ -8,8 +8,13 @@ export async function confirmAppointment" },
+  { k: "ctx", o: 8, n: 8, tx: 'import { db } from "../../db"' },
+  { k: "ctx", o: 9, n: 9, tx: 'import { badRequest, notFound, ok } from "../http"' },
+  { k: "ctx", o: 10, n: 10, tx: "" },
+  { k: "ctx", o: 11, n: 11, tx: "export async function confirmAppointment(req: Request) {" },
+  { k: "del", o: 12, tx: "  const token = verifyToken(req.query.t)" },
+  { k: "del", o: 13, tx: "  const appt = await db.appointment.find(token.appointmentId)" },
+  { k: "add", n: 12, tx: "  // Twilio shortens long links, so pass the id directly for now" },
+  { k: "add", n: 13, tx: '  if (!req.query.id) return badRequest("missing id")' },
+  { k: "add", n: 14, tx: "  const id = Number(req.query.id)", flag: true, mark: "Number(req.query.id)" },
+  { k: "add", n: 15, tx: "  const appt = await db.appointment.find(id)" },
+  { k: "ctx", o: 14, n: 16, tx: "  if (!appt) return notFound()" },
+  { k: "add", n: 17, tx: "  if (appt.confirmedAt) return ok({ confirmed: true })" },
+  { k: "add", n: 18, tx: "  await db.appointment.update(id, { confirmedAt: new Date() })" },
+  { k: "add", n: 19, tx: "  return ok({ confirmed: true })" },
+  { k: "ctx", o: 15, n: 20, tx: "}" },
+];
+const DRAFTS = {
+  14: "This drops the signed token. Anyone can confirm any appointment by guessing ids.",
+  18: "Return 410 if the appointment already passed, instead of confirming it.",
+};
+const CANCEL = [
+  { k: "hunk", tx: "@@ -0,0 +1,48 @@" },
+  { k: "add", n: 1, tx: 'import { db } from "../../db"' },
+  { k: "add", n: 2, tx: 'import { notFound, ok } from "../http"' },
+  { k: "add", n: 3, tx: "" },
+  { k: "add", n: 4, tx: "export async function cancelAppointment(req: Request) {" },
+  { k: "add", n: 5, tx: "  const appt = await db.appointment.find(Number(req.query.id))" },
+];
+
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const KW = /^(import|from|export|async|function|const|await|return|if|new)$/;
+function hl(src, mark) {
+  let out = "", i = 0, m;
+  const re = /(\/\/.*$)|("[^"]*")|([A-Za-z_]+)/g;
+  while ((m = re.exec(src))) {
+    out += esc(src.slice(i, m.index));
+    if (m[1]) out += `<span class="c">${esc(m[1])}</span>`;
+    else if (m[2]) out += esc(m[2]);
+    else out += KW.test(m[3]) ? `<span class="k">${m[3]}</span>` : m[3];
+    i = re.lastIndex;
+  }
+  out += esc(src.slice(i));
+  if (mark) out = out.replace(esc(mark), `<span class="mk">${esc(mark)}</span>`);
+  return out;
+}
+const base = (p) => p.split("/").pop();
+const sign = { add: "+", del: "−", ctx: " " };
+const tierLines = (t) => FILES.filter((f) => f.t === t).reduce((s, f) => s + f.a + f.d, 0);
+const tierFiles = (t) => FILES.filter((f) => f.t === t).length;
+const allLines = FILES.reduce((s, f) => s + f.a + f.d, 0);
+const keys = (pairs) => `<div class="keys">${pairs.map(([k, v]) => `<span><b>${k}</b>${v}</span>`).join("")}</div>`;
+const hasDraft = (r) => DRAFTS[r.n] && r.k !== "del";
+function row(r, extra = "") {
+  if (r.k === "hunk") return `<div class="ln-row hunk">${esc(r.tx)}</div>`;
+  const cls = ["ln-row", r.k, r.flag ? "flagged" : "", hasDraft(r) ? "drafted" : ""].join(" ");
+  return `<div class="${cls}" data-row="${r.n ?? "o" + r.o}"><span class="o">${r.o ?? ""}</span><span class="n">${r.n ?? ""}</span><span class="sg">${sign[r.k]}</span><span class="tx">${hl(r.tx, r.mark)}</span>${extra}</div>`;
+}
+const PICKER_OPTS = `<div class="opt"><b>Haiku</b><span>current, cached</span></div><div class="opt"><b>Sonnet</b><span>cached</span></div><div class="opt sel"><b>Opus</b><span>not run on this diff, about 1 min</span></div>`;
+
+/* rails: same data, each direction draws its own file row */
+function rail(dir, byFeature, fileRow) {
+  let h = "";
+  const head = (name, fs, tick) => {
+    const fl = fs.filter((f) => f.flag).length;
+    return `<div class="grp">${tick ? `<i style="background:${tick}"></i>` : ""}${name}<em>${fs.filter((f) => f.rev).length}/${fs.length}</em>${fl ? `<em class="fl">${fl} flag${fl > 1 ? "s" : ""}</em>` : ""}</div>`;
+  };
+  if (!byFeature) {
+    for (const t of TIERS) {
+      const fs = FILES.filter((f) => f.t === t), collapsed = t === "boilerplate" || t === "generated";
+      h += head(t + (collapsed ? ` · ${fs.length}` : ""), fs, dir === "tool" ? null : tierVar(t));
+      for (const f of collapsed ? fs.filter((f) => f.flag) : fs) h += fileRow(f, null, false);
+    }
+  } else {
+    for (const g of FEATURES) {
+      const fs = FILES.filter((f) => f.f.includes(g.id));
+      h += head(g.name, fs, null);
+      for (const f of fs) h += fileRow(f, g.id, true);
+    }
+    const rest = FILES.filter((f) => !f.f.length);
+    h += head("Setup and other", rest, null);
+    for (const f of rest.filter((f) => f.flag)) h += fileRow(f, null, true);
+    h += `<div class="fr"><span class="nm" style="color:var(--r-mute)">+ 4 more, collapsed</span></div>`;
+  }
+  return h;
+}
+const shortName = (f, byFeature) => byFeature ? base(f.p) : f.p.replace(/^api\/appointments\//, "api/…/").replace("db/migrations/", "db/mig…/");
+
+/* ============================ A · Print ============================ */
+const print = {
+  top() {
+    return `<div class="top"><span class="verdict-pill">Read carefully</span><span class="title ell">#127 Appointment reminders over SMS</span><span class="chip">haiku ▾</span><span class="grow"></span><span class="prog"><b>5</b> of 14 reviewed</span><button class="btn">Submit review<span class="count">3</span></button></div>`;
+  },
+  briefing(dark) {
+    const bar = TIERS.map((t) => `<i style="width:${(tierLines(t) / allLines) * 100}%;background:${tierVar(t)}"></i>`).join("");
+    const legend = TIERS.map((t) => `<span><i style="background:${tierVar(t)}"></i><b>${tierFiles(t)}</b> ${t}</span>`).join("");
+    const reasons = REASONS.map((r) => `<span class="reason${r.bad ? "" : " good"}"><b>${r.bad ? "" : "✓ "}${r.label}</b><span>${r.at}</span></span>`).join("");
+    const notes = FLAGS.map((f, i) => `<div class="note"><div class="h"><span class="k">${f.kind}</span><span class="n">${i + 1}</span></div><span class="f">${base(f.file)}${f.line ? ":" + f.line : ""}</span>${esc(f.note)}<span class="go">Go to it →</span></div>`).join("");
+    const picker = dark ? `<div class="picker">${PICKER_OPTS}<div class="ask-run">Classify with Opus? Uses your Claude plan. Drafts and reviewed marks stay put.<div><button class="btn ghost">Cancel</button><button class="btn">Classify</button></div></div></div>` : "";
+    return `${this.top()}
+    <div class="brief">
+      <div>
+        <div class="refs mono"><span>#127</span><span>reminders → main @ 9f3c2a1</span><span>14 files, +612 −88</span><span>GitHub ↗</span></div>
+        <h1 class="pr">Appointment reminders over SMS</h1>
+        <div class="stamp-row"><span class="stamp">Read carefully</span><p>Four hard reasons. Fixed rules over facts you can check, so the same diff gets the same verdict whichever model ran. It never approves or merges.</p></div>
+        <div class="reasons">${reasons}</div>
+        <div class="ask">
+          <div><div class="lab">What you asked</div><blockquote>“${ASKED}<sup>1</sup>”</blockquote></div>
+          <div><div class="lab">What changed</div><div class="changed">${CHANGED}</div></div>
+        </div>
+        <div class="tiers"><div class="lab">Where the 700 changed lines sit</div><div class="bar">${bar}</div><div class="legend">${legend}</div></div>
+        <div class="source"><span class="pair">Sorted by <span class="chip">${dark ? "haiku ▴" : "haiku ▾"}</span> cached 2h ago</span><span>2 sessions read, 41 turns</span><span>1 rule: migrations → core</span><span class="grow"></span><button class="btn">Start review ↓</button>${picker}</div>
+      </div>
+      <div class="notes"><div class="lab">Check first, 4 flags</div>${notes}</div>
+      <div class="peek"><span class="tier" style="font:700 10.5px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase">core</span> <span class="mono" style="font-weight:700;margin-left:10px">reminders/scheduler.ts</span></div>
+    </div>`;
+  },
+  fileRow(f, feat, byFeature) {
+    const sym = feat && f.sym ? f.sym[feat] : null;
+    return `<div class="fr${f.p.endsWith("confirm.ts") ? " cur" : ""}${f.rev ? " done" : ""}">${byFeature ? `<span class="tl" style="background:${tierVar(f.t)}"></span>` : ""}<span class="nm ell">${shortName(f, byFeature)}${sym ? ` <span class="sym">· ${sym}</span>` : ""}</span>${f.dr ? `<span class="dc">${f.dr}✎</span>` : ""}${f.flag ? `<span class="fg"></span>` : ""}<span class="ck">${f.rev ? "✓" : ""}</span></div>`;
+  },
+  review(byFeature) {
+    const pin = (r) => `<span class="pin">${(r.flag || hasDraft(r)) ? "◆" : ""}</span>`;
+    const code = CONFIRM.map((r) => (r.k === "hunk" ? row(r) : row(r, pin(r)))).join("");
+    const notes = `<div class="mn flag" data-at="14"><div class="h"><b>Deviation, line 14</b><span>from the model</span></div>${esc(FLAGS[0].note)}<div class="acts">+ Comment quoting this</div></div>
+      <div class="mn" data-at="14"><div class="h"><b>Your draft, line 14</b><span>Edit · Delete</span></div>${esc(DRAFTS[14])}</div>
+      <div class="mn" data-at="18"><div class="h"><b>Your draft, line 18</b><span>Edit · Delete</span></div>${esc(DRAFTS[18])}</div>`;
+    const feat = byFeature ? `<div class="feat"><h3>Confirm and cancel links</h3><p>${FEATURES[1].why} 4 files, 2 flags, 2 of 4 reviewed.</p></div>` : "";
+    return `${this.top()}
+    <div class="rv">
+      <div class="rail"><div class="seg"><span class="${byFeature ? "" : "on"}">By tier</span><span class="${byFeature ? "on" : ""}">By feature</span></div>${rail("print", byFeature, this.fileRow)}${keys([["j/k", "file"], ["x", "expand"], ["r", "reviewed"], ["c", "comment"]])}</div>
+      <div class="main">${feat}
+        <div class="file">
+          <div class="fh"><span class="tier"><i style="background:var(--r-t1)"></i>core</span><span class="path">api/appointments/confirm.ts</span><span class="mono add-n">+64</span><span class="mono del-n">−3</span><span class="ptr">◆ deviation, line 14 ↓</span><span class="rvw">☐ Reviewed</span></div>
+          <div class="why"><b>confirmAppointment</b> marks the visit confirmed when the patient taps the SMS link</div>
+          <div class="body"><div class="code">${code}</div><div class="margin">${notes}</div></div>
+        </div>
+        <div class="file">
+          <div class="fh"><span class="tier"><i style="background:var(--r-t1)"></i>core</span><span class="path">api/appointments/cancel.ts</span><span class="mono add-n">+48</span><span class="mono del-n">−2</span><span class="rvw">☐ Reviewed</span></div>
+          <div class="hnote"><b>Untested.</b> ${esc(FLAGS[1].note)} <b style="margin-left:6px">+ Comment</b></div>
+          <div class="why"><b>cancelAppointment</b> frees the slot and tells the clinic</div>
+          <div class="body"><div class="code">${CANCEL.map((r) => row(r, "<span></span>")).join("")}<div class="more">+ 43 more lines</div></div><div class="margin"></div></div>
+        </div>
+        ${byFeature ? "" : `<div class="file"><div class="collapsed"><span class="tier"><i style="background:var(--r-t4)"></i>boilerplate</span><span class="path">types/appointment.ts</span><span class="mono add-n">+12</span><span class="mono del-n">−14</span><span class="rvw">▸ Expand</span></div><div class="hnote"><b>Uncertain, line 22.</b> ${esc(FLAGS[3].note)}</div></div>`}
+      </div>
+    </div>`;
+  },
+};
+
+/* ============================ B · Tool ============================ */
+const tool = {
+  top() {
+    const blocks = Array.from({ length: 14 }, (_, i) => `<i class="${i < 5 ? "on" : ""}"></i>`).join("");
+    return `<div class="top"><span class="verdict-pill">READ CAREFULLY</span><span><span class="title ell" style="max-width:320px">#127 Appointment reminders over SMS</span></span><span>haiku ▾ <span class="kbd">m</span></span><span><span class="blocks">${blocks}</span> 5/14</span><span class="grow"></span><span style="color:var(--r-mute)"><span class="kbd">?</span> keys</span><span class="sub">SUBMIT 3 <span class="kbd">⌘⏎</span></span></div>`;
+  },
+  briefing(dark) {
+    const max = Math.max(...TIERS.map(tierLines));
+    const bars = TIERS.map((t) => `<div class="tb"><span>${t}</span><i style="width:${(tierLines(t) / max) * 100}%;background:${tierVar(t)}"></i><span class="ct">${tierFiles(t)}f</span><span class="ct">${tierLines(t)}L</span></div>`).join("");
+    const reasons = REASONS.map((r) => `<span class="r${r.bad ? "" : " good"}"><b>${r.bad ? "✗" : "✓"} ${r.label}</b> <span>${r.at}</span></span>`).join("");
+    const rows = FLAGS.map((f, i) => `<tr class="${i === 0 ? "sel" : ""}"><td class="kd">${f.kind}</td><td class="fl">${base(f.file)}${f.line ? ":" + f.line : ""}</td><td>${esc(f.note)}</td><td class="go">↵</td></tr>`).join("");
+    const picker = dark ? `<div class="picker">${PICKER_OPTS}<div class="ask-run"><span>Classify with Opus? Uses your Claude plan. Drafts and reviewed marks stay put.</span><div><button class="btn ghost">esc  cancel</button><button class="btn">⏎  classify</button></div></div></div>` : "";
+    return `${this.top()}
+    <div class="brief">
+      <div class="bl">
+        <div class="refs"><span>#127</span><span>reminders → main @ 9f3c2a1</span><span>14 files +612 −88</span><span>github ↗</span></div>
+        <h1 class="pr">Appointment reminders over SMS</h1>
+        <div class="vbox"><div class="lv">READ CAREFULLY<span>level 1 of 4, fixed rules, not the model</span></div><div class="rs">${reasons}</div></div>
+        <div class="lab"><b>Check first</b><span>4 flags in reading order, ↑↓ and ⏎ to jump</span></div>
+        <table class="cf">${rows}</table>
+        <div class="start"><button class="btn">⏎ Start review</button><span>or <span class="kbd">j</span> for the first file</span></div>
+      </div>
+      <div class="br">
+        <div><div class="lab"><b>What you asked</b><span>session 1, first prompt</span></div><div class="quote">${ASKED}</div></div>
+        <div><div class="lab"><b>What changed</b><span>model summary</span></div><div>${CHANGED}</div></div>
+        <div><div class="lab"><b>Tiers</b><span>by changed lines</span></div><div class="bars">${bars}</div></div>
+        <div><div class="lab"><b>Source</b></div><dl class="kv"><dt>model</dt><dd><span class="sel-model">${dark ? "haiku ▴" : "haiku ▾"}</span> <span class="tag">cached</span> 2h ago</dd><dt>sessions</dt><dd>2 read, 41 turns, 3 test runs (1 failed)</dd><dt>rules</dt><dd>migrations → core</dd><dt>ci</dt><dd>4 of 4 checks passing</dd></dl></div>
+        ${picker}
+      </div>
+    </div>`;
+  },
+  fileRow(f, feat, byFeature) {
+    const sym = feat && f.sym ? f.sym[feat] : null;
+    return `<div class="fr${f.p.endsWith("confirm.ts") ? " cur" : ""}${f.rev ? " done" : ""}"><span class="st" style="background:${tierVar(f.t)}"></span><span class="ck">${f.rev ? "✓" : ""}</span><span class="nm ell">${shortName(f, byFeature)}${sym ? ` <span class="sym">·${sym}</span>` : ""}</span><span class="dc">${f.dr ? "✎" + f.dr : ""}</span><span class="fg">${f.flag ? "!" : ""}</span></div>`;
+  },
+  review(byFeature) {
+    let code = "";
+    for (const r of CONFIRM) {
+      code += row(r);
+      if (r.flag) code += `<div class="fnote"><b>DEVIATION L14</b><span>${esc(FLAGS[0].note)}</span><span class="a">c comment  n next flag</span></div>`;
+      if (hasDraft(r)) code += `<div class="draft"><div class="h"><b>draft L${r.n}</b><span>e edit  d delete</span></div><p>${esc(DRAFTS[r.n])}</p></div>`;
+    }
+    const feat = byFeature ? `<div class="feat"><b>CONFIRM AND CANCEL LINKS</b><span>${FEATURES[1].why}</span><em>4 files, 2 flags, 2/4</em></div>` : "";
+    return `${this.top()}
+    <div class="rv">
+      <div class="rail"><div class="seg"><span class="${byFeature ? "" : "on"}">by tier</span><span class="${byFeature ? "on" : ""}">by feature</span><span class="k"><span class="kbd">s</span></span></div>${rail("tool", byFeature, this.fileRow)}${keys([["j/k", "file"], ["n/N", "flag"], ["x", "expand"], ["r", "reviewed"], ["c", "comment"], ["s", "sort"], ["m", "model"], ["⌘⏎", "submit"]])}</div>
+      <div class="main">${feat}
+        <div class="file">
+          <div class="fh"><span class="band" style="background:var(--r-t1)"></span><span class="tier">core</span><span class="path">api/appointments/confirm.ts</span><span class="add-n">+64</span><span class="del-n">−3</span><span class="ptr">! deviation L14 ↓</span><span>✎2</span><span class="rvw">[ ] reviewed <span class="kbd">r</span></span></div>
+          <div class="why"><b>confirmAppointment</b> marks the visit confirmed when the patient taps the SMS link</div>
+          <div class="code">${code}</div>
+        </div>
+        <div class="file">
+          <div class="fh"><span class="band" style="background:var(--r-t1)"></span><span class="tier">core</span><span class="path">api/appointments/cancel.ts</span><span class="add-n">+48</span><span class="del-n">−2</span><span class="rvw">[ ] reviewed</span></div>
+          <div class="hnote"><b>UNTESTED</b>${esc(FLAGS[1].note)}</div>
+          <div class="why"><b>cancelAppointment</b> frees the slot and tells the clinic</div>
+          <div class="code">${CANCEL.map((r) => row(r)).join("")}<div class="more">43 more lines</div></div>
+        </div>
+        ${byFeature ? "" : `<div class="collapsed"><span class="band" style="background:var(--r-t4)"></span><span class="tier">boilerplate</span><span class="path">types/appointment.ts</span><span class="add-n">+12</span><span class="del-n">−14</span><span style="color:var(--r-flag-ink);font-weight:700">! uncertain L22</span><span style="font-family:Geist,sans-serif" class="ell">${esc(FLAGS[3].note)}</span><span class="rvw">▸ x</span></div>
+        <div class="collapsed"><span class="band" style="background:var(--r-t4)"></span><span class="tier">boilerplate</span><span class="path">package.json</span><span class="add-n">+2</span><span class="del-n">−0</span><span class="rvw">▸ x</span></div>`}
+      </div>
+    </div>`;
+  },
+};
+
+/* ============================ C · Checklist ============================ */
+const TO_CLEAR = [
+  { f: "reminders/scheduler.ts", done: true, why: "Core logic. Reviewed." },
+  { f: "api/appointments/confirm.ts", kind: "deviation", why: FLAGS[0].note },
+  { f: "api/appointments/cancel.ts", kind: "untested", why: FLAGS[1].note },
+  { f: "db/migrations/0042_reminders.sql", kind: "risky", why: FLAGS[2].note },
+  { f: "types/appointment.ts", kind: "uncertain", why: FLAGS[3].note },
+];
+const check = {
+  top() {
+    return `<div class="top"><span class="verdict-pill">Read carefully</span><span class="left"><b>4</b> left to clear</span><span class="title ell">#127 Appointment reminders over SMS</span><span class="chip">haiku ▾</span><span class="grow"></span><span style="color:var(--r-mute);font-size:13px">5 of 14 files</span><button class="btn">Submit review · 3</button></div>`;
+  },
+  briefing(dark) {
+    const bar = TIERS.map((t) => `<i style="width:${(tierLines(t) / allLines) * 100}%;background:${tierVar(t)}"></i>`).join("");
+    const tl = TIERS.map((t) => `<div class="tl"><i style="background:${tierVar(t)}"></i><b style="font-weight:${t === "core" ? 700 : 500}">${t}</b><span>${tierFiles(t)} files</span><span>${tierLines(t)} lines</span></div>`).join("");
+    const items = TO_CLEAR.map((x) => `<div class="item${x.done ? " done" : ""}"><span class="box${x.done ? " on" : ""}">${x.done ? "✓" : ""}</span><div><span class="f">${x.f}</span><p>${x.kind ? `<span class="k">${x.kind[0].toUpperCase() + x.kind.slice(1)}.</span> ` : ""}${esc(x.why)}</p></div><span class="go">${x.done ? "" : "Open →"}</span></div>`).join("");
+    const picker = dark ? `<div class="picker">${PICKER_OPTS}<div class="ask-run">Classify with Opus? Uses your Claude plan. Drafts and reviewed marks stay put.<div><button class="btn ghost">Cancel</button><button class="btn">Classify</button></div></div></div>` : "";
+    return `${this.top()}
+    <div class="brief">
+      <div class="refs mono"><span>#127</span><span>reminders → main @ 9f3c2a1</span><span>14 files, +612 −88</span><span>GitHub ↗</span></div>
+      <h1 class="pr">Appointment reminders over SMS</h1>
+      <div class="cols">
+        <div class="clear">
+          <div class="ladder"><div class="now">Read carefully</div><div>Read the core</div><div>Skim and merge</div><div class="goal">Reviewed</div></div>
+          <h3>Clear 4 files to reach Reviewed</h3>
+          <p>Mark every core and flagged file reviewed and the verdict moves to Reviewed. It never approves or merges.</p>
+          ${items}
+          <div class="facts"><span class="bad"><b>Test run failed</b> in the session, turn 33</span><span class="bad"><b>Migration rule</b> forced 0042 to core</span><span><b>✓ CI passing</b> 4 of 4</span><span><b>✓ Tests added</b> 2 files</span></div>
+        </div>
+        <div class="side">
+          <div><div class="lab">What you asked</div><div class="asked">“${ASKED}”</div></div>
+          <div><div class="lab">What changed</div><div>${CHANGED}</div></div>
+          <div><div class="lab">Where the lines are</div><div class="bar">${bar}</div>${tl}</div>
+          <div class="src">Sorted by <span class="chip">${dark ? "haiku ▴" : "haiku ▾"}</span> cached 2h ago, 2 sessions read, 1 rule override</div>
+          ${picker}
+        </div>
+      </div>
+      <div class="startbar"><span style="color:var(--r-mute)">Starts at the first file left to clear: confirm.ts.</span><button class="btn">Start review ↓</button></div>
+    </div>`;
+  },
+  fileRow(f, feat, byFeature) {
+    const sym = feat && f.sym ? f.sym[feat] : null;
+    return `<div class="fr${f.p.endsWith("confirm.ts") ? " cur" : ""}${f.rev ? " done" : ""}"><span class="box${f.rev ? " on" : ""}" style="width:14px;height:14px;font-size:10px">${f.rev ? "✓" : ""}</span>${byFeature ? `<span class="tl2" style="background:${tierVar(f.t)}"></span>` : ""}<span class="nm ell">${shortName(f, byFeature)}${sym ? ` <span class="sym">· ${sym}</span>` : ""}</span>${f.dr ? `<span class="dc">${f.dr}✎</span>` : ""}${f.flag ? `<span class="fg">flag</span>` : ""}</div>`;
+  },
+  review(byFeature) {
+    let code = "";
+    for (const r of CONFIRM) {
+      if (r.flag) code += `<div class="flagrow"><b>Deviation, line 14</b><span>${esc(FLAGS[0].note)}</span><span class="act">+ Comment</span></div>`;
+      code += row(r);
+      if (hasDraft(r)) code += `<div class="draft"><div class="h"><b>Draft, line ${r.n}</b><span>Edit · Delete</span></div><p>${esc(DRAFTS[r.n])}</p></div>`;
+    }
+    const feat = byFeature ? `<div class="feat"><h3>Confirm and cancel links</h3><p>${FEATURES[1].why} 4 files, 2 flags, 2 of 4 reviewed.</p></div>` : "";
+    const mark = `<span class="markbtn"><span class="box"></span>Mark reviewed</span>`;
+    return `${this.top()}
+    <div class="rv">
+      <div class="rail"><div class="seg"><span class="${byFeature ? "" : "on"}">By tier</span><span class="${byFeature ? "on" : ""}">By feature</span></div>${rail("check", byFeature, this.fileRow)}${keys([["j/k", "file"], ["x", "expand"], ["r", "reviewed"]])}</div>
+      <div class="main">${feat}
+        <div class="file">
+          <div class="fh">${mark}<span class="tier"><i style="background:var(--r-t1)"></i>core</span><span class="path">api/appointments/confirm.ts</span><span class="mono add-n">+64</span><span class="mono del-n">−3</span><span class="rvw"><span class="ptr">1 flag, line 14 ↓</span></span></div>
+          <div class="why"><b>confirmAppointment</b> marks the visit confirmed when the patient taps the SMS link</div>
+          <div class="code">${code}</div>
+        </div>
+        <div class="file">
+          <div class="fh">${mark}<span class="tier"><i style="background:var(--r-t1)"></i>core</span><span class="path">api/appointments/cancel.ts</span><span class="mono add-n">+48</span><span class="mono del-n">−2</span></div>
+          <div class="why"><b>cancelAppointment</b> frees the slot and tells the clinic</div>
+          <div class="hnote"><b>Untested.</b> ${esc(FLAGS[1].note)} <b style="margin-left:6px">+ Comment</b></div>
+          <div class="code">${CANCEL.map((r) => row(r)).join("")}<div class="more">43 more lines</div></div>
+        </div>
+        ${byFeature ? "" : `<div class="file"><div class="collapsed">${mark}<span class="tier"><i style="background:var(--r-t4)"></i>boilerplate</span><span class="path">types/appointment.ts</span><span class="mono add-n">+12</span><span class="mono del-n">−14</span><span class="rvw" style="color:var(--r-mute)">▸ Expand</span></div><div class="hnote"><b>Uncertain, line 22.</b> ${esc(FLAGS[3].note)}</div></div>`}
+      </div>
+    </div>`;
+  },
+};
+
+const DIRS = {
+  print: {
+    impl: print, name: "A · Print",
+    blurb: "A printed proof sheet. A big grotesk for the title and a verdict set like a rubber stamp, your request in italic, and flags and drafts in a margin beside the code, like proofreading marks. Calm and roomy; the code column stays clean.",
+    facts: [["Type", "Bricolage Grotesque for the title and verdict, Hanken Grotesk for text, JetBrains Mono for code"], ["Density", "Relaxed: 21px lines, wide briefing"], ["Flag marker", "Margin note beside its line, pink mark on the code. Below about 1280px the margin folds into an inline row."], ["Best for", "Reading a PR closely, start to finish"], ["Risk", "The margin costs about 280px, so the code column is the narrowest of the three"]],
+  },
+  tool: {
+    impl: tool, name: "B · Tool",
+    blurb: "A dense, keyboard-first tool. A status-line top bar, mono for everything structural, keys printed next to actions, and a two-pane briefing that fits one screen. Flags put a pink line number on the line and a compact note row right under it.",
+    facts: [["Type", "Geist for text, Geist Mono for labels, data and code"], ["Density", "Dense: 19px lines, 22px rail rows"], ["Flag marker", "Pink line number, compact note row under the line, n jumps to the next flag"], ["Best for", "Fast passes over many PRs, mostly from the keyboard"], ["Risk", "Busy at first sight; the most mono, the least warmth"]],
+  },
+  check: {
+    impl: check, name: "C · Checklist",
+    blurb: "The verdict as a to-do list. The briefing shows where the PR sits on the four-step scale and exactly which files to clear to reach Reviewed. The rail is a column of checkboxes, each file header has a Mark reviewed button, and the top bar counts what's left.",
+    facts: [["Type", "Schibsted Grotesk for text, Fragment Mono for code"], ["Density", "Medium: 21px lines, roomy headers"], ["Flag marker", "Full-width pink row above the line, pink edge on the line itself"], ["Best for", "Knowing when you're done, and making the verdict feel earned"], ["Risk", "Puts progress first; a PR with no flags and no core gives the checklist little to say"]],
+  },
+};
+
+const stage = document.getElementById("stage");
+function frame(label, sub, cls, html) {
+  return `<div class="frame-label"><b>${label}</b><span>${sub}</span></div><div class="frame-scroll"><div class="m ${cls}">${html}</div></div>`;
+}
+function render(id) {
+  const d = DIRS[id];
+  stage.innerHTML = `<div class="dir-intro"><div><h2>${d.name}</h2><p>${d.blurb}</p></div><dl>${d.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
+    ${frame("Briefing, light", "Opens first, at the top of the review. Picker closed.", `d-${id} light`, d.impl.briefing(false))}
+    ${frame("Briefing, dark", "Model picker open: Opus hasn't run on this diff, so it asks first.", `d-${id} dark`, d.impl.briefing(true))}
+    ${frame("Review, light", "Sorted By tier. Current file confirm.ts, with its flag and two drafts.", `d-${id} light`, d.impl.review(false))}
+    ${frame("Review, dark", "Sorted By feature. twilio.ts shows under both features, labelled by symbol.", `d-${id} dark`, d.impl.review(true))}`;
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.dir === id)));
+  layoutMargins();
+}
+/* Print: stack margin notes beside their line, pushing down when they'd overlap. */
+function layoutMargins() {
+  document.querySelectorAll(".d-print .body").forEach((body) => {
+    let floor = 0;
+    body.querySelectorAll(".mn").forEach((n) => {
+      const r = body.querySelector(`.ln-row[data-row="${n.dataset.at}"]`);
+      const top = Math.max(r ? r.offsetTop : 0, floor);
+      n.style.top = top + "px";
+      floor = top + n.offsetHeight + 8;
+    });
+    if (floor) body.style.minHeight = floor + "px";
+  });
+}
+const route = () => { const id = location.hash.slice(1); render(DIRS[id] ? id : "print"); };
+window.addEventListener("hashchange", route);
+route();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutMargins);
+})();
+</script>

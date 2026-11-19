@@ -1,0 +1,455 @@
+<title>Briefing Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Overpass:wght@400..900&family=Overpass+Mono:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Hanken+Grotesk:ital,wght@0,400..700;1,400..600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..800;1,6..72,400..800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block">
+<style>
+/* page chrome */
+:root{--pg-bg:#e9e9e6;--pg-fg:#18181b;--pg-mute:#6b6b70;--pg-line:#d2d2cd;--pg-chip:#fafaf8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}}
+:root[data-theme="dark"]{--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}
+:root.force-light{--pg-bg:#e9e9e6;--pg-fg:#18181b;--pg-mute:#6b6b70;--pg-line:#d2d2cd;--pg-chip:#fafaf8;color-scheme:light}
+:root.force-dark{--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg-bg);color:var(--pg-fg);font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.i{font-family:"Material Symbols Sharp";font-weight:normal;font-style:normal;font-size:18px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;font-feature-settings:"liga";-webkit-font-smoothing:antialiased;font-variation-settings:"FILL" 0,"wght" 400,"opsz" 20;vertical-align:-4px;flex:none;overflow:hidden;width:1em}
+.i.f{font-variation-settings:"FILL" 1,"wght" 500,"opsz" 20}
+
+.picker{position:sticky;top:0;z-index:20;background:var(--pg-bg);border-bottom:1px solid var(--pg-line)}
+.picker .in{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1280px;margin:0 auto}
+.picker h1{margin:0 10px 0 0;font:700 14px "Hanken Grotesk",sans-serif}
+.tab{text-decoration:none;color:inherit;display:inline-flex;align-items:baseline;gap:6px;padding:6px 12px;border:1px solid var(--pg-line);background:var(--pg-chip);font-weight:600;font-size:13px}
+.tab small{font:500 11px "JetBrains Mono",monospace;color:var(--pg-mute)}
+.tab[aria-current="true"]{background:var(--pg-fg);color:var(--pg-bg);border-color:var(--pg-fg)}
+.tab[aria-current="true"] small{color:inherit;opacity:.65}
+.sp{flex:1}
+.modebtn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--pg-line);background:var(--pg-chip);font-size:13px}
+.dnote{max-width:1280px;margin:0 auto;padding-block:14px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));color:var(--pg-mute);font-size:14px}
+.dnote b{color:var(--pg-fg)}
+.stagewrap{max-width:1280px;margin:0 auto;padding-block:14px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.scroller{overflow-x:auto;border:1px solid var(--pg-line)}
+.stage{min-width:1080px}
+
+/* shared severity colors for tier tags */
+.stage{--s-core:#e5383b;--s-glue:#f2711c;--s-tests:#f5c400;--s-docs:#4c8df6;--s-boilerplate:#3fae5a;--s-generated:#9a9ca6}
+.stage.dark{--s-core:#ff5a5d;--s-glue:#ff8a3d;--s-tests:#ffd43b;--s-docs:#74a8ff;--s-boilerplate:#5cc977;--s-generated:#7d7f89}
+@media (prefers-reduced-motion:reduce){.stage *{animation:none!important;transition:none!important}}
+
+/* =========================================================
+   1 SIMPLE: Riso, quiet. Soft radius, one accent, lots of air.
+   ========================================================= */
+.d-simple{--bg:#f5f5f3;--sf:#ffffff;--ln:#e7e7e4;--tx:#1b1d26;--mu:#6e7079;--pk:#ff4f8b;--pkink:#c92a63;--pkbg:#ffe8f0;--sh:0 1px 2px rgb(27 29 38 / .05),0 8px 24px rgb(27 29 38 / .06)
+  ;background:var(--bg);color:var(--tx);font:15px/1.5 "Geist",system-ui,sans-serif;padding:0 0 28px}
+.dark .d-simple{--bg:#101012;--sf:#18181b;--ln:#26262b;--tx:#ececef;--mu:#8e8f97;--pkink:#ff7aa8;--pkbg:#2c1a22;--sh:0 1px 2px rgb(0 0 0 / .3),0 8px 24px rgb(0 0 0 / .25)}
+.d-simple .bar{display:flex;align-items:center;gap:12px;padding:16px 32px}
+.d-simple .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.d-simple .brand .i{width:28px;height:28px;border-radius:9px;background:var(--tx);color:var(--bg);display:grid;place-items:center;font-size:18px}
+.d-simple .pr{display:inline-flex;align-items:center;gap:4px;background:#1f883d;color:#fff;font:600 13px "Geist Mono";padding:3px 10px 3px 7px;border-radius:999px}
+.d-simple .ttl{font-weight:600}
+.d-simple .br{font:13px "Geist Mono";color:var(--mu)}
+.d-simple .models{display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:var(--sf);box-shadow:var(--sh)}
+.d-simple .models>span{display:flex;align-items:center;gap:4px;padding:0 8px 0 6px;font-size:12px;color:var(--mu)}
+.d-simple .models>span .i{font-size:16px}
+.d-simple .models button{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:500;color:var(--mu)}
+.d-simple .models button.on{background:var(--tx);color:var(--bg)}
+.d-simple .submit{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 12px;border-radius:999px;background:var(--tx);color:var(--bg);font-weight:600;font-size:14px}
+.d-simple .submit b{background:var(--pk);color:#1b1d26;border-radius:999px;font:600 11px/18px "Geist Mono";padding:0 7px}
+.d-simple .wrapin{padding:8px 32px 0;display:grid;gap:20px}
+.d-simple .hero{background:var(--pk);color:#1b1d26;border-radius:28px;padding:32px 36px 28px;display:grid;grid-template-columns:auto 1fr;gap:12px 40px;align-items:end}
+.d-simple .score .k{font-size:13px;font-weight:600;opacity:.75}
+.d-simple .score .n{font:600 112px/.9 "Geist";letter-spacing:-.06em;margin-top:6px}
+.d-simple .score .n small{font-size:22px;letter-spacing:0;opacity:.6;margin-left:4px}
+.d-simple .vname{display:flex;align-items:center;gap:12px;font:600 52px/1 "Geist";letter-spacing:-.04em}
+.d-simple .vname .i{font-size:46px}
+.d-simple .line{margin:12px 0 16px;font-size:18px;opacity:.85}
+.d-simple .tags{display:flex;flex-wrap:wrap;gap:6px}
+.d-simple .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 6px;border-radius:999px;background:rgb(255 255 255 / .9);color:#1b1d26;font-size:13px;font-weight:500}
+.d-simple .tag i{width:18px;height:18px;border-radius:50%;background:var(--c);display:grid;place-items:center}
+.d-simple .tag b{font:500 12px "Geist Mono";opacity:.6}
+.d-simple .tag.flags{background:#1b1d26;color:#fff}
+.d-simple .tag.flags i{background:var(--pk)}
+.d-simple .track{grid-column:1/-1;height:10px;border-radius:999px;background:rgb(27 29 38 / .14);overflow:hidden;margin-top:10px}
+.d-simple .track i{display:block;height:100%;width:0;border-radius:999px;background:#1b1d26;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+.d-simple .hint{grid-column:1/-1;display:flex;justify-content:space-between;font-size:12px;opacity:.7;margin-top:-4px}
+.d-simple .body{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+.d-simple .card{background:var(--sf);border-radius:24px;box-shadow:var(--sh);padding:24px}
+.d-simple h2{margin:0 0 8px;font-size:15px;font-weight:600;display:flex;gap:8px;align-items:center}
+.d-simple h2 .i{color:var(--pkink)}
+.d-simple .flag{display:grid;grid-template-columns:40px 1fr auto;gap:2px 14px;align-items:center;padding:14px 10px;margin:0 -10px;border-radius:16px}
+.d-simple .flag:hover{background:var(--pkbg)}
+.d-simple .flag .ic{grid-row:1/3;width:40px;height:40px;border-radius:50%;background:var(--pkbg);color:var(--pkink);display:grid;place-items:center}
+.d-simple .flag .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.d-simple .flag .kind{font-weight:600;text-transform:capitalize}
+.d-simple .flag .where{font:13px "Geist Mono";color:var(--mu)}
+.d-simple .flag .note{color:var(--mu)}
+.d-simple .flag .go{grid-row:1/3;grid-column:3;color:var(--mu)}
+.d-simple .facts{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:16px;border-top:1px solid var(--ln)}
+.d-simple .facts>span{display:inline-flex;gap:6px;align-items:center;padding:5px 12px 5px 8px;border-radius:999px;background:var(--bg);font-size:13px}
+.d-simple .facts .bad .i{color:var(--pkink)}
+.d-simple .cta{display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 20px 18px 24px;border-radius:20px;background:var(--tx);color:var(--bg);font-weight:600;font-size:18px;text-align:left}
+.d-simple .cta small{display:block;font:400 13px "Geist Mono";opacity:.65;margin-top:2px}
+.d-simple .cta .go{width:40px;height:40px;border-radius:50%;background:var(--pk);color:#1b1d26;display:grid;place-items:center}
+.d-simple .feat{display:grid;grid-template-columns:32px 1fr;gap:2px 10px;padding:12px 0}
+.d-simple .feat+.feat{border-top:1px solid var(--ln)}
+.d-simple .feat .ic{grid-row:1/3;width:32px;height:32px;border-radius:10px;background:var(--bg);display:grid;place-items:center}
+.d-simple .feat .ic .i{font-size:17px}
+.d-simple .feat b{font-weight:600;font-size:14px}
+.d-simple .feat p{margin:0;color:var(--mu);font-size:13px}
+.d-simple .foot{display:flex;gap:18px;padding:4px 8px;font-size:13px;color:var(--mu)}
+.d-simple .foot span{display:inline-flex;gap:6px;align-items:center}
+
+/* =========================================================
+   2 SITE: Hazard as a real construction site. Concrete, road
+   signs, barricades, a clipboard. Rounded plates, no boxes.
+   ========================================================= */
+.d-site{--bg:#b9b8b2;--grain:.10;--tx:#141414;--mu:#4c4b47;--sign:#ff6a13;--yel:#ffcc00;--grn:#00754a;--paper:#f7f5ee;--board:#3a3a38;--ln:rgb(0 0 0 / .12)
+  ;color:var(--tx);font:15px/1.45 "Overpass",system-ui,sans-serif;padding:0 0 26px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 30% 0%,rgb(255 255 255 / .25),transparent 60%),var(--bg)}
+.dark .d-site{--bg:#232322;--tx:#f2f0ea;--mu:#a9a79f;--paper:#2e2d2b;--board:#121212;--ln:rgb(255 255 255 / .1)}
+.d-site .bar{display:flex;align-items:center;gap:12px;padding:14px 28px;background:var(--board);color:#f2f0ea;border-radius:0 0 22px 22px;margin:0 16px;box-shadow:0 6px 0 rgb(0 0 0 / .25)}
+.d-site .brand{display:flex;align-items:center;gap:8px;font:900 17px "Overpass";letter-spacing:.01em}
+.d-site .brand .cone{width:26px;height:28px;position:relative}
+.d-site .brand .cone::before{content:"";position:absolute;inset:0 3px 4px;background:linear-gradient(var(--sign) 0 30%,#fff 30% 46%,var(--sign) 46% 64%,#fff 64% 80%,var(--sign) 80%);clip-path:polygon(40% 0,60% 0,100% 100%,0 100%);border-radius:3px}
+.d-site .brand .cone::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--sign);border-radius:3px}
+.d-site .pr{display:inline-flex;align-items:center;gap:4px;background:#1f883d;color:#fff;font:800 13px "Overpass Mono";padding:3px 11px 3px 8px;border-radius:999px}
+.d-site .ttl{font-weight:700}
+.d-site .br{font:13px "Overpass Mono";opacity:.6}
+.d-site .models{display:flex;align-items:center;gap:2px;background:rgb(255 255 255 / .08);border-radius:999px;padding:3px}
+.d-site .models>span{font:800 11px "Overpass";letter-spacing:.1em;padding:0 8px;color:var(--yel)}
+.d-site .models button{padding:5px 12px;border-radius:999px;font:700 13px "Overpass";color:#cfcdc6}
+.d-site .models button.on{background:var(--yel);color:#141414}
+.d-site .submit{display:flex;align-items:center;gap:8px;padding:8px 16px 8px 12px;border-radius:999px;background:var(--yel);color:#141414;font:900 14px "Overpass";text-transform:uppercase;letter-spacing:.04em}
+.d-site .submit b{background:#141414;color:var(--yel);border-radius:999px;font:800 11px/18px "Overpass Mono";padding:0 7px}
+.d-site .wrapin{padding:26px 28px 0;display:grid;gap:22px}
+/* the road-work sign */
+.d-site .sign{position:relative;background:var(--sign);color:#141414;border-radius:26px;padding:10px;box-shadow:0 2px 0 rgb(0 0 0 / .2),0 18px 30px -12px rgb(0 0 0 / .45)}
+.d-site .sign-in{border:5px solid #141414;border-radius:18px;padding:22px 28px 24px;display:grid;grid-template-columns:auto 1fr;gap:10px 34px;align-items:center}
+.d-site .rivet{position:absolute;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff8,#0006);box-shadow:inset 0 0 0 1px #0004}
+.d-site .diamond{width:150px;height:150px;position:relative;display:grid;place-items:center}
+.d-site .diamond::before{content:"";position:absolute;inset:18px;background:var(--yel);border:5px solid #141414;border-radius:16px;transform:rotate(45deg);box-shadow:0 6px 0 rgb(0 0 0 / .18)}
+.d-site .diamond div{position:relative;text-align:center;line-height:1}
+.d-site .diamond .n{font:900 56px/1 "Overpass";letter-spacing:-.03em}
+.d-site .diamond .k{font:900 10px "Overpass";letter-spacing:.14em;margin-top:2px}
+.d-site .vname{font:900 76px/.9 "Overpass";text-transform:uppercase;letter-spacing:-.01em;display:flex;align-items:center;gap:14px}
+.d-site .vname .i{font-size:64px}
+.d-site .line{font:700 19px "Overpass";margin:10px 0 14px}
+.d-site .tags{display:flex;flex-wrap:wrap;gap:7px}
+.d-site .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 13px 4px 7px;border-radius:999px;background:var(--c);color:#141414;font:800 13px "Overpass";text-transform:uppercase;letter-spacing:.02em;box-shadow:0 2px 0 rgb(0 0 0 / .25)}
+.d-site .tag .i{font-size:16px}
+.d-site .tag:nth-child(2n){transform:rotate(-1.5deg)}.d-site .tag:nth-child(3n){transform:rotate(1.2deg)}
+.d-site .tag.flags{background:#141414;color:var(--yel)}
+.d-site .rail{grid-column:1/-1;display:flex;align-items:center;gap:12px;font:800 12px "Overpass";text-transform:uppercase;letter-spacing:.06em}
+.d-site .barricade{flex:1;height:22px;border-radius:999px;background:rgb(0 0 0 / .18);box-shadow:inset 0 2px 0 rgb(0 0 0 / .2);overflow:hidden;position:relative}
+.d-site .barricade i{position:absolute;inset:0 auto 0 0;width:0;border-radius:999px;background:repeating-linear-gradient(-45deg,#fff 0 14px,#141414 14px 28px);transition:width 1.1s cubic-bezier(.2,.7,.2,1);box-shadow:0 0 0 3px #141414}
+.d-site .body{display:grid;grid-template-columns:1fr 370px;gap:24px;align-items:start}
+/* clipboard */
+.d-site .clip{position:relative;background:#8a6a3f;border-radius:22px;padding:30px 14px 14px;box-shadow:0 18px 30px -14px rgb(0 0 0 / .5)}
+.d-site .clip::before{content:"";position:absolute;top:-12px;left:50%;width:150px;height:34px;margin-left:-75px;border-radius:12px 12px 16px 16px;background:linear-gradient(#d9d9d6,#9c9c98);box-shadow:inset 0 -3px 0 rgb(0 0 0 / .25),0 3px 6px rgb(0 0 0 / .3)}
+.d-site .paper{background:var(--paper);border-radius:12px;padding:22px 22px 16px}
+.d-site h2{margin:0 0 10px;font:900 20px "Overpass";text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;gap:10px}
+.d-site .wsign{width:30px;height:30px;position:relative;display:grid;place-items:center;flex:none}
+.d-site .wsign::before{content:"";position:absolute;inset:5px;background:var(--yel);border:2.5px solid #141414;border-radius:5px;transform:rotate(45deg)}
+.d-site .wsign .i{position:relative;font-size:15px;color:#141414}
+.d-site .flag{display:grid;grid-template-columns:30px 1fr auto;gap:2px 14px;align-items:center;padding:12px 0;border-top:1.5px dashed var(--ln)}
+.d-site .flag .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.d-site .flag .kind{font:900 14px "Overpass";text-transform:uppercase;letter-spacing:.04em}
+.d-site .flag .where{font:13px "Overpass Mono";color:var(--mu)}
+.d-site .flag .note{grid-column:2}
+.d-site .flag .wsign{grid-row:1/3}
+.d-site .flag .go{grid-row:1/3;grid-column:3;color:var(--mu)}
+.d-site .facts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:12px;border-top:1.5px dashed var(--ln)}
+.d-site .facts>span{display:inline-flex;align-items:center;gap:5px;padding:4px 12px 3px 8px;border-radius:999px;background:rgb(0 0 0 / .06);font:700 13px "Overpass"}
+.dark .d-site .facts>span{background:rgb(255 255 255 / .07)}
+.d-site .facts .bad .i{color:var(--sign)}
+/* green guide sign */
+.d-site .cta{display:block;width:100%;text-align:left;background:var(--grn);color:#fff;border-radius:20px;padding:8px;box-shadow:0 18px 30px -14px rgb(0 0 0 / .5)}
+.d-site .cta>span{display:flex;align-items:center;justify-content:space-between;border:3px solid #fff;border-radius:14px;padding:14px 18px;font:900 26px/1 "Overpass"}
+.d-site .cta small{display:block;font:700 13px "Overpass Mono";margin-top:6px;opacity:.85}
+.d-site .cta .i{font-size:36px}
+.d-site .plate{margin-top:18px;background:var(--paper);border-radius:18px;padding:18px 20px;box-shadow:0 2px 0 rgb(0 0 0 / .12)}
+.d-site .feat{padding:10px 0;border-top:1.5px dashed var(--ln)}
+.d-site .feat b{display:flex;justify-content:space-between;font:800 15px "Overpass"}
+.d-site .feat b span{font:500 12px "Overpass Mono";color:var(--mu)}
+.d-site .feat p{margin:2px 0 0;color:var(--mu);font-size:14px}
+.d-site .foot{display:flex;gap:18px;font:700 13px "Overpass";color:var(--mu);padding:0 6px}
+
+/* =========================================================
+   3 GLOW: Scope, Mantis lime that actually glows. Soft dark
+   glass, rounded, very little chrome.
+   ========================================================= */
+.d-glow{--bg:#f4f6f3;--sf:rgb(255 255 255 / .8);--ln:rgb(26 30 30 / .08);--tx:#141716;--mu:#69706e;--lime:#76cc24;--limeink:#3f7a00;--limebg:#eaf7d8;--g1:0 0 0 transparent;--g2:0 10px 30px -10px rgb(118 204 36 / .55);--haze:rgb(118 204 36 / .16)
+  ;color:var(--tx);font:15px/1.5 "Geist",system-ui,sans-serif;padding:0 0 28px;
+  background:radial-gradient(900px 380px at 25% -60px,var(--haze),transparent 70%),var(--bg)}
+.dark .d-glow{--bg:#0a0c0b;--sf:rgb(255 255 255 / .035);--ln:rgb(255 255 255 / .07);--tx:#eef1ef;--mu:#8b928f;--lime:#8ee53f;--limeink:#a6ec66;--limebg:rgb(142 229 63 / .1);--g1:0 0 24px rgb(142 229 63 / .55);--g2:0 0 40px -4px rgb(142 229 63 / .5);--haze:rgb(142 229 63 / .14)}
+.d-glow .bar{display:flex;align-items:center;gap:12px;padding:18px 32px}
+.d-glow .brand{display:flex;align-items:center;gap:8px;font-weight:600}
+.d-glow .brand .i{color:var(--lime);text-shadow:var(--g1)}
+.d-glow .pr{display:inline-flex;align-items:center;gap:4px;background:#1f883d;color:#fff;font:600 13px "Geist Mono";padding:3px 10px 3px 7px;border-radius:999px}
+.d-glow .ttl{font-weight:600}
+.d-glow .br{font:13px "Geist Mono";color:var(--mu)}
+.d-glow .models{display:flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:var(--sf);border:1px solid var(--ln);backdrop-filter:blur(10px)}
+.d-glow .models>span{display:flex;align-items:center;gap:4px;padding:0 8px 0 6px;font-size:12px;color:var(--mu)}
+.d-glow .models>span .i{font-size:16px}
+.d-glow .models button{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:500;color:var(--mu)}
+.d-glow .models button.on{background:var(--limebg);color:var(--limeink)}
+.d-glow .models button.on::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:var(--g1)}
+.d-glow .submit{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 12px;border-radius:999px;border:1px solid var(--ln);background:var(--sf);font-weight:600;font-size:14px}
+.d-glow .submit b{background:var(--lime);color:#0a0c0b;border-radius:999px;font:600 11px/18px "Geist Mono";padding:0 7px;box-shadow:var(--g1)}
+.d-glow .wrapin{padding:10px 32px 0;display:grid;gap:18px}
+.d-glow .hero{border-radius:28px;padding:34px 38px 30px;background:var(--sf);border:1px solid var(--ln);display:grid;grid-template-columns:auto 1fr;gap:14px 48px;align-items:center;position:relative;overflow:hidden}
+.d-glow .hero::before{content:"";position:absolute;width:420px;height:420px;left:-120px;top:-200px;border-radius:50%;background:radial-gradient(circle,var(--haze),transparent 65%);pointer-events:none}
+.d-glow .score{position:relative}
+.d-glow .score .k{font-size:13px;color:var(--mu)}
+.d-glow .score .n{font:600 120px/.9 "Geist";letter-spacing:-.06em;color:var(--limeink);text-shadow:var(--g1);margin-top:6px}
+.dark .d-glow .score .n{color:var(--lime)}
+.d-glow .score .n small{font-size:22px;color:var(--mu);text-shadow:none;letter-spacing:0;margin-left:4px}
+.d-glow .score .h{font-size:12px;color:var(--mu);display:flex;gap:4px;align-items:center;margin-top:8px}
+.d-glow .score .h .i{font-size:15px}
+.d-glow .v{position:relative}
+.d-glow .vname{display:inline-flex;align-items:center;gap:12px;padding:12px 28px 12px 18px;border-radius:999px;background:var(--lime);color:#0a0c0b;font:600 44px/1 "Geist";letter-spacing:-.035em;box-shadow:var(--g2)}
+.d-glow .vname .i{font-size:40px}
+.d-glow .line{margin:16px 0 16px;font-size:18px;color:var(--mu)}
+.d-glow .tags{display:flex;flex-wrap:wrap;gap:6px}
+.d-glow .tag{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 10px;border-radius:999px;background:color-mix(in srgb,var(--c) 16%,transparent);border:1px solid color-mix(in srgb,var(--c) 35%,transparent);font-size:13px;font-weight:500}
+.d-glow .tag i{width:7px;height:7px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+.d-glow .tag b{font:500 12px "Geist Mono";color:var(--mu)}
+.d-glow .tag.flags{background:var(--limebg);border-color:color-mix(in srgb,var(--lime) 40%,transparent);color:var(--limeink)}
+.d-glow .tag.flags i{background:var(--lime)}
+.d-glow .track{grid-column:1/-1;position:relative;height:8px;border-radius:999px;background:var(--ln);margin-top:8px}
+.d-glow .track i{position:absolute;inset:0 auto 0 0;width:0;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--lime) 30%,transparent),var(--lime));box-shadow:var(--g1);transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.d-glow .track i::after{content:"";position:absolute;right:-6px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--lime);box-shadow:var(--g1),0 0 0 4px color-mix(in srgb,var(--lime) 25%,transparent);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:var(--g1),0 0 0 9px color-mix(in srgb,var(--lime) 0%,transparent)}}
+.d-glow .body{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start}
+.d-glow .card{border-radius:24px;background:var(--sf);border:1px solid var(--ln);padding:24px}
+.d-glow h2{margin:0 0 6px;font-size:14px;font-weight:600;color:var(--mu);display:flex;gap:8px;align-items:center}
+.d-glow .flag{display:grid;grid-template-columns:40px 1fr auto;gap:2px 14px;align-items:center;padding:13px 10px;margin:0 -10px;border-radius:16px}
+.d-glow .flag:hover{background:var(--limebg)}
+.d-glow .flag .ic{grid-row:1/3;width:40px;height:40px;border-radius:12px;background:var(--limebg);color:var(--limeink);display:grid;place-items:center}
+.dark .d-glow .flag .ic .i{text-shadow:var(--g1)}
+.d-glow .flag .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.d-glow .flag .kind{font-weight:600;text-transform:capitalize}
+.d-glow .flag .where{font:13px "Geist Mono";color:var(--mu)}
+.d-glow .flag .note{color:var(--mu)}
+.d-glow .flag .go{grid-row:1/3;grid-column:3;color:var(--mu)}
+.d-glow .facts{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:16px;border-top:1px solid var(--ln)}
+.d-glow .facts>span{display:inline-flex;gap:6px;align-items:center;padding:5px 12px 5px 8px;border-radius:999px;border:1px solid var(--ln);font-size:13px;color:var(--mu)}
+.d-glow .facts .bad .i{color:#ff5a5d}
+.d-glow .facts .good .i{color:var(--limeink)}
+.d-glow .cta{display:flex;align-items:center;justify-content:space-between;width:100%;padding:18px 20px 18px 24px;border-radius:20px;background:var(--lime);color:#0a0c0b;font-weight:600;font-size:18px;text-align:left;box-shadow:var(--g2)}
+.d-glow .cta small{display:block;font:400 13px "Geist Mono";opacity:.7;margin-top:2px}
+.d-glow .cta .go{width:40px;height:40px;border-radius:50%;background:#0a0c0b;color:var(--lime);display:grid;place-items:center}
+.d-glow .feat{display:grid;grid-template-columns:32px 1fr;gap:2px 10px;padding:12px 0}
+.d-glow .feat+.feat{border-top:1px solid var(--ln)}
+.d-glow .feat .ic{grid-row:1/3;width:32px;height:32px;border-radius:10px;border:1px solid var(--ln);display:grid;place-items:center}
+.d-glow .feat .ic .i{font-size:17px}
+.d-glow .feat b{font-weight:600;font-size:14px}
+.d-glow .feat p{margin:0;color:var(--mu);font-size:13px}
+.d-glow .foot{display:flex;gap:18px;padding:4px 8px;font-size:13px;color:var(--mu)}
+.d-glow .foot span{display:inline-flex;gap:6px;align-items:center}
+
+@media (max-width:640px){.picker h1{width:100%}}
+</style>
+
+<div class="picker"><div class="in">
+  <h1>Briefing directions</h1>
+  <span id="tabs" style="display:contents"></span>
+  <span class="sp"></span>
+  <button class="modebtn" id="mode"><span class="i">contrast</span><span id="modelbl">Light / dark</span></button>
+</div></div>
+<p class="dnote" id="note"></p>
+<div class="stagewrap"><div class="scroller"><div class="stage" id="stage"></div></div></div>
+
+<script>
+/* ---------- shared data: lustre-clinic #127 ---------- */
+const PR = { num: 127, title: "Appointment reminders over SMS", branch: "agent/sms-reminders" };
+const V = { name: "Read carefully", line: "Don't merge this on a skim. Four things below need a real read first.", score: 10 };
+const TAGS = [
+  { t: "core", n: 4, l: 277, ic: "adjust" }, { t: "glue", n: 3, l: 72, ic: "cable" }, { t: "tests", n: 2, l: 129, ic: "science" },
+  { t: "docs", n: 1, l: 24, ic: "description" }, { t: "boilerplate", n: 3, l: 31, ic: "inventory_2" }, { t: "generated", n: 2, l: 191, ic: "settings_suggest" },
+  { t: "flags", n: 4, ic: "flag" },
+];
+const FLAGS = [
+  { k: "deviation", ic: "alt_route", f: "api/appointments/confirm.ts", ln: 14, note: "Reads the raw appointment id from the link. You asked for a signed token." },
+  { k: "untested", ic: "science_off", f: "api/appointments/cancel.ts", ln: null, note: "No test covers cancelAppointment. The agent's last test run failed and it moved on." },
+  { k: "risky", ic: "bolt", f: "db/migrations/0042_reminders.sql", ln: 3, note: "Adds reminded_at to appointments, a table holding live patient records." },
+  { k: "uncertain", ic: "help", f: "types/appointment.ts", ln: 22, note: "The agent said it wasn't sure remindedAt should be optional." },
+];
+const FACTS = [
+  { bad: true, ic: "error", t: "test run failed", at: "turn 33" },
+  { ic: "check_circle", t: "CI passing", at: "4/4" },
+  { ic: "add_task", t: "tests added", at: "2 files" },
+];
+const FEATS = [
+  { ic: "schedule_send", n: "Reminder scheduling", files: 6, why: "Finds visits 24 hours out and texts the patient through Twilio." },
+  { ic: "link", n: "Confirm and cancel links", files: 4, why: "Endpoints the SMS links hit: mark a visit confirmed or cancelled." },
+  { ic: "folder_open", n: "Setup and other", files: 6, why: "Reminders doc, lockfile, generated schema, types, package.json." },
+];
+const MODELS = ["Haiku", "Sonnet", "Opus"];
+const DRAFTS = 3;
+const SESSION = "Session 7f3a, 41 turns";
+const WHEN = "Classified 12 min ago";
+
+const I = (n, c = "") => `<span class="i ${c}">${n}</span>`;
+const where = (f) => f.f + (f.ln ? ":" + f.ln : "");
+const models = (cls = "") => MODELS.map((m) => `<button class="${m === "Sonnet" ? "on" : ""}">${m}${m === "Opus" && cls ? " " + cls : ""}</button>`).join("");
+const pad = (n) => String(n).padStart(2, "0");
+
+/* ---------- directions ---------- */
+const topbar = (extraModelLabel = true) => `
+  <span class="pr">${I("merge")}#${PR.num}</span><span class="ttl">${PR.title}</span><span class="br">${PR.branch}</span>
+  <span style="flex:1"></span>
+  <div class="models"><span>${I("neurology")}${extraModelLabel ? "Model" : ""}</span>${models()}</div>
+  <button class="submit">${I("send")}Submit<b>${DRAFTS}</b></button>`;
+const tagsHTML = (fmt) => TAGS.map((t) => fmt(t)).join("");
+
+const DIRS = {
+  simple: {
+    name: "Simple", cw: "Riso",
+    note: "<b>Simple</b> is the quiet one. Riso colorway, Geist, soft 24px corners, white cards on a light gray, one pink verdict card, pill controls, round icons. Nothing decorative; the content does the work.",
+    html: () => `<div class="d-simple">
+      <div class="bar"><span class="brand">${I("stacks")}changestack</span>${topbar()}</div>
+      <div class="wrapin">
+        <section class="hero">
+          <div class="score"><div class="k">Merge score</div><div class="n"><span data-count="${V.score}">0</span><small>/100</small></div></div>
+          <div>
+            <div class="vname">${I("visibility", "f")}${V.name}</div>
+            <p class="line">${V.line}</p>
+            <div class="tags">${tagsHTML((t) => t.t === "flags"
+              ? `<span class="tag flags"><i></i>${t.n} flags</span>`
+              : `<span class="tag" style="--c:var(--s-${t.t})"><i></i>${t.n} ${t.t} <b>${t.l}</b></span>`)}</div>
+          </div>
+          <div class="track"><i data-fill="${V.score}"></i></div>
+          <div class="hint"><span>${I("north")} higher is safer</span><span>0 to 100</span></div>
+        </section>
+        <div class="body">
+          <section class="card"><h2>${I("flag")}Check first</h2>
+            ${FLAGS.map((f) => `<div class="flag"><span class="ic">${I(f.ic)}</span><div class="top"><span class="kind">${f.k}</span><span class="where">${where(f)}</span></div><div class="note">${f.note}</div>${I("chevron_right", "go")}</div>`).join("")}
+            <div class="facts">${FACTS.map((x) => `<span class="${x.bad ? "bad" : ""}">${I(x.ic)}${x.t} <b>${x.at}</b></span>`).join("")}</div>
+          </section>
+          <section class="card">
+            <button class="cta"><span>Resume review<small>at confirm.ts:14</small></span><span class="go">${I("arrow_forward")}</span></button>
+            <h2 style="margin-top:22px">${I("category")}What it builds</h2>
+            ${FEATS.map((f) => `<div class="feat"><span class="ic">${I(f.ic)}</span><b>${f.n}</b><p>${f.why}</p></div>`).join("")}
+          </section>
+        </div>
+        <div class="foot"><span>${I("forum")}${SESSION}</span><span>${I("history")}${WHEN}</span></div>
+      </div>
+    </div>`,
+  },
+
+  site: {
+    name: "Site", cw: "Hazard",
+    note: "<b>Site</b> is an actual construction site. Concrete underfoot, the top bar as site hoarding with a traffic cone, the verdict on a riveted road-work sign, the score in a yellow warning diamond, a barricade for the meter, flags on a clipboard with diamond warning signs, and Resume review as a green guide sign. Overpass, the highway sign face. Rounded plates, no boxes.",
+    html: () => `<div class="d-site">
+      <div class="bar"><span class="brand"><span class="cone"></span>changestack</span>${topbar()}</div>
+      <div class="wrapin">
+        <section class="sign">
+          <span class="rivet" style="top:14px;left:14px"></span><span class="rivet" style="top:14px;right:14px"></span><span class="rivet" style="bottom:14px;left:14px"></span><span class="rivet" style="bottom:14px;right:14px"></span>
+          <div class="sign-in">
+            <div class="diamond"><div><div class="n" data-count="${V.score}">0</div><div class="k">MERGE SCORE</div></div></div>
+            <div>
+              <div class="vname">${I("visibility", "f")}${V.name}</div>
+              <div class="line">${V.line}</div>
+              <div class="tags">${tagsHTML((t) => `<span class="tag ${t.t === "flags" ? "flags" : ""}" style="--c:var(--s-${t.t})">${I(t.ic)}${t.n} ${t.t}${t.l ? " " + t.l : ""}</span>`)}</div>
+            </div>
+            <div class="rail"><span>0</span><div class="barricade"><i data-fill="${V.score}"></i></div><span>100</span><span style="display:inline-flex;align-items:center;gap:3px">${I("north")}safer</span></div>
+          </div>
+        </section>
+        <div class="body">
+          <div class="clip"><div class="paper"><h2><span class="wsign">${I("priority_high")}</span>Check first</h2>
+            ${FLAGS.map((f) => `<div class="flag"><span class="wsign">${I(f.ic)}</span><div class="top"><span class="kind">${f.k}</span><span class="where">${where(f)}</span></div><div class="note">${f.note}</div>${I("chevron_right", "go")}</div>`).join("")}
+            <div class="facts">${FACTS.map((x) => `<span class="${x.bad ? "bad" : ""}">${I(x.ic)}${x.t} ${x.at}</span>`).join("")}</div>
+          </div></div>
+          <div>
+            <button class="cta"><span><span>Resume review<small>at confirm.ts:14</small></span>${I("turn_right")}</span></button>
+            <div class="plate"><h2>${I("construction")}What it builds</h2>
+              ${FEATS.map((f) => `<div class="feat"><b>${f.n}<span>${f.files} files</span></b><p>${f.why}</p></div>`).join("")}</div>
+          </div>
+        </div>
+        <div class="foot"><span>${SESSION}</span><span>${WHEN}</span></div>
+      </div>
+    </div>`,
+  },
+
+  glow: {
+    name: "Glow", cw: "Scope",
+    note: "<b>Glow</b> keeps the part of Instrument you liked and drops the sci-fi. Scope colorway, Mantis lime that glows in dark (a soft lime shadow in light), frosted rounded panels, a meter with a pulsing head, and no grids, brackets or monospace walls.",
+    html: () => `<div class="d-glow">
+      <div class="bar"><span class="brand">${I("stacks")}changestack</span>${topbar()}</div>
+      <div class="wrapin">
+        <section class="hero">
+          <div class="score"><div class="k">Merge score</div><div class="n"><span data-count="${V.score}">0</span><small>/100</small></div><div class="h">${I("north")}higher is safer</div></div>
+          <div class="v">
+            <div class="vname">${I("visibility", "f")}${V.name}</div>
+            <p class="line">${V.line}</p>
+            <div class="tags">${tagsHTML((t) => t.t === "flags"
+              ? `<span class="tag flags"><i></i>${t.n} flags</span>`
+              : `<span class="tag" style="--c:var(--s-${t.t})"><i></i>${t.n} ${t.t} <b>${t.l}</b></span>`)}</div>
+          </div>
+          <div class="track"><i data-fill="${V.score}"></i></div>
+        </section>
+        <div class="body">
+          <section class="card"><h2>${I("flag")}Check first</h2>
+            ${FLAGS.map((f) => `<div class="flag"><span class="ic">${I(f.ic)}</span><div class="top"><span class="kind">${f.k}</span><span class="where">${where(f)}</span></div><div class="note">${f.note}</div>${I("chevron_right", "go")}</div>`).join("")}
+            <div class="facts">${FACTS.map((x) => `<span class="${x.bad ? "bad" : "good"}">${I(x.ic)}${x.t} <b>${x.at}</b></span>`).join("")}</div>
+          </section>
+          <section class="card">
+            <button class="cta"><span>Resume review<small>at confirm.ts:14</small></span><span class="go">${I("arrow_forward")}</span></button>
+            <h2 style="margin-top:22px">${I("category")}What it builds</h2>
+            ${FEATS.map((f) => `<div class="feat"><span class="ic">${I(f.ic)}</span><b>${f.n}</b><p>${f.why}</p></div>`).join("")}
+          </section>
+        </div>
+        <div class="foot"><span>${I("forum")}${SESSION}</span><span>${I("history")}${WHEN}</span></div>
+      </div>
+    </div>`,
+  },
+};
+
+/* ---------- page logic ---------- */
+const order = ["simple", "site", "glow"];
+const stage = document.getElementById("stage");
+const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+document.getElementById("tabs").innerHTML = order.map((k, n) => `<a class="tab" href="#${k}" data-k="${k}">${n + 1}. ${DIRS[k].name} <small>${DIRS[k].cw}</small></a>`).join("");
+
+function isDark() {
+  const r = document.documentElement;
+  if (r.classList.contains("force-dark")) return true;
+  if (r.classList.contains("force-light")) return false;
+  if (r.dataset.theme) return r.dataset.theme === "dark";
+  return matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function animate() {
+  stage.querySelectorAll("[data-count]").forEach((el) => {
+    const n = +el.dataset.count, p = +(el.dataset.pad || 0);
+    const fmt = (v) => String(v).padStart(p, "0");
+    if (still) { el.textContent = fmt(n); return; }
+    const t0 = performance.now();
+    const tick = (t) => { const k = Math.min(1, (t - t0) / 900); el.textContent = fmt(Math.round(n * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+  stage.querySelectorAll("[data-fill]").forEach((el) => { el.style.width = "0%"; el.getBoundingClientRect(); requestAnimationFrame(() => (el.style.width = el.dataset.fill + "%")); });
+  stage.querySelectorAll("[data-ascii]").forEach((el) => {
+    const on = +el.dataset.ascii, total = +el.dataset.total;
+    let k = still ? on : 0;
+    const step = () => { el.textContent = "█".repeat(k) + "░".repeat(total - k); if (k++ < on) setTimeout(step, 45); };
+    step();
+  });
+}
+function show() {
+  const k = DIRS[location.hash.slice(1)] ? location.hash.slice(1) : "simple";
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.k === k));
+  document.getElementById("note").innerHTML = DIRS[k].note;
+  stage.className = "stage" + (isDark() ? " dark" : "");
+  stage.innerHTML = DIRS[k].html();
+  animate();
+}
+addEventListener("hashchange", show);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", show);
+document.getElementById("mode").addEventListener("click", () => {
+  const r = document.documentElement, d = isDark();
+  r.classList.toggle("force-dark", !d); r.classList.toggle("force-light", d);
+  show();
+});
+show();
+</script>

@@ -1,0 +1,671 @@
+<title>Review Screen Layouts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400;500;600&family=Hanken+Grotesk:wght@400..700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block">
+<style>
+/* page chrome */
+:root{--pg-bg:#e9e9e6;--pg-fg:#18181b;--pg-mute:#6b6b70;--pg-line:#d2d2cd;--pg-chip:#fafaf8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}}
+:root[data-theme="dark"]{--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}
+:root.force-light{--pg-bg:#e9e9e6;--pg-fg:#18181b;--pg-mute:#6b6b70;--pg-line:#d2d2cd;--pg-chip:#fafaf8;color-scheme:light}
+:root.force-dark{--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg-bg);color:var(--pg-fg);font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.i{font-family:"Material Symbols Sharp";font-weight:normal;font-style:normal;font-size:18px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;font-feature-settings:"liga";-webkit-font-smoothing:antialiased;font-variation-settings:"FILL" 0,"wght" 400,"opsz" 20;vertical-align:-4px;flex:none;overflow:hidden;width:1em}
+.i.f{font-variation-settings:"FILL" 1,"wght" 500,"opsz" 20}
+.picker{position:sticky;top:0;z-index:20;background:var(--pg-bg);border-bottom:1px solid var(--pg-line)}
+.picker .in{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1320px;margin:0 auto}
+.picker h1{margin:0 10px 0 0;font:700 14px "Hanken Grotesk",sans-serif}
+.tab{text-decoration:none;color:inherit;display:inline-flex;align-items:baseline;gap:6px;padding:6px 12px;border:1px solid var(--pg-line);border-radius:999px;background:var(--pg-chip);font-weight:600;font-size:13px}
+.tab[aria-current="true"]{background:var(--pg-fg);color:var(--pg-bg);border-color:var(--pg-fg)}
+.sp{flex:1}
+.bgpick{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--pg-line);border-radius:999px;background:var(--pg-chip);font-size:13px}
+.bgpick span{padding:3px 6px 3px 8px;color:var(--pg-mute)}
+.bgpick button{padding:3px 10px;border-radius:999px}
+.bgpick button[aria-pressed="true"]{background:var(--pg-fg);color:var(--pg-bg)}
+.modebtn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--pg-line);border-radius:999px;background:var(--pg-chip);font-size:13px}
+.dnote{max-width:1320px;margin:0 auto;padding-block:14px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));color:var(--pg-mute);font-size:14px}
+.dnote b{color:var(--pg-fg)}
+.stagewrap{max-width:1320px;margin:0 auto;padding-block:14px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.scroller{overflow-x:auto;border:1px solid var(--pg-line);border-radius:20px}
+.stage{min-width:1180px}
+.stage{--s-core:#e5383b;--s-glue:#f2711c;--s-tests:#f5c400;--s-docs:#4c8df6;--s-boilerplate:#3fae5a;--s-generated:#9a9ca6}
+.stage.dark{--s-core:#ff5a5d;--s-glue:#ff8a3d;--s-tests:#ffd43b;--s-docs:#74a8ff;--s-boilerplate:#5cc977;--s-generated:#7d7f89}
+
+/* ================= Riso tokens ================= */
+.r{--code:#ffffff;--side:#ececea;--glowA:rgb(255 79 139 / .22);--glowB:rgb(255 176 92 / .18);--grainO:.07;--bg:#f5f5f3;--sf:#ffffff;--ln:#e3e3e0;--tx:#1b1d26;--mu:#6e7079;--pk:#ff4f8b;--pkink:#c92a63;--pkbg:#ffe8f0;--fl:#e03131;--flink:#c92a2a;--flbg:#ffe9e9;--onfl:#fff;--tline:#c9c9c4;--f-risky:#e03131;--f-deviation:#a0592b;--f-untested:#1098ad;--f-uncertain:#c2255c;--cur:#e8e8e5;
+  --add:#e3f5e7;--addt:#1d7a3a;--del:#fde9e9;--delt:#b3261e;--kw:#3a46c9;--str:#1d7a3a;--com:#8a8c94;--hov:#ececea;
+  background:var(--bg);color:var(--tx);font:15px/1.5 "Geist",system-ui,sans-serif}
+.dark .r{--code:#141417;--side:#0b0b0d;--glowA:rgb(255 79 139 / .16);--glowB:rgb(140 90 255 / .10);--grainO:.09;--bg:#101012;--sf:#18181b;--ln:#26262b;--tx:#ececef;--mu:#8e8f97;--pkink:#ff7aa8;--pkbg:#2c1a22;--fl:#ff6b6b;--flink:#ff8787;--flbg:#2c1618;--onfl:#1b1d26;--tline:#3a3a41;--f-risky:#ff6b6b;--f-deviation:#d9915f;--f-untested:#3bc9db;--f-uncertain:#f06595;--cur:#24242a;
+  --add:#12261a;--addt:#6fd08f;--del:#2c1517;--delt:#ff8a80;--kw:#9aa5ff;--str:#7fd498;--com:#6f717a;--hov:#1d1d21}
+
+/* top bar, same as Briefing plus verdict chip and progress */
+.r .bar{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:14px 28px;border-bottom:1px solid var(--ln)}
+.r .brand{display:flex;align-items:center;gap:8px;font-weight:600}
+.r .brand .i{width:28px;height:28px;border-radius:9px;background:var(--tx);color:var(--bg);display:grid;place-items:center;font-size:18px}
+.r .pr{display:inline-flex;align-items:center;gap:4px;background:#1f883d;color:#fff;font:600 13px "Geist Mono";padding:3px 10px 3px 7px;border-radius:999px}
+.r .ttl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px}
+.r .vchip{display:inline-flex;align-items:center;gap:6px;background:var(--pk);color:#1b1d26;border-radius:999px;padding:3px 3px 3px 9px;font-weight:600;font-size:13px;white-space:nowrap}
+.r .vchip b{background:#1b1d26;color:#fff;border-radius:999px;font:600 12px/20px "Geist Mono";padding:0 7px}
+.r .prog{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--mu);white-space:nowrap}
+.r .prog b{color:var(--tx);font-weight:600}
+.r .prog svg{width:22px;height:22px;transform:rotate(-90deg)}
+.r .prog circle{fill:none;stroke-width:3.5}
+.r .models{display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--ln)}
+.r .models>span{display:flex;align-items:center;padding:0 4px 0 6px;color:var(--mu)}
+.r .models button{padding:4px 11px;border-radius:999px;font-size:13px;font-weight:500;color:var(--mu)}
+.r .models button.on{background:var(--tx);color:var(--bg)}
+.r .submit{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 12px;border-radius:999px;background:var(--pk);color:#1b1d26;font-weight:600;font-size:14px}
+.r .submit b{background:#1b1d26;color:#fff;border-radius:999px;font:600 11px/18px "Geist Mono";padding:0 7px}
+
+/* tier tag: filled severity color, dark text */
+.r .tier{display:inline-flex;align-items:center;gap:5px;background:var(--c);color:#1b1d26;border-radius:999px;padding:2px 10px 2px 7px;font-size:12px;font-weight:600}
+.r .tier .i{font-size:15px}
+.r .seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--hov)}
+.r .seg button{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:500;color:var(--mu)}
+.r .seg button .i{font-size:16px}
+.r .seg button.on{background:var(--pk);color:#1b1d26}
+
+/* file list rows */
+.r .k-risky{--fl:var(--f-risky)} .r .k-deviation{--fl:var(--f-deviation)} .r .k-untested{--fl:var(--f-untested)} .r .k-uncertain{--fl:var(--f-uncertain)}
+.r .k-risky,.r .k-deviation,.r .k-untested,.r .k-uncertain{--flbg:color-mix(in srgb,var(--fl) 13%,var(--bg))}
+.r .grp{width:100%;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;margin:16px 0 4px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mu)}
+.r .grp .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.r .grp .i{font-size:16px;color:var(--mu)}
+.r .grp.fl>.i:first-child{color:var(--tx)}
+.r .gd>summary{list-style:none}
+.r .gd>summary::-webkit-details-marker{display:none}
+.r .grp .chev,.r .dirrow .chev{color:var(--mu);font-size:18px;margin-left:-4px;margin-right:-5px}
+.r .gd:not([open])>summary .chev{rotate:-90deg}
+@media (prefers-reduced-motion:no-preference){
+  .r .gd>summary .chev{transition:rotate .2s}
+  .r .gd::details-content{transition:block-size .25s ease-in-out,content-visibility .25s allow-discrete}
+}
+.r .gd::details-content{interpolate-size:allow-keywords;overflow:clip;contain:layout}
+.r .gd:not([open])::details-content{block-size:0}
+.r .grp:hover{color:var(--tx)}
+.r .grp em{font-style:normal;margin-left:auto;font:500 12px "Geist Mono";letter-spacing:0;text-transform:none}
+.r .fr{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 2px;border-radius:999px;cursor:pointer}
+.r .fr:hover{background:var(--hov)}
+.r .fr.cur{background:var(--pkbg)}
+.r .fr.cur .fname{color:var(--pkink)}
+.r .ck{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--ln);display:grid;place-items:center;flex:none}
+.r .ck .i{font-size:14px}
+.r .fr.rev .ck{background:var(--tx);color:var(--bg);box-shadow:none}
+.r .fr.rev .nm b{color:var(--mu);font-weight:500}
+.r .nm{min-width:0;flex:1;display:flex;align-items:baseline;gap:6px;overflow:hidden;white-space:nowrap}
+.r .nm b{font:500 13px "Geist Mono"}
+.r .fname{display:flex;min-width:0;white-space:nowrap}
+.r .fname>span{overflow:hidden;text-overflow:ellipsis}
+.r .nm small{color:var(--mu);font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.r .nm .td{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none;align-self:center}
+.r .tb{width:20px;height:20px;border-radius:50%;background:var(--c);color:#1b1d26;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.r .tb>.i{display:block;width:auto;height:auto;line-height:1;vertical-align:0}
+.r .tb .i,.r .grp .tb .i,.r .dirrow .tb .i{color:#1b1d26}
+.r .tb .i{font-size:14px;font-variation-settings:"FILL" 1,"wght" 600,"opsz" 20}
+.r .grp .tb{width:22px;height:22px}
+.r .tree{position:relative}
+.r .kids{position:relative;margin-left:13px;padding-left:9px}
+.r .kids::before{content:"";position:absolute;left:0;top:0;bottom:14px;width:1.5px;border-radius:2px;background:var(--tline)}
+.r .kids>.fr,.r .kids>.gd>summary{position:relative}
+.r .kids>.fr::before,.r .kids>.gd>summary::before{content:"";position:absolute;left:-9px;top:50%;width:7px;height:1.5px;border-radius:2px;background:var(--tline)}
+.r .dirrow{width:100%;cursor:pointer;border-radius:999px;display:flex;align-items:center;gap:6px;padding:3px 4px;color:var(--mu);font:12px "Geist Mono";white-space:nowrap}
+.r .dirrow .i{font-size:16px}
+.r .tsub{font:600 12px "Geist",sans-serif;text-transform:capitalize;color:var(--tx);padding:4px 4px 4px 2px}
+.r .tsub .tb{width:18px;height:18px}
+.r .tsub .tb .i{font-size:12px}
+.r .tsub em{margin-left:auto;font:500 11px "Geist Mono";font-style:normal;color:var(--mu)}
+
+
+.r .dirrow:hover{background:var(--hov);color:var(--tx)}
+.r .fr .tb{margin-left:-2px}
+.r .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--mu)}
+.r .legend span{display:inline-flex;align-items:center;gap:4px}
+.r .legend .tb{width:16px;height:16px}
+.r .legend .tb .i{font-size:11px}
+.r .mk{display:flex;gap:5px;align-items:center;flex:none}
+.r .mk .dr{display:inline-flex;align-items:center;gap:2px;font:600 11px "Geist Mono";color:var(--mu)}
+.r .mk .dr .i{font-size:14px}
+.r .mk .fl{width:20px;height:20px;border-radius:50%;background:var(--fl);color:var(--onfl);display:grid;place-items:center}
+.r .mk .fl .i{font-size:13px}
+
+/* file header */
+.r .fh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.r .path{font:600 15px "Geist Mono"}
+.r .path small{font-weight:400;color:var(--mu)}
+.r .num{font:500 13px "Geist Mono"}
+.r .num .a{color:var(--addt)} .r .num .d{color:var(--delt)}
+.r .ptr{display:inline-flex;align-items:center;gap:5px;background:var(--fl);color:var(--onfl);border-radius:999px;padding:4px 11px 4px 8px;font-size:13px;font-weight:500}
+
+.r .ptr .i{font-size:16px}
+.r .pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 11px 4px 8px;font-size:13px;color:var(--mu);box-shadow:inset 0 0 0 1px var(--ln)}
+.r .pill .i{font-size:16px}
+.r .markrev{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 14px 6px 8px;font-size:13px;font-weight:600;color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln)}
+.r .markrev .i{font-size:18px;color:var(--pkink)}
+.r .markrev:hover{background:var(--pkbg)}
+.r .markrev.on{background:var(--pkbg);color:var(--pkink);box-shadow:none}
+.r .why{display:flex;gap:8px;align-items:center;color:var(--mu);margin:8px 0 14px}
+.r .why .i{color:var(--tx)}
+.r .why b{color:var(--tx);font:500 14px "Geist Mono"}
+.r .hnote{display:flex;gap:12px;align-items:flex-start;background:var(--flbg);border-radius:18px;padding:12px 16px 12px 12px;margin:10px 0 14px}
+.r .hnote .ic{width:32px;height:32px;border-radius:50%;background:var(--fl);color:var(--onfl);display:grid;place-items:center;flex:none}
+.r .hnote b{text-transform:capitalize}
+.r .hnote p{margin:2px 0 0;color:var(--tx)}
+
+/* diff */
+.r .diff{font:13px/24px "Geist Mono",monospace}
+.r .hunk{display:flex;align-items:center;gap:6px;color:var(--mu);margin:4px 0 6px;padding-left:4px}
+.r .hunk span:last-child{background:var(--hov);border-radius:999px;padding:0 12px;font-size:12px}
+.r .ln{display:grid;grid-template-columns:48px 18px 1fr;border-radius:8px;position:relative}
+.r .ln>.no{color:var(--mu);text-align:right;padding-right:8px;user-select:none;opacity:.8}
+.r .ln.del>.no{opacity:.5}
+.r .ln>.sg{text-align:center;padding:0}
+.r .ln code{font:inherit;white-space:pre;padding-right:40px}
+.r .ln.add{background:var(--add)} .r .ln.add .sg{color:var(--addt)}
+.r .ln.del{background:var(--del)} .r .ln.del .sg{color:var(--delt)} .r .ln.del code{opacity:.8}
+.r .ln.flg{background:var(--flbg)}
+.r .ln.flg>.no{opacity:1}
+.r .ln.flg>.no b{display:inline-flex;align-items:center;gap:2px;background:var(--fl);color:var(--onfl);border-radius:999px;padding:0 6px 0 4px;line-height:18px;font-weight:600}
+.r .ln.flg>.no b .i{font-size:12px;vertical-align:0}
+.r .ln mark{background:none;color:inherit;text-decoration:underline wavy var(--fl);text-underline-offset:4px;text-decoration-thickness:1.5px}
+.r .ln .plus{position:absolute;right:8px;top:2px;width:20px;height:20px;border-radius:50%;background:var(--pk);color:#1b1d26;display:none;place-items:center;box-shadow:0 1px 3px rgb(0 0 0 / .18)}
+.r .ln .plus .i{font-size:15px}
+.r .ln:hover .plus,.r .ln.hovered .plus{display:grid}
+.r .kw{color:var(--kw)} .r .st{color:var(--str)} .r .cm{color:var(--com);font-style:italic}
+.r .more{display:flex;align-items:center;gap:6px;color:var(--mu);font-size:12px;padding:6px 0 0 66px}
+
+/* notes at the anchor line */
+.r .anno{display:grid;grid-template-columns:32px 1fr auto;gap:2px 12px;margin:8px 0 10px 66px;padding:12px 14px 12px 12px;border-radius:18px;font:14px/1.5 "Geist",sans-serif;max-width:640px}
+.r .anno .ic{grid-row:1/3;width:32px;height:32px;border-radius:50%;display:grid;place-items:center}
+.r .anno .h{display:flex;gap:8px;align-items:baseline}
+.r .anno .h span{font:12px "Geist Mono";color:var(--mu)}
+.r .anno p{margin:0}
+.r .anno .h,.r .anno p{grid-column:2}
+.r .anno .acts{grid-row:1/3;grid-column:3;display:flex;gap:4px;color:var(--mu)}
+.r .anno .acts button{width:28px;height:28px;border-radius:50%;display:grid;place-items:center}
+.r .anno .acts button:hover{background:var(--hov)}
+.r .anno.flagn{background:var(--flbg)}
+.r .anno.flagn .ic{background:var(--fl);color:var(--onfl)}
+.r .anno.flagn b{text-transform:capitalize}
+.r .anno.draft{background:var(--sf);box-shadow:inset 0 0 0 1px var(--ln)}
+.r .anno.draft .ic{background:var(--tx);color:var(--bg)}
+.r .anno.draft .ic .i{font-size:17px}
+
+/* ---------- A: RAIL ---------- */
+.v-rail .body{display:grid;grid-template-columns:300px 1px 1fr}
+.v-rail .rail{padding:20px 18px 24px 22px}
+.v-rail .rail .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.v-rail .vr{background:var(--ln)}
+.v-rail .main{padding:24px 32px 40px;min-width:0}
+.v-rail .file+.file{margin-top:34px;padding-top:26px;border-top:1px solid var(--ln)}
+.v-rail .feathd{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.v-rail .feathd .ic{width:40px;height:40px;border-radius:50%;background:var(--pkbg);color:var(--pkink);display:grid;place-items:center}
+.v-rail .feathd b{font-size:17px}
+.v-rail .feathd p{margin:0;color:var(--mu);font-size:14px}
+.r .keys{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:22px;font-size:12px;color:var(--mu)}
+.r .keys kbd{font:500 11px "Geist Mono";background:var(--hov);border-radius:6px;padding:1px 6px;color:var(--tx)}
+
+/* ---------- B: FOCUS ---------- */
+.v-focus{display:flex;flex-direction:column;height:900px}
+.v-focus .band{background:var(--pk);color:#1b1d26;padding:24px 32px 22px;display:grid;grid-template-columns:1fr auto;gap:10px 32px;align-items:end}
+.v-focus .band .k{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;opacity:.8}
+.v-focus .band h2{margin:4px 0 0;font:600 40px/1.05 "Geist";letter-spacing:-.035em;display:flex;align-items:baseline;gap:12px}
+.v-focus .band h2 small{font:400 16px "Geist Mono";letter-spacing:0;opacity:.7}
+.v-focus .band .why{color:#1b1d26;margin:8px 0 0;opacity:.85}
+.v-focus .band .why .i,.v-focus .band .why b{color:#1b1d26}
+.v-focus .band .num .a,.v-focus .band .num .d{color:#1b1d26;opacity:.75}
+.v-focus .band .tier{background:rgb(255 255 255 / .9)}
+.v-focus .band .tier i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.v-focus .band .acts{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+
+.v-focus .bigrev{display:flex;align-items:center;gap:14px;padding:10px 10px 10px 20px;border-radius:999px;background:#1b1d26;color:#fff;font-weight:600;font-size:16px}
+.v-focus .bigrev .go{width:36px;height:36px;border-radius:50%;background:#fff;color:#1b1d26;display:grid;place-items:center}
+.v-focus .bigrev small{display:block;font:400 12px "Geist Mono";opacity:.6}
+.v-focus .scrollc{flex:1;overflow:auto;padding:22px 32px 30px}
+.v-focus .scrollc .diff{max-width:1000px;margin:0 auto}
+.v-focus .dock{display:flex;align-items:center;gap:16px;padding:12px 24px;border-top:1px solid var(--ln);background:var(--bg)}
+.v-focus .step{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px var(--ln)}
+.v-focus .step.next{background:var(--tx);color:var(--bg);box-shadow:none}
+.v-focus .dots{flex:1;display:flex;align-items:center;justify-content:center;gap:14px}
+.v-focus .dots .g{display:flex;gap:5px;align-items:center}
+.v-focus .dot{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 3px var(--c);display:grid;place-items:center;position:relative;cursor:pointer}
+.v-focus .dot.rev{background:var(--c);color:#1b1d26}
+.v-focus .dot.rev .i{font-size:14px}
+.v-focus .dot.cur{outline:2px solid var(--tx);outline-offset:3px}
+.v-focus .dot.flag::after{content:"";position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--fl);box-shadow:0 0 0 2px var(--bg)}
+.v-focus .dock .lbl{font-size:13px;color:var(--mu);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.v-focus .dock .lbl b{color:var(--tx);font-family:"Geist Mono";font-weight:500}
+
+/* ---------- C: MARGIN ---------- */
+.v-margin{display:flex;flex-direction:column;height:1040px}
+.v-margin .body{flex:1;min-height:0;display:grid;grid-template-columns:300px 1fr}
+/* left column: files on top, flags and drafts in the middle, progress and switch pinned at the bottom */
+.v-margin .idx{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--ln)}
+.v-margin .idx .files{flex:1;min-height:0;overflow:auto;padding:6px 14px 10px 18px}
+.v-margin .idx .nm small{display:none}
+.v-margin .idx .fr{padding:4px 8px 4px 4px}
+.v-margin .idx .ck{width:16px;height:16px}
+.v-margin .idx .ck .i{font-size:12px}
+.v-margin .idx .sec{padding:4px 14px 10px 18px;border-top:1px solid var(--ln)}
+.v-margin .jr{display:flex;align-items:center;gap:9px;padding:4px 8px 4px 4px;border-radius:999px;cursor:pointer;min-width:0}
+.v-margin .jr:hover{background:var(--hov)}
+.v-margin .jr.cur{background:var(--pkbg)}
+.v-margin .jr .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--fl);color:var(--onfl)}
+.v-margin .jr .ic .i{font-size:14px}
+.v-margin .jr.d .ic{background:var(--tx);color:var(--bg)}
+.v-margin .jr .tx{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.3}
+.v-margin .jr .tx b{font-size:13px;font-weight:600;text-transform:capitalize}
+.v-margin .jr .tx small{font:12px "Geist Mono";color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v-margin .jr.d .tx b{font:500 12px "Geist Mono";text-transform:none}
+.v-margin .jr.d .tx small{font:12px "Geist",sans-serif}
+.v-margin .foot2{padding:12px 14px 14px 18px;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:10px}
+.v-margin .foot2 .plbl{font-size:12px;color:var(--mu);display:flex;justify-content:space-between}
+.v-margin .foot2 .plbl b{color:var(--tx);font-weight:600}
+.v-margin .ptrack{height:6px;border-radius:3px;background:var(--hov);overflow:hidden}
+.v-margin .ptrack i{display:block;height:100%;background:var(--pk)}
+.v-margin .foot2 .seg{display:flex}
+.v-margin .foot2 .seg button{flex:1;justify-content:center;padding:5px 8px;font-size:12px}
+/* main: tool row, then files */
+.v-margin .main{overflow-y:auto;overflow-x:hidden;min-width:0}
+.v-margin .mtools{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;padding:12px 28px 10px 32px;border-bottom:1px solid var(--ln);font-size:13px;color:var(--mu)}
+.v-margin .mtools b{color:var(--tx);font:500 13px "Geist Mono"}
+.v-margin .mtools .nav{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 1px var(--ln);color:var(--tx)}
+/* notes column header: sits over the margin column, like the column's own title */
+.v-margin .nhead{display:flex;align-items:center;gap:8px;width:calc(var(--nw) - 48px);margin-right:-8px}
+.v-margin .nhead .lbl{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mu)}
+.v-margin .nhead .lbl .i{font-size:16px}
+.v-margin .nhead .lbl em{font:500 12px "Geist Mono";font-style:normal;letter-spacing:0;color:var(--mu)}
+/* fold handle: a small round tab sitting on the column separator, like a sidebar edge */
+.v-margin .nbtn{position:absolute;top:50%;right:calc(var(--nw) - 13px);translate:0 -50%;z-index:2;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--code);color:var(--mu);box-shadow:inset 0 0 0 1px var(--ln),0 1px 3px rgb(0 0 0 / .08)}
+.v-margin .nbtn .i{font-size:18px}
+.v-margin .nbtn:hover{color:var(--tx);box-shadow:inset 0 0 0 1px var(--mu)}
+.v-margin.closed .nhead{display:none}
+.v-margin.closed .nbtn{right:16px}
+.v-margin.closed .nbtn::after{content:attr(data-n);position:absolute;top:-5px;right:-6px;min-width:15px;height:15px;border-radius:999px;background:var(--pk);color:#1b1d26;font:600 10px/15px "Geist Mono";text-align:center;padding:0 3px}
+.v-margin .file{padding:22px 0 8px 32px}
+.v-margin .file+.file{border-top:1px solid var(--ln);margin-top:22px}
+.v-margin .fh,.v-margin .why{padding-right:28px}
+.v-margin .grid{display:grid;grid-template-columns:1fr 340px;transition:grid-template-columns .25s}
+.v-margin.closed .grid{grid-template-columns:1fr 60px}
+.v-margin.closed .notes{margin-left:14px}
+.v-margin .notes{position:relative;border-left:1px solid var(--ln);margin-left:20px}
+/* ---------- backgrounds (pick in the bar above) ---------- */
+.v-margin{position:relative;isolation:isolate}
+.v-margin.bg-glow,.v-margin.bg-grain{
+  background:
+    radial-gradient(900px 520px at 8% -10%,var(--glowA),transparent 70%),
+    radial-gradient(800px 600px at 105% 110%,var(--glowB),transparent 70%),
+    var(--bg);
+  --side:color-mix(in srgb,var(--bg) 45%,transparent)}
+.dark .v-margin.bg-glow,.dark .v-margin.bg-grain{--side:color-mix(in srgb,#000 30%,transparent)}
+/* riso grain: SVG noise over the whole frame, under the content */
+.v-margin.bg-grain::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:var(--grainO);mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.dark .v-margin.bg-grain::before{mix-blend-mode:screen}
+/* side columns tinted, code on paper */
+.v-margin .idx{background:var(--side)}
+.v-margin{--nw:320px;--sep:var(--ln)}
+.v-margin.closed{--nw:0px;--sep:transparent}
+.v-margin .grid>div:first-child{min-width:0}
+.v-margin .diff{overflow-x:auto}
+.v-margin .main,.v-margin .mtools{background:linear-gradient(to left,var(--side) var(--nw),var(--sep) var(--nw),var(--sep) calc(var(--nw) + 1px),var(--code) calc(var(--nw) + 1px))}
+.v-margin .mtools{backdrop-filter:blur(10px)}
+.v-margin .notes{border-left-color:transparent}
+
+.v-margin .note{position:absolute;left:0;right:24px;padding-left:18px;font:14px/1.5 "Geist",sans-serif;border-radius:14px}
+.v-margin .note .nh{display:flex;align-items:center;gap:8px;height:24px;position:relative}
+.v-margin .note .nh::before{content:"";position:absolute;left:-18px;top:11px;width:12px;height:2px;border-radius:2px;background:var(--c)}
+.v-margin .note .ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--c);color:var(--on)}
+.v-margin .note .ic .i{font-size:15px}
+.v-margin .note .nh b{font-weight:600}
+.v-margin .note.f .nh b{text-transform:capitalize}
+.v-margin .note .lno{margin-left:auto;font:12px "Geist Mono";color:var(--mu)}
+.v-margin .note .fold{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--mu)}
+.v-margin .note .fold:hover{background:var(--hov)}
+.v-margin .note p{margin:4px 0 0 32px;color:var(--mu)}
+.v-margin .note.f{--c:var(--fl);--on:var(--onfl)}
+.v-margin .note.f p{color:var(--tx)}
+.v-margin .note.d{--c:var(--tx);--on:var(--bg)}
+.v-margin .note .acts{margin:6px 0 0 32px;display:flex;gap:4px}
+.r .res{--fl:var(--mu);--flbg:var(--hov)}
+.r .ln.flg.res mark{text-decoration-color:var(--mu)}
+.v-margin .note .acts .resolve{color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln)}
+.v-margin .note .acts .resolve .i{color:var(--addt)}
+.v-margin .note.res .nh b{color:var(--mu);text-decoration:line-through;text-decoration-thickness:1px}
+.v-margin .note .undo{font-size:12px;color:var(--tx);padding:1px 9px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--ln)}
+.v-margin .note .undo:hover{background:var(--hov)}
+.v-margin .jr .rbtn{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--mu);opacity:0;flex:none}
+.v-margin .jr:hover .rbtn,.v-margin .jr.res .rbtn{opacity:1}
+.v-margin .jr .rbtn:hover{background:var(--sf);color:var(--tx)}
+.v-margin .jr .rbtn .i{font-size:16px}
+.v-margin .jr.res .tx b{color:var(--mu);text-decoration:line-through;text-decoration-thickness:1px}
+.v-margin .note .acts button{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--mu);padding:2px 8px 2px 6px;border-radius:999px}
+.v-margin .note .acts button:hover{background:var(--hov);color:var(--tx)}
+.v-margin .note .acts .i{font-size:14px}
+.v-margin .note:hover .nh b{text-decoration:underline;text-underline-offset:3px}
+.v-margin .mk2{position:absolute;left:14px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:var(--on)}
+.v-margin .mk2 .i{font-size:15px}
+.v-margin .mk2.f{--c:var(--fl);--on:var(--onfl)}
+.v-margin .mk2.d{--c:var(--tx);--on:var(--bg)}
+.v-margin .mk2::before{content:"";position:absolute;left:-14px;top:12px;width:10px;height:2px;border-radius:2px;background:var(--c)}
+.r .ln.lit{box-shadow:inset 0 0 0 1.5px var(--tx)}
+.r .ln.flg.lit{box-shadow:inset 0 0 0 1.5px var(--fl)}
+</style>
+
+<div class="picker"><div class="in">
+  <h1>Review screen</h1>
+  <span id="tabs" style="display:contents"></span>
+  <span class="sp"></span>
+    <button class="modebtn" id="mode"><span class="i">contrast</span>Light / dark</button>
+</div></div>
+<p class="dnote" id="note"></p>
+<div class="stagewrap"><div class="scroller"><div class="stage" id="stage"></div></div></div>
+
+<script>
+/* ---------- data: lustre-clinic #127 (same mock as the Briefing) ---------- */
+const PR = { num: 127, title: "Appointment reminders over SMS" };
+const TIERS = ["core", "glue", "tests", "docs", "boilerplate", "generated"];
+const TIER_IC = { core: "adjust", glue: "cable", tests: "science", docs: "description", boilerplate: "inventory_2", generated: "settings_suggest" };
+const FEATS = [
+  { id: "sched", n: "Reminder scheduling", ic: "schedule_send", why: "Finds visits 24 hours out and texts the patient through Twilio." },
+  { id: "links", n: "Confirm and cancel links", ic: "link", why: "Endpoints the SMS links hit: mark a visit confirmed or cancelled." },
+  { id: "other", n: "Setup and other", ic: "folder_open", why: "Reminders doc, lockfile, generated schema, types, package.json." },
+];
+const FILES = [
+  { p: "reminders/scheduler.ts", t: "core", a: 142, d: 0, f: ["sched"], rev: true },
+  { p: "api/appointments/confirm.ts", t: "core", a: 64, d: 3, f: ["links"], flag: "deviation", dr: 2, cur: true },
+  { p: "api/appointments/cancel.ts", t: "core", a: 48, d: 2, f: ["links"], flag: "untested" },
+  { p: "db/migrations/0042_reminders.sql", t: "core", a: 18, d: 0, f: ["sched"], flag: "risky" },
+  { p: "sms/twilio.ts", t: "glue", a: 56, d: 0, f: ["sched", "links"], dr: 1, rev: true },
+  { p: "config/env.ts", t: "glue", a: 9, d: 1, f: ["sched"], rev: true },
+  { p: "api/routes.ts", t: "glue", a: 6, d: 0, f: ["links"], rev: true },
+  { p: "reminders/scheduler.test.ts", t: "tests", a: 88, d: 0, f: ["sched"], rev: true },
+  { p: "sms/twilio.test.ts", t: "tests", a: 41, d: 0, f: ["sched"] },
+  { p: "docs/reminders.md", t: "docs", a: 24, d: 0, f: ["other"] },
+  { p: "package.json", t: "boilerplate", a: 2, d: 0, f: ["other"] },
+  { p: "reminders/index.ts", t: "boilerplate", a: 3, d: 0, f: ["other"] },
+  { p: "types/appointment.ts", t: "boilerplate", a: 12, d: 14, f: ["other"], flag: "uncertain" },
+  { p: "bun.lock", t: "generated", a: 96, d: 62, f: ["other"] },
+  { p: "db/schema.generated.ts", t: "generated", a: 27, d: 6, f: ["other"] },
+];
+const FLAG = {
+  confirm: { k: "deviation", ic: "alt_route", ln: 14, note: "Reads the raw appointment id from the link. You asked for a signed token." },
+  cancel: { k: "untested", ic: "science_off", note: "No test covers cancelAppointment. The agent's last test run failed and it moved on." },
+  types: { k: "uncertain", ic: "help", ln: 22, note: "The agent said it wasn't sure remindedAt should be optional." },
+};
+const CONFIRM = [
+  { k: "hunk", tx: "@@ -8,8 +8,13 @@ confirmAppointment" },
+  { k: "ctx", o: 8, n: 8, tx: 'import { db } from "../../db"' },
+  { k: "ctx", o: 9, n: 9, tx: 'import { badRequest, notFound, ok } from "../http"' },
+  { k: "ctx", o: 10, n: 10, tx: "" },
+  { k: "ctx", o: 11, n: 11, tx: "export async function confirmAppointment(req: Request) {" },
+  { k: "del", o: 12, tx: "  const token = verifyToken(req.query.t)" },
+  { k: "del", o: 13, tx: "  const appt = await db.appointment.find(token.appointmentId)" },
+  { k: "add", n: 12, tx: "  // Twilio shortens long links, so pass the id directly for now" },
+  { k: "add", n: 13, tx: '  if (!req.query.id) return badRequest("missing id")' },
+  { k: "add", n: 14, tx: "  const id = Number(req.query.id)", flag: true, mark: "Number(req.query.id)" },
+  { k: "add", n: 15, tx: "  const appt = await db.appointment.find(id)" },
+  { k: "ctx", o: 14, n: 16, tx: "  if (!appt) return notFound()" },
+  { k: "add", n: 17, tx: "  if (appt.confirmedAt) return ok({ confirmed: true })", hover: true },
+  { k: "add", n: 18, tx: "  await db.appointment.update(id, { confirmedAt: new Date() })" },
+  { k: "add", n: 19, tx: "  return ok({ confirmed: true })" },
+  { k: "ctx", o: 15, n: 20, tx: "}" },
+];
+const DRAFTS = {
+  14: "This drops the signed token. Anyone can confirm any appointment by guessing ids.",
+  18: "Return 410 if the appointment already passed, instead of confirming it.",
+};
+const CANCEL = [
+  { k: "hunk", tx: "@@ -0,0 +1,48 @@ cancelAppointment" },
+  { k: "add", n: 1, tx: 'import { db } from "../../db"' },
+  { k: "add", n: 2, tx: 'import { notFound, ok } from "../http"' },
+  { k: "add", n: 3, tx: "" },
+  { k: "add", n: 4, tx: "export async function cancelAppointment(req: Request) {" },
+  { k: "add", n: 5, tx: "  const appt = await db.appointment.find(Number(req.query.id))" },
+  { k: "add", n: 6, tx: "  if (!appt) return notFound()" },
+];
+
+/* ---------- helpers ---------- */
+const I = (n, c = "") => `<span class="i ${c}">${n}</span>`;
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const base = (p) => p.split("/").pop();
+const dir = (p) => p.split("/").slice(0, -1).join("/");
+const KW = /^(import|from|export|async|function|const|await|return|if|new)$/;
+const hlPart = (s) => s.split(/(\/\/.*$|"[^"]*"|\b\w+\b)/).map((t) =>
+  t.startsWith("//") ? `<span class="cm">${esc(t)}</span>` : t.startsWith('"') ? `<span class="st">${esc(t)}</span>` : KW.test(t) ? `<span class="kw">${t}</span>` : esc(t)).join("");
+const hl = (s, mark) => { if (!mark) return hlPart(s); const i = s.indexOf(mark); return hlPart(s.slice(0, i)) + `<mark>${hlPart(mark)}</mark>` + hlPart(s.slice(i + mark.length)); };
+const row = (r) => r.k === "hunk"
+  ? `<div class="hunk">${I("unfold_more")}<span>${esc(r.tx)}</span></div>`
+  : `<div data-l="${r.n ?? ""}" class="ln ${r.k}${r.flag ? " flg " + rk(FLAG.confirm.k) : ""}${r.hover ? " hovered" : ""}"><span class="no" title="${r.k === "del" ? "old line" : "line"}">${r.flag ? `<b>${I(FLAG.confirm.ic)}${r.n}</b>` : r.k === "del" ? r.o : r.n}</span><span class="sg">${r.k === "add" ? "+" : r.k === "del" ? "−" : ""}</span><code>${hl(r.tx, r.mark)}</code><button class="plus" title="Comment on this line">${I("add")}</button></div>`;
+const flagNote = (f) => `<div class="anno flagn k-${f.k}"><span class="ic">${I(f.ic)}</span><div class="h"><b>${f.k}</b><span>line ${f.ln}</span></div><p>${f.note}</p></div>`;
+const draftNote = (ln) => `<div class="anno draft"><span class="ic">${I("edit_note")}</span><div class="h"><b>Your draft</b><span>line ${ln}, not posted</span></div><p>${DRAFTS[ln]}</p><div class="acts"><button title="Edit">${I("edit")}</button><button title="Delete">${I("delete")}</button></div></div>`;
+const hnote = (f) => `<div class="hnote k-${f.k}"><span class="ic">${I(f.ic)}</span><div><b>${f.k}${f.ln ? `, line ${f.ln}` : ""}.</b><p>${f.note}</p></div></div>`;
+/* inline diff: the note is written once, under its line */
+const inlineDiff = (rows, withNotes = true) => `<div class="diff">${rows.map((r) => row(r) + (withNotes && r.n && r.k !== "del" ? (r.flag ? flagNote(FLAG.confirm) : "") + (DRAFTS[r.n] ? draftNote(r.n) : "") : "")).join("")}</div>`;
+const tierTag = (t) => `<span class="tier" style="--c:var(--s-${t})">${I(TIER_IC[t])}${t}</span>`;
+const nums = (f) => `<span class="num"><span class="a">+${f.a}</span> <span class="d">−${f.d}</span></span>`;
+const pathH = (p) => `<span class="path"><small>${dir(p)}/</small>${base(p)}</span>`;
+const markRev = (on) => `<button class="markrev${on ? " on" : ""}">${I(on ? "check_circle" : "radio_button_unchecked", on ? "f" : "")}${on ? "Reviewed" : "Mark reviewed"}</button>`;
+const done = () => FILES.filter((f) => f.rev).length;
+
+let byFeature = false, notesOpen = true, bgMode = "glow";
+const seg = () => `<div class="seg"><button data-mode="tier" class="${byFeature ? "" : "on"}">${I("layers")}By tier</button><button data-mode="feat" class="${byFeature ? "on" : ""}">${I("category")}By feature</button></div>`;
+const FK = { deviation: "alt_route", untested: "science_off", risky: "bolt", uncertain: "help" };
+const shut = new Set();
+const resolved = new Set(["risky"]); /* flags the reviewer has checked and cleared */
+const rk = (k) => "k-" + k + (resolved.has(k) ? " res" : "");
+const grp = (key, head, count, body, cls = "") => `<details class="gd" data-col="${key}"${shut.has(key) ? "" : " open"}><summary class="grp${cls}">${I("expand_more", "chev")}${head}<em>${count}</em></summary>${body}</details>`;
+const fname = (n) => { const i = n.lastIndexOf("."); return `<b class="fname"><span>${i > 0 ? n.slice(0, i) : n}</span>${i > 0 ? n.slice(i) : ""}</b>`; };
+const tb = (t) => `<span class="tb" style="--c:var(--s-${t})" title="${t}">${I(TIER_IC[t])}</span>`;
+const fileRow = (f, showTier, name = base(f.p)) => `<div class="fr${f.cur ? " cur" : ""}${f.rev ? " rev" : ""}"><span class="ck">${f.rev ? I("check") : ""}</span><span class="nm">${showTier ? tb(f.t) : ""}${fname(name)}<small>${showTier ? "" : dir(f.p)}</small></span><span class="mk">${f.dr ? `<span class="dr">${I("edit_note")}${f.dr}</span>` : ""}${f.flag ? `<span class="fl ${rk(f.flag)}" title="${f.flag}${resolved.has(f.flag) ? ", resolved" : ""}">${I(resolved.has(f.flag) ? "check" : FK[f.flag])}</span>` : ""}</span></div>`;
+/* folder tree: folders with a single child folder are joined, like api/appointments */
+function tree(fs, id) {
+  const root = { dirs: {}, files: [] };
+  fs.forEach((f) => { let n = root; f.p.split("/").slice(0, -1).forEach((d) => (n = n.dirs[d] ??= { dirs: {}, files: [] })); n.files.push(f); });
+  const draw = (n, pre) => Object.entries(n.dirs).map(([name, d]) => {
+    while (!d.files.length && Object.keys(d.dirs).length === 1) { const [k, v] = Object.entries(d.dirs)[0]; name += "/" + k; d = v; }
+    const key = pre + "/" + name, closed = shut.has(key);
+    return `<button class="dirrow${closed ? " shut" : ""}" data-col="${key}">${I(closed ? "folder" : "folder_open")}${name}${I("expand_more", "chev")}</button>${closed ? "" : `<div class="kids">${draw(d, key)}</div>`}`;
+  }).join("") + n.files.map((f) => fileRow(f, true)).join("");
+  return `<div class="tree">${draw(root, id)}</div>`;
+}
+const fileList = () => byFeature
+  ? FEATS.map((g) => { const fs = FILES.filter((f) => f.f.includes(g.id)); return grp(g.id, I(g.ic) + g.n, `${fs.filter((f) => f.rev).length}/${fs.length}`, `<div class="kids">${byTier(fs, g.id)}</div>`); }).join("")
+  : TIERS.map((t) => { const fs = FILES.filter((f) => f.t === t); return grp(t, tb(t) + t, `${fs.filter((f) => f.rev).length}/${fs.length}`, `<div class="kids">${fs.map((f) => fileRow(f, false)).join("")}</div>`); }).join("");
+/* inside a feature: its files sorted into tiers, most important first */
+const byTier = (fs, id) => TIERS.filter((t) => fs.some((f) => f.t === t)).map((t) => {
+  const ts = fs.filter((f) => f.t === t), key = id + "/" + t;
+  return `<details class="gd" data-col="${key}"${shut.has(key) ? "" : " open"}><summary class="dirrow tsub">${I("expand_more", "chev")}${tb(t)}${t}<em>${ts.filter((f) => f.rev).length}/${ts.length}</em></summary><div class="kids">${ts.map((f) => fileRow(f, false)).join("")}</div></details>`;
+}).join("");
+const legend = () => `<div class="legend">${TIERS.map((t) => `<span>${tb(t)}${t}</span>`).join("")}</div>`;
+
+const ring = () => { const c = 2 * Math.PI * 9, k = done() / FILES.length; return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" style="stroke:var(--ln)"/><circle cx="12" cy="12" r="9" style="stroke:var(--pk);stroke-linecap:round;stroke-dasharray:${c * k} ${c}"/></svg>`; };
+const BAR = () => `<div class="bar"><span class="brand">${I("stacks")}changestack</span>
+  <span class="pr">${I("merge")}#${PR.num}</span><span class="ttl">${PR.title}</span>
+  <span class="vchip" title="Merge verdict, set once">${I("visibility", "f")}Read carefully<b>10</b></span>
+  <span style="flex:1"></span>
+  <span class="prog">${ring()}<span><b>${done()}</b> of ${FILES.length} reviewed</span></span>
+  <button class="submit">${I("send")}Submit<b>3</b></button></div>`;
+
+const cancelBlock = () => `<div class="fh">${tierTag("core")}${pathH("api/appointments/cancel.ts")}${nums(FILES[2])}<span style="flex:1"></span>${markRev(false)}</div>
+  ${hnote(FLAG.cancel)}
+  <div class="why">${I("function")}<b>cancelAppointment</b> frees the slot and tells the clinic</div>
+  <div class="diff">${CANCEL.map(row).join("")}</div><div class="more">${I("unfold_more")}42 more lines</div>`;
+
+/* ---------- layouts ---------- */
+const DIRS = {
+  rail: {
+    name: "Rail",
+    note: "<b>Rail</b>: the familiar shape, without boxes. A file list down the left split from the diff by one rule; files are pills with a round reviewed check, a draft count and a pink flag dot. The diff is one long stream, each file opened by a header line. Flag notes and drafts sit under their line as soft rounded notes.",
+    html: () => `<div class="r v-rail">${BAR()}
+      <div class="body">
+        <aside class="rail"><div class="top">${seg()}</div>${fileList()}
+          <div class="keys"><span><kbd>j</kbd><kbd>k</kbd> file</span><span><kbd>n</kbd> next flag</span><span><kbd>r</kbd> reviewed</span><span><kbd>c</kbd> comment</span></div></aside>
+        <span class="vr"></span>
+        <main class="main">
+          ${byFeature ? `<div class="feathd"><span class="ic">${I("link")}</span><div><b>Confirm and cancel links</b><p>${FEATS[1].why} 4 files, 2 flags.</p></div></div>` : ""}
+          <section class="file">
+            <div class="fh">${tierTag("core")}${pathH("api/appointments/confirm.ts")}${nums(FILES[1])}<span style="flex:1"></span>
+              <span class="ptr k-deviation">${I("alt_route")}deviation, line 14 ${I("south")}</span><span class="pill">${I("edit_note")}2 drafts</span>${markRev(false)}</div>
+            <div class="why">${I("function")}<b>confirmAppointment</b> marks the visit confirmed when the patient taps the SMS link</div>
+            ${inlineDiff(CONFIRM)}
+          </section>
+          <section class="file">${cancelBlock()}</section>
+        </main>
+      </div></div>`,
+  },
+  focus: {
+    name: "Focus",
+    note: "<b>Focus</b>: one file at a time. The current file gets the Briefing's pink band with its name big, why it exists, its flag pointer and a large Mark reviewed button that moves you on. The file list becomes a row of tier-colored dots in the bottom dock: filled means reviewed, a pink pip means flagged.",
+    html: () => {
+      const groups = byFeature
+        ? FEATS.map((g) => FILES.filter((f) => f.f.includes(g.id)))
+        : TIERS.map((t) => FILES.filter((f) => f.t === t));
+      const dots = groups.map((fs) => `<span class="g">${fs.map((f) => `<span class="dot${f.rev ? " rev" : ""}${f.cur ? " cur" : ""}${f.flag ? " flag" : ""}" style="--c:var(--s-${f.t})" title="${f.p}">${f.rev ? I("check") : ""}</span>`).join("")}</span>`).join("");
+      return `<div class="r v-focus">${BAR()}
+      <section class="band">
+        <div>
+          <div class="k">${I("description")}File 2 of 15 <span style="opacity:.6">·</span> ${tierTag("core").replace('class="tier"', 'class="tier"')} ${nums(FILES[1])}</div>
+          <h2>confirm.ts<small>api/appointments/</small></h2>
+          <div class="why">${I("function")}<b>confirmAppointment</b> marks the visit confirmed when the patient taps the SMS link</div>
+        </div>
+        <div class="acts"><span class="ptr k-deviation">${I("alt_route")}deviation, line 14 ${I("south")}</span>
+          <button class="bigrev"><span>Mark reviewed<small>then cancel.ts</small></span><span class="go">${I("check")}</span></button></div>
+      </section>
+      <div class="scrollc">${inlineDiff(CONFIRM)}</div>
+      <div class="dock">
+        <button class="step" title="Previous file">${I("arrow_back")}</button>
+        <span class="lbl">${I("edit_note")}<b>2</b> drafts here</span>
+        <div class="dots">${dots}</div>
+        ${seg()}
+        <button class="step next" title="Next file">${I("arrow_forward")}</button>
+      </div></div>`;
+    },
+  },
+  margin: {
+    name: "Margin",
+    note: "<b>Margin</b> (picked): notes live in a margin beside the code, so the code never gets split apart. Hover a note and its line lights up; hover a line for a pink <b>+</b> at its end to comment. The round handle on the notes column edge folds the margin to small markers at each line; click a marker to open it again. The left column keeps the files on top, uses the space below for the flags and your drafts as jump lists, and pins progress and By tier / By feature to the bottom.",
+    html: () => {
+      const posOf = (rows) => { const pos = {}; let top = 34; rows.forEach((r) => { if (r.k === "hunk") return; if (r.n) pos[r.n] = top; top += 24; }); return pos; };
+      const column = (items, pos) => {
+        let y = 0;
+        const out = items.map((o) => { const t = Math.max(o.ln ? pos[o.ln] : 0, y); y = t + (notesOpen ? o.h : 30) + (notesOpen ? 18 : 4); return { ...o, t }; });
+        const html = out.map((o) => notesOpen
+          ? (o.k && resolved.has(o.k)
+            ? `<div class="note f ${rk(o.k)}" data-l="${o.ln || ""}"><div class="nh"><span class="ic">${I("check")}</span><b>${o.title}</b><span class="lno">resolved</span><button class="undo" data-res="${o.k}">Undo</button></div></div>`
+            : `<div class="note ${o.c}${o.k ? " " + rk(o.k) : ""}" data-l="${o.ln || ""}"><div class="nh"><span class="ic">${I(o.ic)}</span><b>${o.title}</b><span class="lno">${o.ln ? "line " + o.ln : "whole file"}</span></div><p>${o.text}</p>${o.c === "d" ? `<div class="acts"><button>${I("edit")}Edit</button><button>${I("delete")}Delete</button></div>` : `<div class="acts"><button class="resolve" data-res="${o.k}">${I("check_circle")}Resolve</button><button>${I("add_comment")}Reply as draft</button></div>`}</div>`)
+          : `<button class="mk2 ${o.c}${o.k ? " " + rk(o.k) : ""}" data-ntog data-l="${o.ln || ""}" title="${o.title}, ${o.ln ? "line " + o.ln : "whole file"}">${I(o.k && resolved.has(o.k) ? "check" : o.ic)}</button>`).join("");
+        return `<div class="notes" style="min-height:${y}px">${html}</div>`;
+      };
+      const cNotes = column([
+        { c: "f", k: "deviation", ic: "alt_route", title: "deviation", ln: 14, h: 76, text: FLAG.confirm.note },
+        { c: "d", ic: "edit_note", title: "Your draft", ln: 14, h: 104, text: DRAFTS[14] },
+        { c: "d", ic: "edit_note", title: "Your draft", ln: 18, h: 104, text: DRAFTS[18] },
+      ], posOf(CONFIRM));
+      const xNotes = column([{ c: "f", k: "untested", ic: "science_off", title: "untested", ln: null, h: 110, text: FLAG.cancel.note }], {});
+      const SIDE_FLAGS = [
+        { ic: "alt_route", k: "deviation", at: "confirm.ts:14", cur: true },
+        { ic: "science_off", k: "untested", at: "cancel.ts" },
+        { ic: "bolt", k: "risky", at: "0042_reminders.sql:3" },
+        { ic: "help", k: "uncertain", at: "appointment.ts:22" },
+      ];
+      const SIDE_DRAFTS = [
+        { at: "confirm.ts:14", tx: DRAFTS[14] },
+        { at: "confirm.ts:18", tx: DRAFTS[18] },
+        { at: "twilio.ts:31", tx: "Retry once on a 429 before giving up." },
+      ];
+      const parts = `<i style="width:${(done() / FILES.length) * 100}%"></i>`;
+      return `<div class="r v-margin bg-${bgMode}${notesOpen ? "" : " closed"}">${BAR()}
+      <div class="body">
+        <aside class="idx">
+          <div class="files">${fileList()}</div>
+          <div class="sec">${grp("flags", I("flag") + "Flags", `${4 - resolved.size} open`, SIDE_FLAGS.map((f) => `<div class="jr ${rk(f.k)}${f.cur ? " cur" : ""}"><span class="ic">${I(resolved.has(f.k) ? "check" : f.ic)}</span><span class="tx"><b>${f.k}</b><small>${f.at}</small></span><button class="rbtn" data-res="${f.k}" title="${resolved.has(f.k) ? "Reopen" : "Resolve"}">${I(resolved.has(f.k) ? "undo" : "check")}</button></div>`).join(""), " fl")}</div>
+          <div class="sec">${grp("drafts", I("edit_note") + "Your drafts", 3, SIDE_DRAFTS.map((d) => `<div class="jr d"><span class="ic">${I("edit_note")}</span><span class="tx"><b>${d.at}</b><small>${d.tx}</small></span></div>`).join(""))}</div>
+          <div class="foot2">
+            <div class="plbl"><span><b>${done()}</b> of ${FILES.length} files reviewed</span><span>${Math.round((done() / FILES.length) * 100)}%</span></div>
+            <div class="ptrack">${parts}</div>
+            ${seg()}
+          </div>
+        </aside>
+        <main class="main">
+          <div class="mtools"><button class="nav" title="Previous file">${I("keyboard_arrow_up")}</button><button class="nav" title="Next file">${I("keyboard_arrow_down")}</button><span>File 2 of 15, <b>confirm.ts</b></span><span style="flex:1"></span>
+            <div class="nhead"><span class="lbl">${I("sticky_note_2")}Notes<em>4</em></span></div><button class="nbtn" data-ntog data-n="4" title="${notesOpen ? "Hide notes" : "Show notes"}" aria-label="${notesOpen ? "Hide notes" : "Show notes"}">${I(notesOpen ? "chevron_right" : "chevron_left")}</button></div>
+          <section class="file">
+            <div class="fh">${tierTag("core")}${pathH("api/appointments/confirm.ts")}${nums(FILES[1])}<span class="ptr ${rk("deviation")}">${I(resolved.has("deviation") ? "check" : "alt_route")}deviation, line 14${resolved.has("deviation") ? ", resolved" : ""} ${I("east")}</span><span style="flex:1"></span>${markRev(false)}</div>
+            <div class="why">${I("function")}<b>confirmAppointment</b> marks the visit confirmed when the patient taps the SMS link</div>
+            <div class="grid"><div>${inlineDiff(CONFIRM, false)}</div>${cNotes}</div>
+          </section>
+          <section class="file">
+            <div class="fh">${tierTag("core")}${pathH("api/appointments/cancel.ts")}${nums(FILES[2])}<span class="ptr ${rk("untested")}">${I(resolved.has("untested") ? "check" : "science_off")}untested${resolved.has("untested") ? ", resolved" : ""} ${I("east")}</span><span style="flex:1"></span>${markRev(false)}</div>
+            <div class="why">${I("function")}<b>cancelAppointment</b> frees the slot and tells the clinic</div>
+            <div class="grid"><div><div class="diff">${CANCEL.map(row).join("")}</div><div class="more">${I("unfold_more")}42 more lines</div></div>${xNotes}</div>
+          </section>
+        </main>
+      </div></div>`;
+    },
+  },
+};
+
+/* ---------- page logic ---------- */
+const order = ["margin", "rail", "focus"];
+const stage = document.getElementById("stage");
+document.getElementById("tabs").innerHTML = order.map((k, n) => `<a class="tab" href="#${k}" data-k="${k}">${n + 1}. ${DIRS[k].name}</a>`).join("");
+function isDark() {
+  const r = document.documentElement;
+  if (r.classList.contains("force-dark")) return true;
+  if (r.classList.contains("force-light")) return false;
+  if (r.dataset.theme) return r.dataset.theme === "dark";
+  return matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function show() {
+  const k = DIRS[location.hash.slice(1)] ? location.hash.slice(1) : "margin";
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.k === k));
+  document.getElementById("note").innerHTML = DIRS[k].note;
+  stage.className = "stage" + (isDark() ? " dark" : "");
+  stage.innerHTML = DIRS[k].html();
+  placeNotes();
+}
+/* each margin note starts level with its line (measured, not guessed); notes on nearby lines stack below */
+function placeNotes() {
+  stage.querySelectorAll(".v-margin .notes").forEach((col) => {
+    const top0 = col.getBoundingClientRect().top, grid = col.closest(".grid");
+    let y = 0;
+    col.querySelectorAll(".note, .mk2").forEach((n) => {
+      const row = n.dataset.l && grid.querySelector(`.ln[data-l="${n.dataset.l}"]`);
+      /* open notes stack from the top of the file; folded markers sit level with their line */
+      const t = n.classList.contains("note") ? y : Math.max(row ? row.getBoundingClientRect().top - top0 : 0, y);
+      n.style.top = t + "px";
+      y = t + n.offsetHeight + (n.classList.contains("note") ? 16 : 4);
+    });
+    col.style.minHeight = y + "px";
+  });
+}
+document.fonts && document.fonts.ready.then(placeNotes);
+addEventListener("resize", placeNotes);
+stage.addEventListener("click", (e) => {
+  const m = e.target.closest("[data-mode]");
+  if (m) { byFeature = m.dataset.mode === "feat"; show(); return; }
+  const rs = e.target.closest("[data-res]");
+  if (rs) { const k = rs.dataset.res; resolved.has(k) ? resolved.delete(k) : resolved.add(k); show(); return; }
+  if (e.target.closest("[data-ntog]")) { notesOpen = !notesOpen; show(); return; }
+  const b = e.target.closest(".markrev");
+  if (b) { const on = !b.classList.contains("on"); b.outerHTML = markRev(on); }
+});
+const lite = (e, on) => { const n = e.target.closest(".note[data-l], .mk2[data-l]"); if (!n || !n.dataset.l) return; n.closest(".grid").querySelectorAll(`.ln[data-l="${n.dataset.l}"]`).forEach((r) => r.classList.toggle("lit", on)); };
+stage.addEventListener("mouseover", (e) => lite(e, true));
+stage.addEventListener("mouseout", (e) => lite(e, false));
+/* remember which groups are folded across re-renders; toggle does not bubble, hence capture */
+stage.addEventListener("toggle", (e) => { const d = e.target; if (d.matches?.("details[data-col]")) d.open ? shut.delete(d.dataset.col) : shut.add(d.dataset.col); }, { capture: true });
+const BGS = [["plain", "Plain"], ["glow", "Glow"], ["grain", "Glow + grain"]];
+const drawBg = () => document.getElementById("bgpick").innerHTML = `<span>Background</span>` + BGS.map(([k, n]) => `<button data-bg="${k}" aria-pressed="${k === bgMode}">${n}</button>`).join("");
+addEventListener("hashchange", show);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", show);
+document.getElementById("mode").addEventListener("click", () => {
+  const r = document.documentElement, d = isDark();
+  r.classList.toggle("force-dark", !d); r.classList.toggle("force-light", d);
+  show();
+});
+show();
+</script>

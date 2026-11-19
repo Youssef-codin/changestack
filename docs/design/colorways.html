@@ -1,0 +1,294 @@
+<title>changestack colorways</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column. A short note on the rules, then five colorways, each with its swatches, its color language, and the same UI sample in light and dark side by side (stacked when narrow). Type is held constant so only color varies. */
+:root {
+  --bg: #f6f6f5;
+  --sheet: #fdfdfc;
+  --line: #e1e1de;
+  --fg: #1a1a19;
+  --mute: #6c6b67;
+  --accent: #3b5bdb;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131312; --sheet: #1a1a19; --line: #2c2c2a; --fg: #e9e8e4; --mute: #92918b; --accent: #8ea4ff; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #131312; --sheet: #1a1a19; --line: #2c2c2a; --fg: #e9e8e4; --mute: #92918b; --accent: #8ea4ff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--sans); margin: 0; }
+.page { max-width: 1220px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 80px; }
+.prose { max-width: 68ch; }
+h1 { font-size: 30px; line-height: 1.2; margin: 0 0 10px; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 600; text-wrap: balance; }
+p { margin: 0 0 12px; }
+.mute { color: var(--mute); }
+
+.rules { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin: 28px 0 8px; padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.rules h3 { font-size: 15px; margin: 0 0 6px; }
+.rules p { font-size: 14px; color: var(--mute); }
+@media (max-width: 760px) { .rules { grid-template-columns: 1fr; } }
+
+.cw { margin-top: 64px; }
+.divider { margin-top: 80px; padding-top: 28px; border-top: 2px solid var(--fg); max-width: 72ch; }
+.divider p { color: var(--mute); font-size: 14px; margin-top: 8px; }
+.divider + .cw { margin-top: 32px; }
+.limes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.limes button { font: 500 13px var(--sans); color: var(--fg); background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: transform .1s; }
+.limes button:hover { border-color: var(--mute); }
+.limes button:active { transform: scale(.98); }
+.limes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.limes button[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.limes i { width: 14px; height: 14px; border-radius: 3px; display: block; }
+.limes code { font: 11px var(--mono); color: var(--mute); }
+@media (prefers-reduced-motion: reduce) { .limes button { transition: none; } .limes button:active { transform: none; } }
+.roles { overflow-x: auto; margin: 14px 0 0; }
+.roles table { border-collapse: collapse; min-width: 560px; width: 100%; font-size: 13.5px; }
+.roles th, .roles td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.roles th { font: 500 11.5px var(--mono); color: var(--mute); letter-spacing: .04em; text-transform: uppercase; }
+.roles td:first-child { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.cw-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 6px; }
+.cw-head .letter { font: 600 13px var(--mono); color: var(--mute); }
+.cw-desc { max-width: 72ch; color: var(--mute); font-size: 14px; margin-bottom: 10px; }
+.lang { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; margin-bottom: 16px; }
+.lang span b { font-weight: 600; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1000px) { .pair { grid-template-columns: 1fr; } }
+.mode-lab { font: 500 12px var(--mono); color: var(--mute); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.swatches { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px 8px 0 0; overflow: hidden; border-bottom: 0; }
+.sw { height: 52px; padding: 6px 7px; display: flex; flex-direction: column; justify-content: flex-end; font: 10px/1.25 var(--mono); min-width: 0; overflow: hidden; }
+.sw b { font-weight: 600; }
+
+.theme { margin: 64px 0 8px; }
+.theme-opts { display: grid; margin-top: 12px; border-top: 1px solid var(--line); }
+.theme-opts div { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.theme-opts b { font-weight: 600; }
+@media (max-width: 600px) { .theme-opts div { grid-template-columns: 1fr; gap: 2px; } }
+
+/* ---------- UI sample: every color comes from the sample's own variables ---------- */
+.s { background: var(--s-bg); color: var(--s-text); border: 1px solid var(--line); border-radius: 0 0 8px 8px; overflow: hidden; font: 13px/1.45 var(--sans); }
+.s-scroll { overflow-x: auto; }
+.s-inner { min-width: 540px; }
+.s-top { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 12px; background: var(--s-top-bg); color: var(--s-top-fg); border-bottom: 1px solid var(--s-line); }
+.s-pill { font-weight: 700; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--s-v1-bg); color: var(--s-v1); white-space: nowrap; }
+.s-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.s-chip { font: 12px var(--mono); border: 1px solid currentColor; border-radius: 6px; padding: 0 7px; white-space: nowrap; opacity: .85; }
+.s-grow { flex: 1; }
+.s-prog { font-size: 12px; white-space: nowrap; opacity: .75; }
+.s-btn { background: var(--s-accent); color: var(--s-on-accent); font-weight: 600; font-size: 12px; padding: 5px 11px; border-radius: 6px; white-space: nowrap; }
+.s-top .s-btn { background: var(--s-top-btn); color: var(--s-top-btn-fg); }
+.s-body { display: grid; grid-template-columns: 168px minmax(0, 1fr); }
+.s-rail { background: var(--s-surface); border-right: 1px solid var(--s-line); padding: 8px 6px; }
+.s-seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--s-bg); border-radius: 6px; padding: 2px; font-size: 11px; margin-bottom: 8px; }
+.s-seg span { text-align: center; padding: 2px; border-radius: 4px; color: var(--s-mute); }
+.s-seg span.on { background: var(--s-surface); color: var(--s-text); font-weight: 600; box-shadow: 0 0 0 1px var(--s-line); }
+.s-grp { display: flex; align-items: center; gap: 6px; font: 600 10px var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--s-mute); margin: 8px 4px 3px; }
+.s-grp i { width: 8px; height: 8px; border-radius: 2px; display: block; }
+.s-fr { display: flex; align-items: center; gap: 6px; padding: 2px 5px; border-radius: 5px; font: 11.5px/1.6 var(--mono); }
+.s-fr.cur { background: var(--s-accent-soft); }
+.s-fr.done span:first-child { color: var(--s-mute); }
+.s-fr span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s-dot { width: 7px; height: 7px; border-radius: 2px; background: var(--s-flag-edge); flex: none; }
+.s-dc { font-size: 10.5px; color: var(--s-accent); font-weight: 600; }
+.s-diff { min-width: 0; background: var(--s-bg); }
+.s-fh { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--s-line); background: var(--s-surface); font-size: 12px; }
+.s-tier { font: 600 10px var(--sans); letter-spacing: .07em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 5px; }
+.s-tier i { width: 8px; height: 8px; border-radius: 2px; display: block; }
+.s-path { font: 600 12px var(--mono); }
+.s-add-n { font: 12px var(--mono); color: var(--s-add-fg); }
+.s-del-n { font: 12px var(--mono); color: var(--s-del-fg); }
+.s-ptr { color: var(--s-flag-ink); font-weight: 700; white-space: nowrap; }
+.s-ln { display: grid; grid-template-columns: 30px 16px minmax(0, 1fr); height: 20px; font: 12px/20px var(--mono); white-space: pre; }
+.s-ln span:first-child { text-align: right; padding-right: 6px; color: var(--s-mute); }
+.s-ln span:nth-child(2) { text-align: center; color: var(--s-mute); }
+.s-ln.add { background: var(--s-add-bg); }
+.s-ln.add span:nth-child(2), .s-ln.add .t { color: var(--s-add-fg); }
+.s-ln.del { background: var(--s-del-bg); }
+.s-ln.del span:nth-child(2), .s-ln.del .t { color: var(--s-del-fg); }
+.s-ln.flagged { box-shadow: inset 4px 0 var(--s-flag-edge); }
+.s-ln.hunk { display: block; padding-left: 12px; background: var(--s-accent-soft); color: var(--s-mute); }
+.s-flag { display: flex; gap: 8px; align-items: baseline; padding: 6px 12px 6px 46px; background: var(--s-flag-bg); color: var(--s-flag-on); box-shadow: inset 4px 0 var(--s-flag-edge); font-size: 12.5px; }
+.s-flag b { white-space: nowrap; font-weight: 700; }
+.s-flag em { font-style: normal; margin-left: auto; font-weight: 700; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px; }
+.s-draft { margin: 5px 12px 7px 46px; padding: 6px 10px; border-radius: 6px; background: var(--s-surface); border: 1px solid var(--s-line); box-shadow: inset 3px 0 var(--s-accent); font-size: 12.5px; }
+.s-draft div { font-size: 11px; color: var(--s-mute); display: flex; justify-content: space-between; }
+.s-draft div b { color: var(--s-accent); font-weight: 600; }
+.s-foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--s-line); background: var(--s-surface); }
+.s-foot .lab { font-size: 11px; color: var(--s-mute); margin-right: 4px; }
+.s-v { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.s-bar { display: flex; height: 8px; gap: 2px; flex: 1 1 120px; min-width: 120px; border-radius: 2px; overflow: hidden; }
+.s-bar i { display: block; height: 100%; }
+
+.s mark { background: none; color: inherit; }
+
+/* ---------- per-colorway effects (each one carries meaning, not decoration) ---------- */
+/* Blueprint: drafting grid under the code, like a cyanotype sheet. */
+.fx-blueprint .s-diff { background-image: linear-gradient(var(--s-grid) 1px, transparent 1px), linear-gradient(90deg, var(--s-grid) 1px, transparent 1px); background-size: 20px 20px; }
+/* Hazard: flagged lines get a striped edge, the flag row is a solid warning band. */
+.fx-hazard .s-ln.flagged, .fx-hazard .s-flag { box-shadow: none; background-image: repeating-linear-gradient(-45deg, var(--s-flag-edge) 0 5px, var(--s-hatch) 5px 10px); background-size: 6px 100%; background-repeat: no-repeat; }
+.fx-hazard .s-flag { background-color: var(--s-flag-bg); }
+.fx-hazard .s-ln.flagged { background-color: var(--s-add-bg); }
+.fx-hazard .s-dot { background-image: repeating-linear-gradient(-45deg, var(--s-flag-edge) 0 2px, var(--s-hatch) 2px 4px); }
+/* Highlighter: the flagged code is marked like a highlighter stroke; drafts read as blue pencil. */
+.fx-highlighter .s-ln.flagged .t mark { background: linear-gradient(100deg, transparent 2%, var(--s-flag-bg) 4%, var(--s-flag-bg) 96%, transparent 98%); color: var(--s-hl-ink); padding: 0 2px; }
+.fx-highlighter .s-flag { box-shadow: none; }
+.fx-highlighter .s-draft { box-shadow: none; border-style: dashed; border-color: var(--s-accent); }
+/* Riso: two inks only; the flag row is overprinted pink on blue. */
+.fx-riso .s-flag { mix-blend-mode: normal; }
+.fx-riso .s-ln.flagged .t mark { background: var(--s-flag-bg); color: var(--s-flag-on); padding: 0 2px; }
+</style>
+
+<div class="page">
+  <div class="prose">
+    <h1>The colorway set</h1>
+    <p>Three colorways, decided: Hazard is the default, with Riso and Scope as alternatives. Each has its own flag color (hi-vis yellow, fluoro pink, Mantis green) and ships in light and dark. Each shows the same piece of the Review screen in light and dark, with the type held constant so only color varies.</p>
+  </div>
+
+  <div class="rules">
+    <div>
+      <h3>How several colorways would work</h3>
+      <p>The viewer never names a color. Every screen uses roles: flag, accent, the four verdicts, added and removed, the tier ramp. A colorway is one set of values for those roles, in light and dark. Switching swaps the set; drafts, reviewed marks and layout don't move. The pick is remembered on this machine, and light or dark still follows the system inside whichever colorway you're in.</p>
+    </div>
+    <div>
+      <h3>What every colorway has to do</h3>
+      <p>A flag is the loudest thing in the diff. The four verdicts read as a scale from "stop" to "done". Added and removed lines differ without reading the + and −. And the accent can't be the flag color, or every button looks like a warning. A new colorway is valid when it fills every role below and passes those four checks.</p>
+    </div>
+  </div>
+  <div class="roles"><table>
+    <thead><tr><th>Role</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td>bg, surface, line, text, mute</td><td>Page, panels (rail, file headers), borders, body text, secondary text</td></tr>
+      <tr><td>accent, on-accent, accent-soft</td><td>Things you click (Submit, + Comment), your drafts, the current file in the rail</td></tr>
+      <tr><td>flag ink, bg, on, edge</td><td>Flag text on panels, the flag row, text on that row, the edge on the flagged line and the rail marker</td></tr>
+      <tr><td>verdict 1 to 4</td><td>Read carefully, Read the core, Skim and merge, Reviewed: text and background for each</td></tr>
+      <tr><td>add, del</td><td>Added and removed lines: background and text</td></tr>
+      <tr><td>ramp 1 to 5</td><td>Tiers, core to generated</td></tr>
+      <tr><td>top</td><td>Top bar background, text and its button (lets a colorway make the bar a solid block, like Hazard's black bar in light)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div id="colorways"></div>
+
+  <section class="theme">
+    <h2>Theme</h2>
+    <div class="theme-opts">
+      <div><b>Follow the system</b><span>Every colorway ships light and dark, and the viewer follows the OS inside whichever colorway is picked. This is what the roles table assumes.</span></div>
+      <div><b>Dark first</b><span>Hazard is strongest in dark, so it's designed and checked there first and light is the port.</span></div>
+      <div><b>Light first</b><span>Riso comes from paper, so it's designed in light first and dark is the port. Scope joins Hazard as dark first.</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+// v = verdicts in order: read carefully, read the core, skim and merge, reviewed. Each is [text, background].
+const CW = [
+  { id: "1", key: "hazard", name: "Hazard", desc: "Industrial safety signage. Concrete grays and black ink, with hi-vis yellow and orange used only for warnings. Flagged lines get a striped edge like hazard tape. Buttons stay ink, so yellow always means \"look here\".",
+    lang: [["Flag", "hi-vis yellow, striped"], ["Accent", "ink"], ["Added / removed", "olive / rust"], ["Tiers", "gray ramp"]],
+    dark: { bg: "#121212", surface: "#1b1b1a", line: "#30302d", text: "#ecebe6", mute: "#8f8e88", accent: "#ecebe6", onAccent: "#121212", soft: "#2a2a27", topBg: "#1b1b1a", topFg: "#ecebe6", topBtn: "#ecebe6", topBtnFg: "#121212",
+      flagInk: "#ffd400", flagBg: "#ffd400", flagOn: "#121212", flagEdge: "#ffd400", hatch: "#121212",
+      v: [["#121212", "#ff5a1f"], ["#121212", "#ffd400"], ["#b9e08f", "#253019"], ["#121212", "#ecebe6"]],
+      addBg: "#1d2616", addFg: "#b9e08f", delBg: "#2e1b14", delFg: "#ffa98a", ramp: ["#ecebe6", "#b2b1ab", "#82817c", "#5b5a56", "#42423f"] },
+    light: { bg: "#e9e9e5", surface: "#f4f4f1", line: "#cfcfc9", text: "#161616", mute: "#5f5f5a", accent: "#161616", onAccent: "#ffd400", soft: "#dcdcd6", topBg: "#161616", topFg: "#f4f4f1", topBtn: "#ffd400", topBtnFg: "#161616",
+      flagInk: "#7a5f00", flagBg: "#ffd400", flagOn: "#161616", flagEdge: "#ffd400", hatch: "#161616",
+      v: [["#161616", "#ff5a1f"], ["#161616", "#ffd400"], ["#33511c", "#d6e6c4"], ["#ffd400", "#161616"]],
+      addBg: "#e0e8d5", addFg: "#33511c", delBg: "#f0d9cf", delFg: "#8a2f17", ramp: ["#161616", "#4a4a46", "#7c7c76", "#a5a59f", "#c4c4be"] } },
+  { id: "2", key: "riso", fx: "riso", name: "Riso", desc: "Black ink on plain paper, with fluorescent pink as a single spot color, like one pass of pink on a black print. Pink means \"look here\" and nothing else: flags and the worst verdict. Blue survives only for added lines. The quietest of the three.",
+    lang: [["Flag", "fluoro pink edge, pale row"], ["Accent", "ink"], ["Added / removed", "blue / muted mauve"], ["Tiers", "ink ramp"]],
+    light: { bg: "#f4f4f2", surface: "#fcfcfb", line: "#e0e0dd", text: "#1b1d26", mute: "#6b6d76", accent: "#1b1d26", onAccent: "#fcfcfb", soft: "#ebebee", topBg: "#fcfcfb", topFg: "#1b1d26", topBtn: "#1b1d26", topBtnFg: "#fcfcfb",
+      flagInk: "#d1306a", flagBg: "#fbe9ef", flagOn: "#6e1438", flagEdge: "#ff4f8b",
+      v: [["#1b1d26", "#ff4f8b"], ["#a8285a", "#fbe9ef"], ["#3b3f52", "#ebebee"], ["#fcfcfb", "#1b1d26"]],
+      addBg: "#e9edf7", addFg: "#2c3d8a", delBg: "#f3eef0", delFg: "#7d5566", ramp: ["#1b1d26", "#4a4d5e", "#7c7f8e", "#a9abb6", "#cbccd3"] },
+    dark: { bg: "#121214", surface: "#1a1a1d", line: "#2c2c31", text: "#ebebee", mute: "#8f9099", accent: "#ebebee", onAccent: "#121214", soft: "#26262b", topBg: "#1a1a1d", topFg: "#ebebee", topBtn: "#ebebee", topBtnFg: "#121214",
+      flagInk: "#ff7aa8", flagBg: "#2c1a22", flagOn: "#ffc4d8", flagEdge: "#ff4f8b",
+      v: [["#121214", "#ff4f8b"], ["#ff9cbf", "#2c1a22"], ["#c4c6d0", "#26262b"], ["#121214", "#ebebee"]],
+      addBg: "#1a2034", addFg: "#a9b6f0", delBg: "#261c21", delFg: "#d9a0b6", ramp: ["#ebebee", "#b2b3bb", "#83848e", "#5d5e67", "#45464d"] } },
+  { id: "3", key: "scope", fx: "blueprint", name: "Scope", desc: "An oscilloscope at night, reduced to one spot color: neutral ink grays with Mantis green and a faint graticule behind the code. Mantis means \"look here\" and nothing else: flags and the worst verdict. A cool blue survives only on added lines, the way Riso's blue does.",
+    lang: [["Flag", "Mantis edge, tinted row"], ["Accent", "ink"], ["Added / removed", "sky / muted mauve"], ["Tiers", "ink ramp"]], lead: "dark",
+    dark: { bg: "#111313", surface: "#181a1a", line: "#2a2e2e", text: "#e8ebea", mute: "#8e9493", accent: "#e8ebea", onAccent: "#111313", soft: "#262a2a", topBg: "#181a1a", topFg: "#e8ebea", topBtn: "#e8ebea", topBtnFg: "#111313",
+      flagInk: "#a6ec66", flagBg: "#212c14", flagOn: "#d8f6b8", flagEdge: "#8ee53f", grid: "rgb(232 235 234 / .03)",
+      v: [["#111313", "#8ee53f"], ["#a6ec66", "#212c14"], ["#c2c8c7", "#262a2a"], ["#111313", "#e8ebea"]],
+      addBg: "#142230", addFg: "#8cc8f0", delBg: "#241e21", delFg: "#c9a7b5", ramp: ["#e8ebea", "#b0b6b5", "#828887", "#5c6160", "#444847"] },
+    light: { bg: "#f3f4f3", surface: "#fbfcfb", line: "#dfe2e1", text: "#1a1e1e", mute: "#6a706f", accent: "#1a1e1e", onAccent: "#fbfcfb", soft: "#eaeceb", topBg: "#fbfcfb", topFg: "#1a1e1e", topBtn: "#1a1e1e", topBtnFg: "#fbfcfb",
+      flagInk: "#3f7a00", flagBg: "#edf8da", flagOn: "#244600", flagEdge: "#76cc24", grid: "rgb(26 30 30 / .035)",
+      v: [["#1a1e1e", "#76cc24"], ["#3f7a00", "#edf8da"], ["#3d4443", "#eaeceb"], ["#fbfcfb", "#1a1e1e"]],
+      addBg: "#e4edf6", addFg: "#245f91", delBg: "#f3eef0", delFg: "#7d5566", ramp: ["#1a1e1e", "#4b5150", "#7d8382", "#a9aead", "#cacecd"] } },
+];
+const TIER_LINES = [277, 72, 129, 31, 191];
+
+function vars(p) {
+  const m = {
+    bg: p.bg, surface: p.surface, line: p.line, text: p.text, mute: p.mute, accent: p.accent, "on-accent": p.onAccent, "accent-soft": p.soft,
+    "top-bg": p.topBg, "top-fg": p.topFg, "top-btn": p.topBtn, "top-btn-fg": p.topBtnFg,
+    "flag-ink": p.flagInk, "flag-bg": p.flagBg, "flag-on": p.flagOn, "flag-edge": p.flagEdge,
+    "add-bg": p.addBg, "add-fg": p.addFg, "del-bg": p.delBg, "del-fg": p.delFg,
+    grid: p.grid || "transparent", hatch: p.hatch || "transparent", "hl-ink": p.hlInk || p.text,
+  };
+  p.v.forEach(([fg, bg], i) => { m[`v${i + 1}`] = fg; m[`v${i + 1}-bg`] = bg; });
+  return Object.entries(m).map(([k, v]) => `--s-${k}:${v}`).join(";");
+}
+function swatches(p) {
+  const items = [["bg", p.bg, p.text], ["surface", p.surface, p.text], ["text", p.text, p.bg], ["accent", p.accent, p.onAccent], ["flag", p.flagBg, p.flagOn], ["added", p.addBg, p.addFg], ["removed", p.delBg, p.delFg]];
+  return `<div class="swatches">${items.map(([k, v, fg]) => `<div class="sw" style="background:${v};color:${fg}"><b>${k}</b>${v}</div>`).join("")}</div>`;
+}
+function sample(p, key) {
+  const r = p.ramp;
+  const total = TIER_LINES.reduce((a, b) => a + b, 0);
+  const names = ["Read carefully", "Read the core", "Skim and merge", "Reviewed"];
+  return `<div class="s fx-${key}" style="${vars(p)}"><div class="s-scroll"><div class="s-inner">
+    <div class="s-top"><span class="s-pill">Read carefully</span><span class="s-title">#127 Appointment reminders over SMS</span><span class="s-chip">haiku</span><span class="s-grow"></span><span class="s-prog">5 of 14</span><span class="s-btn">Submit review</span></div>
+    <div class="s-body">
+      <div class="s-rail">
+        <div class="s-seg"><span class="on">By tier</span><span>By feature</span></div>
+        <div class="s-grp"><i style="background:${r[0]}"></i>Core</div>
+        <div class="s-fr done"><span>scheduler.ts</span></div>
+        <div class="s-fr cur"><span>confirm.ts</span><span class="s-dc">2</span><span class="s-dot"></span></div>
+        <div class="s-fr"><span>cancel.ts</span><span class="s-dot"></span></div>
+        <div class="s-grp"><i style="background:${r[1]}"></i>Glue</div>
+        <div class="s-fr done"><span>sms/twilio.ts</span><span class="s-dc">1</span></div>
+        <div class="s-grp"><i style="background:${r[2]}"></i>Tests</div>
+        <div class="s-fr done"><span>scheduler.test.ts</span></div>
+      </div>
+      <div class="s-diff">
+        <div class="s-fh"><span class="s-tier"><i style="background:${r[0]}"></i>core</span><span class="s-path">confirm.ts</span><span class="s-add-n">+64</span><span class="s-del-n">−3</span><span class="s-grow"></span><span class="s-ptr">deviation, line 14 ↓</span></div>
+        <div class="s-ln hunk">@@ -11,4 +11,6 @@ confirmAppointment</div>
+        <div class="s-ln"><span>11</span><span></span><span class="t">export async function confirmAppointment(req) {</span></div>
+        <div class="s-ln del"><span>12</span><span>−</span><span class="t">  const token = verifyToken(req.query.t)</span></div>
+        <div class="s-flag"><b>Deviation</b><span>Reads the raw id from the link. You asked for a signed token.</span><em>+ Comment</em></div>
+        <div class="s-ln add flagged"><span>14</span><span>+</span><span class="t">  const id = <mark>Number(req.query.id)</mark></span></div>
+        <div class="s-draft"><div><b>Your draft, line 14</b><span>Edit</span></div>This drops the signed token. Anyone can confirm any visit by guessing ids.</div>
+        <div class="s-ln add"><span>15</span><span>+</span><span class="t">  const appt = await db.appointment.find(id)</span></div>
+      </div>
+    </div>
+    <div class="s-foot"><span class="lab">Verdicts</span>
+      ${names.map((n, i) => `<span class="s-v" style="background:var(--s-v${i + 1}-bg);color:var(--s-v${i + 1})">${n}</span>`).join("")}
+      <span class="s-bar" title="Tier breakdown by lines">${TIER_LINES.map((n, i) => `<i style="width:${(n / total) * 100}%;background:${r[i]}"></i>`).join("")}</span>
+    </div>
+  </div></div></div>`;
+}
+function mode(c, m) {
+  const p = c[m];
+  return `<div><div class="mode-lab"><span>${m === "light" ? "Light" : "Dark"}</span><span>accent ${p.accent}</span></div>${swatches(p)}${sample(p, c.fx || c.key)}</div>`;
+}
+
+
+function render() {
+document.getElementById("colorways").innerHTML = CW.map((c, i) => {
+  const order = c.key === "hazard" || c.lead === "dark" ? ["dark", "light"] : ["light", "dark"];
+  const heading = "";
+  return `${heading}<section class="cw" id="cw-${c.key}">
+    <div class="cw-head"><span class="letter">${c.id}</span><h2>${c.name}</h2></div>
+    <p class="cw-desc">${c.desc}</p>
+    <div class="lang">${c.lang.map(([k, v]) => `<span><b>${k}:</b> ${v}</span>`).join("")}</div>
+    <div class="pair">${order.map((m) => mode(c, m)).join("")}</div>
+  </section>`;
+}).join("");
+}
+render();
+})();
+</script>

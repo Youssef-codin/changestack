@@ -1,0 +1,288 @@
+<title>Briefing Without Cards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Overpass:wght@400..900&family=Overpass+Mono:wght@400..700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Hanken+Grotesk:ital,wght@0,400..700;1,400..600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..800;1,6..72,400..800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block">
+<style>
+/* page chrome */
+:root{--pg-bg:#e9e9e6;--pg-fg:#18181b;--pg-mute:#6b6b70;--pg-line:#d2d2cd;--pg-chip:#fafaf8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}}
+:root[data-theme="dark"]{--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}
+:root.force-light{--pg-bg:#e9e9e6;--pg-fg:#18181b;--pg-mute:#6b6b70;--pg-line:#d2d2cd;--pg-chip:#fafaf8;color-scheme:light}
+:root.force-dark{--pg-bg:#0c0c0d;--pg-fg:#ececee;--pg-mute:#8c8c92;--pg-line:#2a2a2e;--pg-chip:#18181b;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg-bg);color:var(--pg-fg);font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.i{font-family:"Material Symbols Sharp";font-weight:normal;font-style:normal;font-size:18px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;font-feature-settings:"liga";-webkit-font-smoothing:antialiased;font-variation-settings:"FILL" 0,"wght" 400,"opsz" 20;vertical-align:-4px;flex:none;overflow:hidden;width:1em}
+.i.f{font-variation-settings:"FILL" 1,"wght" 500,"opsz" 20}
+
+.picker{position:sticky;top:0;z-index:20;background:var(--pg-bg);border-bottom:1px solid var(--pg-line)}
+.picker .in{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1280px;margin:0 auto}
+.picker h1{margin:0 10px 0 0;font:700 14px "Hanken Grotesk",sans-serif}
+.tab{text-decoration:none;color:inherit;display:inline-flex;align-items:baseline;gap:6px;padding:6px 12px;border:1px solid var(--pg-line);background:var(--pg-chip);font-weight:600;font-size:13px}
+.tab small{font:500 11px "JetBrains Mono",monospace;color:var(--pg-mute)}
+.tab[aria-current="true"]{background:var(--pg-fg);color:var(--pg-bg);border-color:var(--pg-fg)}
+.tab[aria-current="true"] small{color:inherit;opacity:.65}
+.sp{flex:1}
+.modebtn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--pg-line);background:var(--pg-chip);font-size:13px}
+.dnote{max-width:1280px;margin:0 auto;padding-block:14px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));color:var(--pg-mute);font-size:14px}
+.dnote b{color:var(--pg-fg)}
+.stagewrap{max-width:1280px;margin:0 auto;padding-block:14px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.scroller{overflow-x:auto;border:1px solid var(--pg-line)}
+.stage{min-width:1080px}
+
+/* shared severity colors for tier tags */
+.stage{--s-core:#e5383b;--s-glue:#f2711c;--s-tests:#f5c400;--s-docs:#4c8df6;--s-boilerplate:#3fae5a;--s-generated:#9a9ca6}
+.stage.dark{--s-core:#ff5a5d;--s-glue:#ff8a3d;--s-tests:#ffd43b;--s-docs:#74a8ff;--s-boilerplate:#5cc977;--s-generated:#7d7f89}
+@media (prefers-reduced-motion:reduce){.stage *{animation:none!important;transition:none!important}}
+
+/* =========================================================
+   Riso, no cards. Shared pieces, then three layouts.
+   ========================================================= */
+.r{--f-risky:#e03131;--f-deviation:#a0592b;--f-untested:#1098ad;--f-uncertain:#c2255c;--onfl:#fff;--glowA:rgb(255 79 139 / .16);--glowB:rgb(255 176 92 / .18);--bg:#f5f5f3;--sf:#ffffff;--ln:#e3e3e0;--tx:#1b1d26;--mu:#6e7079;--pk:#ff4f8b;--pkink:#c92a63;--pkbg:#ffe8f0;--tint:#fff0f5
+  ;background:var(--bg);color:var(--tx);font:15px/1.5 "Geist",system-ui,sans-serif}
+.dark .r{--f-risky:#ff6b6b;--f-deviation:#d9915f;--f-untested:#3bc9db;--f-uncertain:#f06595;--onfl:#1b1d26;--glowA:rgb(255 79 139 / .12);--glowB:rgb(140 90 255 / .10);--bg:#101012;--sf:#18181b;--ln:#26262b;--tx:#ececef;--mu:#8e8f97;--pkink:#ff7aa8;--pkbg:#2c1a22;--tint:#1d1418}
+.r .bar{display:flex;align-items:center;gap:12px;padding:16px 36px}
+.r .brand{display:flex;align-items:center;gap:8px;font-weight:600}
+.r .brand .i{width:28px;height:28px;border-radius:9px;background:var(--tx);color:var(--bg);display:grid;place-items:center;font-size:18px}
+.r .pr{display:inline-flex;align-items:center;gap:4px;background:#1f883d;color:#fff;font:600 13px "Geist Mono";padding:3px 10px 3px 7px;border-radius:999px}
+.r .ttl{font-weight:600}
+.r .br{font:13px "Geist Mono";color:var(--mu)}
+.r .models{display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--ln)}
+.r .models>span{display:flex;align-items:center;gap:4px;padding:0 8px 0 6px;font-size:12px;color:var(--mu)}
+.r .models>span .i{font-size:16px}
+.r .models button{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:500;color:var(--mu)}
+.r .models button.on{background:var(--tx);color:var(--bg)}
+.r .submit{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 12px;border-radius:999px;background:var(--pk);color:#1b1d26;font-weight:600;font-size:14px}
+.r .submit b{background:#1b1d26;color:#fff;border-radius:999px;font:600 11px/18px "Geist Mono";padding:0 7px}
+.r .k{font-size:13px;font-weight:600;opacity:.75}
+.r .n{font:600 112px/.9 "Geist";letter-spacing:-.06em}
+.r .n small{font-size:22px;letter-spacing:0;opacity:.55;margin-left:4px}
+.r .vname{display:flex;align-items:center;gap:12px;font:600 52px/1 "Geist";letter-spacing:-.04em}
+.r .vname .i{font-size:46px}
+.r .line{margin:12px 0 16px;font-size:18px;opacity:.85}
+.r .tags{display:flex;flex-wrap:wrap;gap:6px}
+.r .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 6px;border-radius:999px;background:rgb(255 255 255 / .9);color:#1b1d26;font-size:13px;font-weight:500}
+.r .tag i{width:18px;height:18px;border-radius:50%;background:var(--c)}
+.r .tag i{display:grid;place-items:center;color:#1b1d26}
+.r .tag i .i{font-size:12px;font-variation-settings:"FILL" 1,"wght" 600,"opsz" 20}
+.r .tag b{font:500 12px "Geist Mono";opacity:.6}
+.r .tag.flags{background:#1b1d26;color:#fff}
+.r .tag.flags i{background:var(--pk)}
+.r .track{height:10px;border-radius:999px;background:rgb(27 29 38 / .14);overflow:hidden}
+.r .track i{display:block;height:100%;width:0;border-radius:999px;background:#1b1d26;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+.r .hint{display:flex;justify-content:space-between;font-size:12px;opacity:.7;margin-top:6px}
+.r h2{margin:0 0 4px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);display:flex;gap:8px;align-items:center}
+.r h2 .i{color:var(--pkink);font-size:17px}
+.r .flag{display:grid;grid-template-columns:40px 1fr auto;gap:2px 14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--ln)}
+.r .flag .ic{grid-row:1/3;width:40px;height:40px;border-radius:50%;background:var(--fl,var(--pk));color:var(--onfl);display:grid;place-items:center}
+.r .k-risky{--fl:var(--f-risky)} .r .k-deviation{--fl:var(--f-deviation)} .r .k-untested{--fl:var(--f-untested)} .r .k-uncertain{--fl:var(--f-uncertain)}
+.r .flag .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.r .flag .kind{font-weight:600;text-transform:capitalize}
+.r .flag .where{font:13px "Geist Mono";color:var(--mu)}
+.r .flag .note{color:var(--mu)}
+.r .flag .go{grid-row:1/3;grid-column:3;color:var(--mu)}
+.r .facts{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:13px;color:var(--mu)}
+.r .facts>span{display:inline-flex;gap:6px;align-items:center}
+.r .facts .bad .i{color:var(--f-risky)}
+.r .facts b{color:var(--tx);font-weight:600}
+.r .cta{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 16px 24px;border-radius:999px;background:var(--tx);color:var(--bg);font-weight:600;font-size:18px;text-align:left}
+.r .cta small{display:block;font:400 13px "Geist Mono";opacity:.65}
+.r .cta .go{width:40px;height:40px;border-radius:50%;background:var(--pk);color:#1b1d26;display:grid;place-items:center}
+.r .feat{display:grid;grid-template-columns:24px 1fr;gap:0 10px;padding:12px 0;border-bottom:1px solid var(--ln)}
+.r .feat .i{grid-row:1/3;color:var(--mu);margin-top:2px}
+.r .feat b{font-weight:600;font-size:14px}
+.r .feat p{margin:0;color:var(--mu);font-size:13px}
+.r .foot{display:flex;gap:18px;font-size:13px;color:var(--mu)}
+.r .foot span{display:inline-flex;gap:6px;align-items:center}
+
+/* A OPEN: full-bleed pink band, then open page, rules only */
+.v-open .band{background:var(--pk);color:#1b1d26;padding:36px 36px 30px;display:grid;grid-template-columns:auto 1fr;gap:16px 48px;align-items:end}
+.v-open .band .full{grid-column:1/-1}
+.v-open{background:radial-gradient(900px 520px at 0% 30%,var(--glowA),transparent 70%),radial-gradient(800px 600px at 105% 110%,var(--glowB),transparent 70%),var(--bg)}
+.v-open .rest{display:grid;grid-template-columns:1fr 1px 340px;gap:0 40px;padding:30px 36px 24px}
+.v-open .vr{background:var(--ln)}
+.v-open .rest .cta{margin-bottom:26px;width:100%}
+.v-open .foot{padding:0 36px 26px}
+
+/* B SPLIT: a pink panel down the left, the list on the right */
+.v-split{display:grid;grid-template-columns:440px 1fr;min-height:780px}
+.v-split .bar{grid-column:1/-1;border-bottom:1px solid var(--ln)}
+.v-split .side{background:var(--pk);color:#1b1d26;padding:36px 36px 30px;display:flex;flex-direction:column;gap:18px}
+.v-split .side .vname{font-size:46px}
+.v-split .side .n{font-size:128px}
+.v-split .side .cta{margin-top:auto;background:#1b1d26;color:#fff}
+.v-split .main{padding:30px 40px}
+.v-split .main section+section{margin-top:30px}
+.v-split .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:0 24px}
+.v-split .foot{margin-top:24px}
+
+/* C COLUMN: one reading column, verdict as a highlighter mark */
+.v-col .page{max-width:760px;margin:0 auto;padding:40px 24px 120px}
+.v-col .meta{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.v-col .meta .score{display:flex;align-items:baseline;gap:6px;font-weight:600}
+.v-col .meta .score strong{font:600 40px/1 "Geist";letter-spacing:-.04em}
+.v-col .meta .score span{color:var(--mu);font-size:14px}
+.v-col .meta .track{flex:1;background:var(--ln)}
+.v-col .meta .track i{background:var(--pk)}
+.v-col .mark{display:inline;font:600 72px/1.1 "Geist";letter-spacing:-.045em;background:linear-gradient(transparent 18%,var(--pk) 18%,var(--pk) 88%,transparent 88%);padding:0 10px;box-decoration-break:clone;-webkit-box-decoration-break:clone;color:#1b1d26}
+.v-col .lede{font-size:21px;line-height:1.45;margin:18px 0 18px;color:var(--mu)}
+.v-col .tags .tag{background:var(--sf);box-shadow:inset 0 0 0 1px var(--ln);color:var(--tx)}
+.v-col .tags .tag.flags{background:var(--tx);color:var(--bg);box-shadow:none}
+.v-col section{margin-top:40px}
+.v-col .dock{position:sticky;bottom:16px;display:flex;justify-content:center;margin-top:-90px;pointer-events:none}
+.v-col .dock .cta{pointer-events:auto;box-shadow:0 10px 30px rgb(27 29 38 / .25)}
+.v-col .foot{margin-top:28px}
+@media (max-width:640px){.picker h1{width:100%}}
+</style>
+
+<div class="picker"><div class="in">
+  <h1>Briefing without cards</h1>
+  <span id="tabs" style="display:contents"></span>
+  <span class="sp"></span>
+  <button class="modebtn" id="mode"><span class="i">contrast</span><span id="modelbl">Light / dark</span></button>
+</div></div>
+<p class="dnote" id="note"></p>
+<div class="stagewrap"><div class="scroller"><div class="stage" id="stage"></div></div></div>
+
+<script>
+/* ---------- shared data: lustre-clinic #127 ---------- */
+const PR = { num: 127, title: "Appointment reminders over SMS", branch: "agent/sms-reminders" };
+const V = { name: "Read carefully", line: "Don't merge this on a skim. Four things below need a real read first.", score: 10 };
+const TAGS = [
+  { t: "core", n: 4, l: 277, ic: "adjust" }, { t: "glue", n: 3, l: 72, ic: "cable" }, { t: "tests", n: 2, l: 129, ic: "science" },
+  { t: "docs", n: 1, l: 24, ic: "description" }, { t: "boilerplate", n: 3, l: 31, ic: "inventory_2" }, { t: "generated", n: 2, l: 191, ic: "settings_suggest" },
+  { t: "flags", n: 4, ic: "flag" },
+];
+const FLAGS = [
+  { k: "deviation", ic: "alt_route", f: "api/appointments/confirm.ts", ln: 14, note: "Reads the raw appointment id from the link. You asked for a signed token." },
+  { k: "untested", ic: "science_off", f: "api/appointments/cancel.ts", ln: null, note: "No test covers cancelAppointment. The agent's last test run failed and it moved on." },
+  { k: "risky", ic: "bolt", f: "db/migrations/0042_reminders.sql", ln: 3, note: "Adds reminded_at to appointments, a table holding live patient records." },
+  { k: "uncertain", ic: "help", f: "types/appointment.ts", ln: 22, note: "The agent said it wasn't sure remindedAt should be optional." },
+];
+const FACTS = [
+  { bad: true, ic: "error", t: "test run failed", at: "turn 33" },
+  { ic: "check_circle", t: "CI passing", at: "4/4" },
+  { ic: "add_task", t: "tests added", at: "2 files" },
+];
+const FEATS = [
+  { ic: "schedule_send", n: "Reminder scheduling", files: 6, why: "Finds visits 24 hours out and texts the patient through Twilio." },
+  { ic: "link", n: "Confirm and cancel links", files: 4, why: "Endpoints the SMS links hit: mark a visit confirmed or cancelled." },
+  { ic: "folder_open", n: "Setup and other", files: 6, why: "Reminders doc, lockfile, generated schema, types, package.json." },
+];
+const MODELS = ["Haiku", "Sonnet", "Opus"];
+const DRAFTS = 3;
+const SESSION = "Session 7f3a, 41 turns";
+const WHEN = "Classified 12 min ago";
+
+const I = (n, c = "") => `<span class="i ${c}">${n}</span>`;
+const where = (f) => f.f + (f.ln ? ":" + f.ln : "");
+const models = (cls = "") => MODELS.map((m) => `<button class="${m === "Sonnet" ? "on" : ""}">${m}${m === "Opus" && cls ? " " + cls : ""}</button>`).join("");
+const pad = (n) => String(n).padStart(2, "0");
+
+/* ---------- directions ---------- */
+const BAR = `<div class="bar"><span class="brand">${I("stacks")}changestack</span>
+  <span class="pr">${I("merge")}#${PR.num}</span><span class="ttl">${PR.title}</span><span class="br">${PR.branch}</span>
+  <span style="flex:1"></span>
+  <div class="models"><span>${I("neurology")}Model</span>${models()}</div>
+  <button class="submit">${I("send")}Submit<b>${DRAFTS}</b></button></div>`;
+const TAGS_H = () => `<div class="tags">${TAGS.map((t) => t.t === "flags"
+  ? `<span class="tag flags"><i>${I("flag", "f")}</i>${t.n} flags</span>`
+  : `<span class="tag" style="--c:var(--s-${t.t})"><i>${I(t.ic)}</i>${t.n} ${t.t} <b>${t.l}</b></span>`).join("")}</div>`;
+const FLAGS_H = () => FLAGS.map((f) => `<div class="flag k-${f.k}"><span class="ic">${I(f.ic)}</span><div class="top"><span class="kind">${f.k}</span><span class="where">${where(f)}</span></div><div class="note">${f.note}</div>${I("chevron_right", "go")}</div>`).join("");
+const FACTS_H = () => `<div class="facts">${FACTS.map((x) => `<span class="${x.bad ? "bad" : ""}">${I(x.ic)}${x.t} <b>${x.at}</b></span>`).join("")}</div>`;
+const FEATS_H = () => FEATS.map((f) => `<div class="feat">${I(f.ic)}<b>${f.n}</b><p>${f.why}</p></div>`).join("");
+const CTA = `<button class="cta"><span>Resume review<small>at confirm.ts:14</small></span><span class="go">${I("arrow_forward")}</span></button>`;
+const FOOT = `<div class="foot"><span>${I("forum")}${SESSION}</span><span>${I("history")}${WHEN}</span></div>`;
+const VNAME = `<div class="vname">${I("visibility", "f")}${V.name}</div>`;
+const SCORE = `<div><div class="k">Merge score</div><div class="n"><span data-count="${V.score}">0</span><small>/100</small></div></div>`;
+const METER = `<div class="track"><i data-fill="${V.score}"></i></div><div class="hint"><span>${I("north")} higher is safer</span><span>0 to 100</span></div>`;
+
+const DIRS = {
+  open: {
+    name: "Open", cw: "Riso",
+    note: "<b>Open</b>: the verdict is a full-width pink band edge to edge, not a card. Everything under it sits straight on the page, split by thin rules and one vertical line. Closest to what you had, minus every box.",
+    html: () => `<div class="r v-open">${BAR}
+      <section class="band">${SCORE}<div>${VNAME}<p class="line">${V.line}</p>${TAGS_H()}</div><div class="full">${METER}</div></section>
+      <div class="rest">
+        <section><h2>${I("flag")}Check first</h2>${FLAGS_H()}${FACTS_H()}</section>
+        <span class="vr"></span>
+        <section>${CTA}<h2>${I("category")}What it builds</h2>${FEATS_H()}</section>
+      </div>${FOOT}</div>`,
+  },
+  split: {
+    name: "Split", cw: "Riso",
+    note: "<b>Split</b>: the screen is two halves. A pink panel runs the full height on the left with the score, verdict, tags and Resume review pinned to its bottom. The right half is a plain list. One color block, no cards.",
+    html: () => `<div class="r v-split">${BAR}
+      <aside class="side">${SCORE}${VNAME}<p class="line" style="margin:0">${V.line}</p>${TAGS_H()}<div>${METER}</div>${CTA}</aside>
+      <div class="main">
+        <section><h2>${I("flag")}Check first</h2>${FLAGS_H()}${FACTS_H()}</section>
+        <section><h2>${I("category")}What it builds</h2><div class="feats">${FEATS_H()}</div></section>
+        ${FOOT}
+      </div></div>`,
+  },
+  column: {
+    name: "Column", cw: "Riso",
+    note: "<b>Column</b>: one centered reading column, like a page of notes. The verdict is set as a pink highlighter mark, the score is a small line above it, and Resume review floats at the bottom of the screen. The calmest; no panels at all.",
+    html: () => `<div class="r v-col">${BAR}
+      <div class="page">
+        <div class="meta"><span class="score"><strong data-count="${V.score}">0</strong><span>/100 merge score</span></span><div class="track"><i data-fill="${V.score}"></i></div><span style="font-size:12px;color:var(--mu);display:inline-flex;align-items:center;gap:3px">${I("north")}safer</span></div>
+        <h1 style="margin:0"><span class="mark">${V.name}</span></h1>
+        <p class="lede">${V.line}</p>
+        ${TAGS_H()}
+        <section><h2>${I("flag")}Check first</h2>${FLAGS_H()}${FACTS_H()}</section>
+        <section><h2>${I("category")}What it builds</h2>${FEATS_H()}</section>
+        ${FOOT}
+      </div>
+      <div class="dock">${CTA}</div>
+    </div>`,
+  },
+};
+
+/* ---------- page logic ---------- */
+const order = ["open", "split", "column"];
+const stage = document.getElementById("stage");
+const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+document.getElementById("tabs").innerHTML = order.map((k, n) => `<a class="tab" href="#${k}" data-k="${k}">${n + 1}. ${DIRS[k].name} <small>${DIRS[k].cw}</small></a>`).join("");
+
+function isDark() {
+  const r = document.documentElement;
+  if (r.classList.contains("force-dark")) return true;
+  if (r.classList.contains("force-light")) return false;
+  if (r.dataset.theme) return r.dataset.theme === "dark";
+  return matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function animate() {
+  stage.querySelectorAll("[data-count]").forEach((el) => {
+    const n = +el.dataset.count, p = +(el.dataset.pad || 0);
+    const fmt = (v) => String(v).padStart(p, "0");
+    if (still) { el.textContent = fmt(n); return; }
+    const t0 = performance.now();
+    const tick = (t) => { const k = Math.min(1, (t - t0) / 900); el.textContent = fmt(Math.round(n * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  });
+  stage.querySelectorAll("[data-fill]").forEach((el) => { el.style.width = "0%"; el.getBoundingClientRect(); requestAnimationFrame(() => (el.style.width = el.dataset.fill + "%")); });
+  stage.querySelectorAll("[data-ascii]").forEach((el) => {
+    const on = +el.dataset.ascii, total = +el.dataset.total;
+    let k = still ? on : 0;
+    const step = () => { el.textContent = "█".repeat(k) + "░".repeat(total - k); if (k++ < on) setTimeout(step, 45); };
+    step();
+  });
+}
+function show() {
+  const k = DIRS[location.hash.slice(1)] ? location.hash.slice(1) : "open";
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.k === k));
+  document.getElementById("note").innerHTML = DIRS[k].note;
+  stage.className = "stage" + (isDark() ? " dark" : "");
+  stage.innerHTML = DIRS[k].html();
+  animate();
+}
+addEventListener("hashchange", show);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", show);
+document.getElementById("mode").addEventListener("click", () => {
+  const r = document.documentElement, d = isDark();
+  r.classList.toggle("force-dark", !d); r.classList.toggle("force-light", d);
+  show();
+});
+show();
+</script>

@@ -1,0 +1,603 @@
+<title>changestack screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column; each screen is a spec block with a contents list beside a wireframe sketch. Tokens mirror packages/viewer/src/styles.css. */
+:root {
+  --bg: #fbfbfa;
+  --panel: #f2f1ee;
+  --sheet: #ffffff;
+  --border: #e2e0db;
+  --text: #1d1c1a;
+  --muted: #77736b;
+  --add-bg: #e7f5ea; --add-fg: #1f6b35;
+  --del-bg: #fbeaea; --del-fg: #9a2b2b;
+  --accent: #3b5bdb;
+  --accent-soft: #e8ecfb;
+  --core: #c2410c; --glue: #4b5a80; --tests: #2f7d4f; --boilerplate: #8a857c; --generated: #a8a39a;
+  --warn: #a15c07; --warn-bg: #fdf3e2;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141413; --panel: #1c1b1a; --sheet: #191817; --border: #2c2b29; --text: #e8e6e1; --muted: #8f8a80;
+  --add-bg: #15291b; --add-fg: #7fd09a; --del-bg: #2e1717; --del-fg: #f0a0a0;
+  --accent: #8ea4ff; --accent-soft: #1f2540;
+  --core: #fb923c; --glue: #9aa8cf; --tests: #7fd09a; --boilerplate: #8f8a80; --generated: #6b675f;
+  --warn: #f2b45c; --warn-bg: #2d2412; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #141413; --panel: #1c1b1a; --sheet: #191817; --border: #2c2b29; --text: #e8e6e1; --muted: #8f8a80;
+  --add-bg: #15291b; --add-fg: #7fd09a; --del-bg: #2e1717; --del-fg: #f0a0a0;
+  --accent: #8ea4ff; --accent-soft: #1f2540;
+  --core: #fb923c; --glue: #9aa8cf; --tests: #7fd09a; --boilerplate: #8f8a80; --generated: #6b675f;
+  --warn: #f2b45c; --warn-bg: #2d2412; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 48px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font: 600 34px/1.15 var(--mono); letter-spacing: -.02em; }
+h2 { font: 600 22px var(--sans); }
+h3 { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+.muted { color: var(--muted); }
+.lede { max-width: 64ch; font-size: 17px; margin-top: 14px; }
+
+/* Flow strip */
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 32px; }
+.flow a { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--sheet); color: inherit; text-decoration: none; min-width: 0; }
+.flow a:hover, .flow a:focus-visible { border-color: var(--accent); outline: none; }
+.flow b { font: 600 14px var(--mono); }
+.flow .arrow { color: var(--muted); font-family: var(--mono); }
+.badge { font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 3px; width: fit-content; }
+.b-new { background: var(--accent-soft); color: var(--accent); }
+.b-rework { background: var(--warn-bg); color: var(--warn); }
+.b-opt { border: 1px dashed var(--muted); color: var(--muted); }
+
+/* Screen spec */
+.screen { margin-top: 72px; padding-top: 28px; border-top: 1px solid var(--border); scroll-margin-top: 16px; }
+.screen-head { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: baseline; }
+.screen-head .id { font: 500 13px var(--mono); color: var(--muted); }
+.job { margin-top: 10px; max-width: 66ch; font-size: 16px; }
+.spec { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px; margin-top: 24px; align-items: start; scroll-margin-top: 16px; }
+.spec + .spec { margin-top: 48px; }
+.spec.single { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 820px) { .spec { grid-template-columns: minmax(0, 1fr); } }
+.contents { display: flex; flex-direction: column; gap: 20px; }
+.contents ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.contents li::marker { color: var(--muted); }
+.src { font: 400 11.5px var(--mono); color: var(--muted); white-space: nowrap; }
+.decided { background: var(--add-bg); border-radius: 6px; padding: 12px 14px; }
+.decided h3 { color: var(--add-fg); }
+.decided ul { margin-top: 6px; }
+.subhead { font: 600 16px var(--sans); }
+
+/* Wireframes */
+.wf { border: 1px solid var(--border); border-radius: 8px; background: var(--sheet); overflow: hidden; font: 12px/1.45 var(--sans); min-width: 0; }
+.wf-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel); font-family: var(--mono); font-size: 11.5px; flex-wrap: wrap; }
+.wf-bar .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn { font: 500 11px var(--mono); padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border); background: var(--sheet); white-space: nowrap; color: var(--text); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+.wf-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.wf-split { display: grid; grid-template-columns: 34% minmax(0, 1fr); min-height: 260px; }
+.wf-rail { border-right: 1px solid var(--border); background: var(--panel); padding: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.wf-main { min-width: 0; overflow: hidden; }
+.chip { font: 500 10px var(--mono); padding: 0 5px; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap; }
+.t-core { color: var(--core); } .t-glue { color: var(--glue); } .t-tests { color: var(--tests); } .t-boilerplate { color: var(--boilerplate); } .t-generated { color: var(--generated); }
+.rlbl { font: 500 10px var(--mono); letter-spacing: .04em; margin-top: 6px; }
+.frow { display: flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 10.5px; padding: 3px 4px; border-radius: 3px; min-width: 0; }
+.frow span.n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.frow.on { background: var(--accent-soft); }
+.frow.done { opacity: .5; text-decoration: line-through; }
+.dot { width: 14px; height: 14px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 9px; flex: none; }
+.dot.flag { background: var(--warn-bg); color: var(--warn); }
+.dot.draft { background: var(--accent-soft); color: var(--accent); }
+.fh { padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; background: var(--panel); }
+.fh-top { display: flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 11px; flex-wrap: wrap; }
+.fh-top .p { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.why { color: var(--muted); font-size: 11px; }
+.flagline { font-size: 11px; color: var(--warn); }
+.flagline b { font-family: var(--mono); font-weight: 600; }
+.flagline .f { font-family: var(--mono); color: var(--muted); }
+.ln { font: 11px/18px var(--mono); padding: 0 10px; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.ln.add { background: var(--add-bg); color: var(--add-fg); }
+.ln.del { background: var(--del-bg); color: var(--del-fg); }
+.ln.hunk { color: var(--muted); background: var(--panel); }
+.cbox { margin: 4px 10px 8px 28px; border: 1px solid var(--accent); border-radius: 5px; padding: 6px 8px; font-size: 11px; background: var(--sheet); }
+.collapsed { padding: 7px 10px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.block { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.block .lbl { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .two { grid-template-columns: 1fr; } }
+.tierbar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; }
+.tierbar i { display: block; background: currentColor; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 10.5px var(--mono); }
+.prompt { font: 11.5px/1.6 var(--mono); padding: 12px 14px; overflow-x: auto; white-space: pre; }
+.prompt .hl { background: var(--accent-soft); }
+.draftitem { border-left: 2px solid var(--accent); padding: 2px 8px; font-size: 11px; }
+.draftitem .where { font: 10.5px var(--mono); color: var(--muted); }
+.draftitem.out { border-left-color: var(--warn); }
+.textarea { border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; color: var(--muted); min-height: 44px; font-size: 11px; }
+.centered { padding: 28px 14px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; }
+.big { font: 600 18px var(--mono); }
+.check { width: 36px; height: 36px; border-radius: 50%; background: var(--add-bg); color: var(--add-fg); display: grid; place-items: center; font-size: 18px; }
+.seg { display: flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; font: 500 10px var(--mono); margin-bottom: 6px; width: fit-content; }
+.seg span { padding: 2px 8px; color: var(--muted); }
+.seg span.on { background: var(--sheet); color: var(--text); }
+.modelpick { display: inline-flex; gap: 4px; align-items: center; font: 500 11px var(--mono); padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--sheet); white-space: nowrap; }
+.menu { border: 1px solid var(--border); border-radius: 6px; background: var(--sheet); font: 11px var(--mono); width: 100%; max-width: 320px; }
+.menu div { padding: 7px 10px; display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); }
+.menu div:last-child { border-bottom: 0; }
+.menu .sel { background: var(--accent-soft); }
+.feathead { padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.feathead b { font: 600 12px var(--sans); }
+
+/* Verdict + inline flags */
+.verdict { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.vdot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; margin-top: 4px; }
+.v-red { color: var(--del-fg); } .v-amber { color: var(--warn); } .v-green { color: var(--add-fg); }
+.verdict .vt { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.verdict b { font: 600 13px var(--mono); }
+.reasons { display: flex; flex-wrap: wrap; gap: 4px; }
+.reason { font: 10.5px var(--mono); padding: 1px 6px; border-radius: 3px; background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+.reason.good { color: var(--add-fg); }
+.vchip { display: inline-flex; gap: 5px; align-items: center; font: 500 11px var(--mono); white-space: nowrap; }
+.vchip .vdot { margin-top: 0; width: 8px; height: 8px; }
+.flagrow { border-left: 3px solid var(--warn); background: var(--warn-bg); color: var(--warn); font-size: 11px; padding: 3px 10px; display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.flagrow b { font-family: var(--mono); font-weight: 600; }
+.flagrow .btn { font-size: 10px; padding: 1px 6px; }
+
+/* Tables */
+.tablewrap { overflow-x: auto; margin-top: 20px; border: 1px solid var(--border); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+th { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); background: var(--panel); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+
+/* Shared vocab */
+.vocab { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-top: 20px; }
+.vocab dl { margin: 8px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; font-size: 14px; }
+.vocab dt { font-family: var(--mono); font-size: 12px; padding-top: 2px; }
+.vocab dd { margin: 0; color: var(--muted); }
+
+.decisions { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.decision { border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; background: var(--sheet); }
+.decision p { margin-top: 6px; }
+.decision .rec { font: 500 12px var(--mono); color: var(--add-fg); margin-top: 10px; }
+@media (prefers-reduced-motion: no-preference) { .flow a { transition: border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h3>changestack · viewer</h3>
+    <h1 style="margin-top:10px">Screens</h1>
+    <p class="lede">Every screen the viewer shows, what it's for, and what goes on it. The viewer is one page today. This guide splits it into the steps a reviewer actually moves through, so each one can be designed on its own. The sketches use made-up example data shaped like a lustre-clinic PR.</p>
+    <nav class="flow" aria-label="Screen flow">
+      <a href="#pick"><span class="badge b-opt">terminal</span><b>Pick a PR</b></a><span class="arrow">→</span>
+      <a href="#briefing"><span class="badge b-new">new</span><b>Briefing</b></a><span class="arrow">→</span>
+      <a href="#review"><span class="badge b-rework">rework</span><b>Review</b></a><span class="arrow">→</span>
+      <a href="#submit"><span class="badge b-rework">drawer</span><b>Submit</b></a><span class="arrow">→</span>
+      <a href="#posted"><span class="badge b-rework">rework</span><b>Posted</b></a>
+    </nav>
+  </header>
+
+  <!-- 1 PICK -->
+  <section class="screen" id="pick">
+    <div class="screen-head"><span class="id">1</span><h2>Pick a PR</h2><span class="badge b-opt">stays in the terminal</span></div>
+    <p class="job">Choose which PR to review when <code>changestack</code> runs with no number and the current branch has no PR.</p>
+    <div class="spec">
+      <div class="contents">
+        <div><h3>In the prompt</h3>
+          <ul>
+            <li>Open PRs, newest first: number, title, age</li>
+            <li>Size: files changed and +/− lines</li>
+            <li>Short markers for what's ready: <b>classified</b> (cache hit, opens instantly) and <b>session</b> (an agent transcript exists on this machine)</li>
+            <li>Arrow keys to move, Enter opens the PR in the browser</li>
+          </ul>
+        </div>
+        <div><h3>Data</h3><ul><li><span class="src">gh pr list</span>, <span class="src">.git/changestack/reviews/</span>, <span class="src">~/.claude/projects/</span></li></ul></div>
+        <div class="decided"><h3>Decided</h3><ul><li>A terminal prompt, not a browser screen.</li></ul></div>
+      </div>
+      <div class="wf" aria-label="Sketch: terminal PR prompt">
+        <div class="wf-bar"><span class="grow">~/projects/work/lustre-clinic $ changestack</span></div>
+<div class="prompt"><span class="muted">No PR for branch main. Pick one:</span>
+
+<span class="hl">› #127 Appointment reminders over SMS  14 files  +612 −88   2h  classified · session</span>
+  #126 Patient intake form validation    6 files  +201 −40   1d  session
+  #125 Invoice PDF export               22 files  +1.4k −310 2d  session
+  #123 Bump dependencies                 3 files  +900 −870  4d
+
+<span class="muted">↑↓ move · enter open · esc quit</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 BRIEFING -->
+  <section class="screen" id="briefing">
+    <div class="screen-head"><span class="id">2</span><h2>Briefing</h2><span class="badge b-new">new · squeezed into the sidebar today</span></div>
+    <p class="job">Tell the reviewer how closely to read this PR, what they asked for, and where to be suspicious, before they read a line of code.</p>
+    <div class="spec">
+      <div class="contents">
+        <div><h3>On screen</h3>
+          <ul>
+            <li><b>Merge verdict</b> at the very top: one of four levels, with the reasons behind it. Each reason links to its file. See <a href="#verdict">the rules</a>.</li>
+            <li>PR title, number, head → base, short sha, link to GitHub</li>
+            <li><b>What you asked</b>: the request from the agent session, side by side with <b>what changed</b>, the model's summary. Seeing them together shows drift.</li>
+            <li><b>Check first</b>: every flag in the PR. PR-wide flags come first, then file flags in reading order. Each shows its kind, file and note, and clicking it jumps to the flag in the diff.</li>
+            <li>Tier breakdown: a bar of core / glue / tests / boilerplate / generated by line count, with file counts</li>
+            <li>Where the order came from: the <a href="#model">model picker</a>, cached or fresh, sessions read, rule overrides that fired</li>
+            <li>One action: <b>Start review</b>, which scrolls to the first file</li>
+          </ul>
+        </div>
+        <div><h3>Data</h3><ul><li><span class="src">annotation.summary</span>, <span class="src">annotation.flags</span>, <span class="src">annotation.overrides</span>, <span class="src">annotation.transcripts</span></li><li>“What you asked” needs a new field: the first user prompt from the transcript</li><li>The verdict needs CI status (<span class="src">gh pr checks</span>) and the session's test runs as data, not only as prompt text</li></ul></div>
+        <div class="decided"><h3>Decided</h3><ul><li>Keep it as sketched. It opens first, at the top of the review. <b>Start review</b> scrolls down to the first file, and the PR title in the top bar scrolls back up.</li></ul></div>
+      </div>
+      <div class="wf" aria-label="Sketch: Briefing">
+        <div class="wf-bar"><span class="grow">#127 Appointment reminders over SMS · reminders → main @ 9f3c2a1</span><span class="btn">GitHub ↗</span></div>
+        <div class="wf-body">
+          <div class="verdict v-red"><span class="vdot"></span><div class="vt"><b>Read carefully</b><div class="reasons"><span class="reason">deviation · confirm.ts</span><span class="reason">untested core · cancel.ts</span><span class="reason">migration rule · 0042_reminders.sql</span><span class="reason">skipped test run</span><span class="reason good">CI passing</span><span class="reason good">tests added</span></div></div></div>
+          <div class="two">
+            <div class="block"><span class="lbl">What you asked</span><span>“Send patients an SMS 24h before their appointment, with a link to confirm or cancel.”</span></div>
+            <div class="block"><span class="lbl">What changed</span><span>Adds a reminder scheduler, Twilio client and confirm/cancel endpoints; migrates appointments with a <code>reminded_at</code> column.</span></div>
+          </div>
+          <div class="block"><span class="lbl">Check first · 3 flags</span>
+            <span class="flagline"><b>untested</b> · <span class="f">cancel.ts</span> · no test; the agent skipped the failing run</span>
+            <span class="flagline"><b>deviation</b> · <span class="f">confirm.ts:14</span> · raw appointment id, not the signed token you asked for</span>
+            <span class="flagline"><b>risky</b> · <span class="f">0042_reminders.sql</span> · new migration on appointments</span>
+          </div>
+          <div class="block"><span class="lbl">14 files · 612 lines</span>
+            <div class="tierbar"><i class="t-core" style="width:38%"></i><i class="t-glue" style="width:20%"></i><i class="t-tests" style="width:14%"></i><i class="t-boilerplate" style="width:8%"></i><i class="t-generated" style="width:20%"></i></div>
+            <div class="legend"><span class="t-core">core 4</span><span class="t-glue">glue 3</span><span class="t-tests">tests 2</span><span class="t-boilerplate">boilerplate 3</span><span class="t-generated">generated 2</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="modelpick">haiku ▾</span><span class="muted mono" style="font-size:10.5px">cached · 2 sessions · 1 rule override</span></span><span class="btn primary">Start review ↓</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec single" id="verdict">
+      <div class="contents">
+        <p class="subhead">Merge verdict</p>
+        <p style="max-width:70ch">How closely this PR needs reading. Fixed rules work it out from facts you can check, never from the model's opinion, so the same diff gets the same verdict whichever model ran. It never approves or merges anything. It only says where to spend your attention.</p>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Level</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td><span class="vchip v-red"><span class="vdot"></span>Read carefully</span></td><td>Any of: a <b>risky</b> or <b>deviation</b> flag; core logic with no test change; a failing CI check; a test run in the session that failed or was skipped; a rule forced a file to core (auth, money, migrations, crypto)</td></tr>
+          <tr><td><span class="vchip v-amber"><span class="vdot"></span>Read the core</span></td><td>None of the above, but core files changed, or there's an <b>uncertain</b> flag, or no agent session was found to check against</td></tr>
+          <tr><td><span class="vchip v-green"><span class="vdot"></span>Skim and merge</span></td><td>No core changes, no flags, CI passing, and a session that matches what you asked</td></tr>
+          <tr><td><span class="vchip v-green"><span class="vdot"></span>Reviewed</span></td><td>You've marked every core and flagged file reviewed. Reads “Reviewed · 3 comments to send” while drafts are waiting.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="spec single" style="margin-top:20px">
+      <div class="contents">
+        <div><h3>Details</h3>
+          <ul>
+            <li>Every reason that applies is a chip, worst first, and each one jumps to its file. Facts in the PR's favour (CI passing, tests added) show in green.</li>
+            <li>The rules live in one file next to <code>rules.ts</code>, so they're easy to read and change</li>
+            <li>While classification runs, the verdict reads “Working it out…”. Rules that don't need the model (CI, path rules, test runs) apply right away.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 REVIEW -->
+  <section class="screen" id="review">
+    <div class="screen-head"><span class="id">3</span><h2>Review</h2><span class="badge b-rework">rework · exists today</span></div>
+    <p class="job">Read the diff in the order that matters, leave comments, and keep track of what's done. This is where the reviewer spends most of the time.</p>
+    <div class="spec">
+      <div class="contents">
+        <div><h3>Top bar</h3>
+          <ul>
+            <li>Verdict dot, then PR number and title (scrolls back to the briefing). The dot updates as you review.</li>
+            <li>Model chip: which model sorted this PR; opens the <a href="#model">model picker</a></li>
+            <li>Progress: files reviewed of total</li>
+            <li>Draft count and <b>Submit review</b></li>
+          </ul>
+        </div>
+        <div><h3>File rail</h3>
+          <ul>
+            <li><b>Sort</b> switch: <b>By tier</b> (default) groups files under tier headings; <b>By feature</b> groups them by what they build (<a href="#by-feature">below</a>)</li>
+            <li>Per file: name, flag dot, draft count, reviewed state</li>
+            <li>The current file is highlighted and follows j/k</li>
+          </ul>
+        </div>
+        <div><h3>Diff</h3>
+          <ul>
+            <li>File header: tier chip, path, +/−, a “rule: auth” note when a rule forced the tier, reviewed toggle</li>
+            <li>That file's flags in the header, each with its line. Clicking one scrolls to it.</li>
+            <li>Why it's in this tier, one line per symbol</li>
+            <li><b>Flag rows</b> inside the diff, right above the line each flag is about, with an amber bar so they stand out while scrolling. <b>+ comment</b> on a row starts a draft on that line with the flag note quoted. See <a href="#flags">where flags show</a>.</li>
+            <li>Boilerplate and generated start collapsed, showing only their header and any flag</li>
+            <li><b>+</b> on any line opens the comment box inline; saved drafts sit under their line</li>
+            <li>Outdated drafts pinned at the top of their file</li>
+          </ul>
+        </div>
+        <div><h3>Footer</h3><ul><li>Keys: <code>j</code>/<code>k</code> file · <code>x</code> expand · <code>r</code> reviewed · <code>⌘↵</code> save · <code>Esc</code> cancel</li></ul></div>
+      </div>
+      <div class="wf" aria-label="Sketch: Review sorted by tier">
+        <div class="wf-bar"><span class="vchip v-red"><span class="vdot"></span>Read carefully</span><span class="grow">#127 Appointment reminders over SMS</span><span class="modelpick">haiku ▾</span><span>5/14</span><span class="btn primary">Submit · 3</span></div>
+        <div class="wf-split">
+          <div class="wf-rail">
+            <div class="seg"><span class="on">by tier</span><span>by feature</span></div>
+            <span class="rlbl t-core" style="margin-top:0">CORE</span>
+            <div class="frow done"><span class="n">reminders/scheduler.ts</span></div>
+            <div class="frow on"><span class="n">api/appointments/confirm.ts</span><span class="dot flag">!</span><span class="dot draft">2</span></div>
+            <div class="frow"><span class="n">api/appointments/cancel.ts</span><span class="dot flag">!</span></div>
+            <div class="frow"><span class="n">db/migrations/0042_rem…</span><span class="dot flag">!</span></div>
+            <span class="rlbl t-glue">GLUE</span>
+            <div class="frow"><span class="n">sms/twilio.ts</span><span class="dot draft">1</span></div>
+            <div class="frow"><span class="n">config/env.ts</span></div>
+            <span class="rlbl t-tests">TESTS</span>
+            <div class="frow"><span class="n">reminders/scheduler.test.ts</span></div>
+            <span class="rlbl t-boilerplate">BOILERPLATE · 3</span>
+            <span class="rlbl t-generated" style="margin-top:0">GENERATED · 2</span>
+          </div>
+          <div class="wf-main">
+            <div class="fh">
+              <div class="fh-top"><span class="chip t-core">core</span><span class="p">api/appointments/confirm.ts</span><span style="color:var(--add-fg)">+64</span><span style="color:var(--del-fg)">−3</span><span class="btn">☐ reviewed</span></div>
+              <span class="flagline"><b>deviation</b> · <span class="f">line 14 ↓</span> · uses raw id, you asked for a signed token</span>
+              <span class="why">confirmAppointment: marks the visit confirmed from the SMS link</span>
+            </div>
+            <div class="ln hunk">@@ -8,6 +8,9 @@ export async function confirmAppointment</div>
+            <div class="ln">  export async function confirmAppointment(req) {</div>
+            <div class="ln del">-   const token = verifyToken(req.query.t)</div>
+            <div class="flagrow"><span><b>deviation</b> · uses raw id, you asked for a signed token</span><span class="btn">+ comment</span></div>
+            <div class="ln add">+   const id = Number(req.query.id)</div>
+            <div class="cbox">This drops the signed token. Anyone can confirm any appointment by guessing ids.<div class="muted mono" style="font-size:10px;margin-top:4px">⌘↵ save draft · Esc cancel</div></div>
+            <div class="ln add">+   const appt = await db.appointment.find(id)</div>
+            <div class="ln">    if (!appt) return notFound()</div>
+            <div class="collapsed"><span class="chip t-boilerplate">boilerplate</span>package.json · +2 −0 · collapsed</div>
+            <div class="collapsed" style="border-bottom:0"><span class="chip t-generated">generated</span>bun.lock · +410 −12 · collapsed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec" id="by-feature">
+      <div class="contents">
+        <p class="subhead">Sort by feature</p>
+        <div><h3>Rail</h3>
+          <ul>
+            <li>Files grouped under the features the PR builds, such as “Reminder scheduling” or “Confirm and cancel links”</li>
+            <li>Each feature heading shows its reviewed count and flag count</li>
+            <li>Inside a feature, files keep tier order, so core still comes first; a small tier chip stays on each file</li>
+            <li>A file that serves two features appears under both, labelled with its symbol (<code>scheduler.ts · sendReminder</code>)</li>
+            <li>Files that belong to no feature (lockfiles, renames) go in a last group, <b>Setup and other</b></li>
+            <li>Marking a file reviewed marks it everywhere it appears</li>
+          </ul>
+        </div>
+        <div><h3>Diff</h3><ul><li>A feature header above its first file: name, one-line description, file and flag counts</li></ul></div>
+        <div><h3>Data</h3><ul><li>New: the classifier also returns <span class="src">features[{ name, why }]</span>, and each section gets a <span class="src">feature</span>. It's the same model call, so no extra usage.</li></ul></div>
+      </div>
+      <div class="wf" aria-label="Sketch: Review sorted by feature">
+        <div class="wf-bar"><span class="vchip v-red"><span class="vdot"></span>Read carefully</span><span class="grow">#127 Appointment reminders over SMS</span><span class="modelpick">haiku ▾</span><span>5/14</span></div>
+        <div class="wf-split">
+          <div class="wf-rail">
+            <div class="seg"><span>by tier</span><span class="on">by feature</span></div>
+            <span class="rlbl" style="margin-top:0">REMINDER SCHEDULING · 2/4</span>
+            <div class="frow done"><span class="chip t-core">c</span><span class="n">scheduler.ts</span></div>
+            <div class="frow"><span class="chip t-core">c</span><span class="n">0042_reminders.sql</span><span class="dot flag">!</span></div>
+            <div class="frow"><span class="chip t-glue">g</span><span class="n">sms/twilio.ts</span><span class="dot draft">1</span></div>
+            <div class="frow done"><span class="chip t-tests">t</span><span class="n">scheduler.test.ts</span></div>
+            <span class="rlbl">CONFIRM AND CANCEL · 0/3</span>
+            <div class="frow on"><span class="chip t-core">c</span><span class="n">confirm.ts</span><span class="dot flag">!</span><span class="dot draft">2</span></div>
+            <div class="frow"><span class="chip t-core">c</span><span class="n">cancel.ts</span><span class="dot flag">!</span></div>
+            <div class="frow"><span class="chip t-glue">g</span><span class="n">routes.ts</span></div>
+            <span class="rlbl muted">SETUP AND OTHER · 3/7</span>
+          </div>
+          <div class="wf-main">
+            <div class="feathead"><b>Confirm and cancel links</b><span class="why">Endpoints the SMS links hit: mark a visit confirmed or cancelled. 3 files · 2 flags</span></div>
+            <div class="fh">
+              <div class="fh-top"><span class="chip t-core">core</span><span class="p">api/appointments/confirm.ts</span><span style="color:var(--add-fg)">+64</span><span style="color:var(--del-fg)">−3</span></div>
+              <span class="flagline"><b>deviation</b> · <span class="f">line 14 ↓</span> · uses raw id, you asked for a signed token</span>
+            </div>
+            <div class="ln">  export async function confirmAppointment(req) {</div>
+            <div class="ln del">-   const token = verifyToken(req.query.t)</div>
+            <div class="flagrow"><span><b>deviation</b> · uses raw id, you asked for a signed token</span><span class="btn">+ comment</span></div>
+            <div class="ln add">+   const id = Number(req.query.id)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spec" id="model">
+      <div class="contents">
+        <p class="subhead">Model picker</p>
+        <div><h3>On screen</h3>
+          <ul>
+            <li>Shows which model sorted and flagged the PR: in the briefing's source line and in the review's top bar</li>
+            <li>Opens a short list: Haiku, Sonnet, Opus. Each one says <b>cached</b> if it already ran on this exact diff, or a rough time if not.</li>
+            <li>Picking a cached model switches at once. Picking an uncached one asks first (“Classify with Opus? Uses your Claude plan.”), then runs in place with the usual classifying state.</li>
+            <li>Drafts and reviewed marks stay put when the order changes. The verdict doesn't depend on the model's opinion, but it can change if the new model raises different flags.</li>
+            <li>The last pick is remembered per repo; <code>CHANGESTACK_MODEL</code> still sets the starting default</li>
+          </ul>
+        </div>
+        <div><h3>Data</h3><ul><li>The cache key already includes the model, so switching back costs nothing</li><li>New: <span class="src">POST /api/classify { model }</span>, and <span class="src">/api/review</span> lists which models are cached for this diff</li></ul></div>
+      </div>
+      <div class="wf" aria-label="Sketch: model picker open">
+        <div class="wf-bar"><span class="grow">#127 Appointment reminders over SMS</span><span class="modelpick" style="border-color:var(--accent)">haiku ▴</span><span>5/14</span></div>
+        <div class="wf-body" style="align-items:flex-end">
+          <div class="menu">
+            <div class="sel"><span>Haiku</span><span class="muted">current · cached</span></div>
+            <div><span>Sonnet</span><span class="muted">cached</span></div>
+            <div><span>Opus</span><span class="muted">not run · about 1 min</span></div>
+          </div>
+          <div class="block" style="max-width:320px;width:100%"><span>Classify with Opus? Uses your Claude plan.</span><div style="display:flex;gap:6px;justify-content:flex-end"><span class="btn">Cancel</span><span class="btn primary">Classify</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 SUBMIT -->
+  <section class="screen" id="submit">
+    <div class="screen-head"><span class="id">4</span><h2>Submit</h2><span class="badge b-rework">drawer · a small confirm box today</span></div>
+    <p class="job">Check every draft once before anything leaves the machine, then post it to GitHub or hand it back to the agent.</p>
+    <div class="spec">
+      <div class="contents">
+        <div><h3>On screen</h3>
+          <ul>
+            <li>Every draft, grouped by file in reading order, with the line it's on. Each one can be edited or deleted here.</li>
+            <li>Outdated drafts in their own group, labelled “goes in the review body” and showing the line they were written on</li>
+            <li>Optional overall comment</li>
+            <li>A plain statement of what will happen: “Posts 3 comments to #127 as Youssef-codin. Comment only, no approval.”</li>
+            <li><b>Post review</b> and <b>Copy all as prompt</b>, with Cancel closing the drawer</li>
+          </ul>
+        </div>
+        <div><h3>Data</h3><ul><li><span class="src">GET /api/drafts</span>, <span class="src">POST /api/submit</span></li></ul></div>
+        <div class="decided"><h3>Decided</h3><ul><li>A drawer from the right over the review, full width on narrow screens. Clicking a draft scrolls the diff behind it to that line.</li></ul></div>
+      </div>
+      <div class="wf" aria-label="Sketch: Submit drawer">
+        <div class="wf-bar"><span class="grow">Submit review · #127</span><span class="btn">Cancel</span></div>
+        <div class="wf-body">
+          <span class="rlbl muted" style="margin-top:0">API/APPOINTMENTS/CONFIRM.TS</span>
+          <div class="draftitem"><div class="where">line 14</div>This drops the signed token. Anyone can confirm any appointment by guessing ids.</div>
+          <div class="draftitem"><div class="where">line 19</div>Return 410 if the appointment already passed.</div>
+          <span class="rlbl muted">SMS/TWILIO.TS</span>
+          <div class="draftitem"><div class="where">line 4</div>Read the sender number from config, not a literal.</div>
+          <span class="rlbl" style="color:var(--warn)">OUTDATED · GOES IN THE REVIEW BODY</span>
+          <div class="draftitem out"><div class="where">scheduler.ts · was line 30: <code>setInterval(run, 60_000)</code></div>Use the job queue instead of an interval.</div>
+          <div class="textarea">Overall comment (optional)</div>
+          <p class="muted" style="font-size:11px">Posts 3 comments and 1 outdated note to #127 as Youssef-codin. Comment only, no approval.</p>
+          <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><span class="btn">Copy all as prompt</span><span class="btn primary">Post review</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 POSTED -->
+  <section class="screen" id="posted">
+    <div class="screen-head"><span class="id">5</span><h2>Posted</h2><span class="badge b-rework">rework · a one-line message today</span></div>
+    <p class="job">Confirm the review is on GitHub and set up the next round with the agent.</p>
+    <div class="spec">
+      <div class="contents">
+        <div><h3>On screen</h3>
+          <ul>
+            <li>What was posted: comment count, plus outdated notes that went in the body</li>
+            <li><b>View on GitHub</b></li>
+            <li><b>Copy as prompt</b> for the same comments, to paste into the agent</li>
+            <li>A note that drafts were cleared, and that rerunning <code>changestack 127</code> after the agent pushes shows the new diff</li>
+          </ul>
+        </div>
+        <div><h3>Data</h3><ul><li><span class="src">SubmitResult { url, posted, inBody }</span></li></ul></div>
+        <div class="decided"><h3>Decided</h3><ul><li>Keep as sketched.</li></ul></div>
+      </div>
+      <div class="wf" aria-label="Sketch: Posted">
+        <div class="wf-bar"><span class="grow">#127 Appointment reminders over SMS</span></div>
+        <div class="centered">
+          <div class="check" aria-hidden="true">✓</div>
+          <div class="big">Review posted</div>
+          <p class="muted">3 comments on #127, plus 1 outdated note in the review body.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><span class="btn">Copy as prompt</span><span class="btn primary">View on GitHub ↗</span></div>
+          <p class="muted mono" style="font-size:10.5px">Drafts cleared. After the agent pushes, run changestack 127 again.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLAGS -->
+  <section class="screen" id="flags">
+    <div class="screen-head"><h2>Where flags show</h2></div>
+    <p class="job">Every flag appears at least twice: once in the briefing before you start, and again next to the code it's about. To place a flag on a line, each flag gets an optional <code>line</code> from the model, which already sees the diff.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Place</th><th>Which flags</th><th>How</th></tr></thead>
+        <tbody>
+          <tr><td>Briefing</td><td>All of them</td><td>The “Check first” list: kind, file, note. Clicking one jumps to the flag in the diff. Flags also feed the merge verdict.</td></tr>
+          <tr><td>File rail</td><td>File and line flags</td><td>An amber dot on the file. When sorted by feature, the feature heading shows a count too.</td></tr>
+          <tr><td>File header</td><td>That file's flags</td><td>One line per flag above the code, with its line number. Clicking it scrolls to the flag row.</td></tr>
+          <tr><td>In the diff</td><td>Flags with a line or function</td><td>An amber row right above the flagged line, with <b>+ comment</b> to start a draft quoting the flag. Placement, best first: the line the model gave; else the top of the hunk that defines that function, or whose <code>@@</code> header names it; else the file header only.</td></tr>
+          <tr><td>Collapsed files</td><td>Any</td><td>A flagged boilerplate or generated file shows its flag while collapsed, so a collapse never hides one. Expanding it lands on the flag row.</td></tr>
+          <tr><td>Submit, Posted</td><td>None</td><td>Flags are for you. They aren't posted to GitHub.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- STATES -->
+  <section class="screen" id="states">
+    <div class="screen-head"><h2>States</h2></div>
+    <p class="job">Variations of the screens above. Each one needs a designed look, not a red line of text.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>State</th><th>When</th><th>Affects</th><th>What the reviewer sees</th></tr></thead>
+        <tbody>
+          <tr><td>classifying</td><td>No cache hit; the model is running</td><td>Briefing, Review</td><td>The raw diff in GitHub order with a progress line (model, file count, elapsed). The briefing shows placeholders, and the verdict reads “Working it out…” with the model-free reasons already listed. Files reorder once when it finishes.</td></tr>
+          <tr><td>switching model</td><td>Picked an uncached model</td><td>Briefing, Review</td><td>Same as classifying, but the old order stays on screen until the new one arrives</td></tr>
+          <tr><td>cached</td><td>Same diff seen before</td><td>Briefing</td><td>Opens complete at once; “cached” appears in the source line</td></tr>
+          <tr><td>failed</td><td>The model call errored</td><td>Briefing, Review</td><td>The raw diff, the error in plain words, and a Retry button (or another model from the picker)</td></tr>
+          <tr><td>no session</td><td>No transcript on this machine</td><td>Briefing</td><td>“What you asked” becomes “No agent session found for this branch”; tiers still apply, with no transcript-based flags. The verdict can't be better than “Read the core”.</td></tr>
+          <tr><td>no CI</td><td>The repo has no checks</td><td>Briefing</td><td>The verdict lists “no CI checks” as a neutral reason; it doesn't count against the PR</td></tr>
+          <tr><td>changed since</td><td>The diff moved after classification</td><td>Review</td><td>New files fall into glue, marked “changed after classification”</td></tr>
+          <tr><td>empty PR</td><td>No file changes</td><td>Briefing</td><td>A single message, with nothing to review</td></tr>
+          <tr><td>no drafts</td><td>Nothing written yet</td><td>Review, Submit</td><td>Submit is disabled, with a hint: click + next to a line</td></tr>
+          <tr><td>post failed</td><td>GitHub rejected the review</td><td>Submit</td><td>The error from GitHub, drafts kept, retry available</td></tr>
+          <tr><td>CLI stopped</td><td>The server is gone</td><td>All</td><td>A banner saying drafts can't save until <code>changestack</code> runs again</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VOCAB -->
+  <section class="screen" id="vocab">
+    <div class="screen-head"><h2>Shared pieces</h2></div>
+    <p class="job">Elements that look the same on every screen.</p>
+    <div class="vocab">
+      <div><h3>Tiers, most to least important</h3>
+        <dl>
+          <dt class="t-core">core</dt><dd>logic that decides behaviour; auth, money, migrations and crypto always land here</dd>
+          <dt class="t-glue">glue</dt><dd>wiring, config, clients</dd>
+          <dt class="t-tests">tests</dt><dd>test files</dd>
+          <dt class="t-boilerplate">boilerplate</dt><dd>renames, imports, manifests; collapsed</dd>
+          <dt class="t-generated">generated</dt><dd>lockfiles, snapshots, codegen; collapsed</dd>
+        </dl>
+      </div>
+      <div><h3>Flags</h3>
+        <dl>
+          <dt>uncertain</dt><dd>the agent guessed or said it wasn't sure</dd>
+          <dt>untested</dt><dd>core logic with no test change, or tests that failed or were skipped</dd>
+          <dt>deviation</dt><dd>diverged from what you asked, or abandoned an approach</dd>
+          <dt>risky</dt><dd>auth, money, persistence or security</dd>
+        </dl>
+      </div>
+      <div><h3>Verdict</h3>
+        <dl>
+          <dt class="v-red">● read carefully</dt><dd>a hard reason applies</dd>
+          <dt class="v-amber">● read the core</dt><dd>core changed, nothing alarming</dd>
+          <dt class="v-green">● skim and merge</dt><dd>no core, no flags, CI green</dd>
+          <dt class="v-green">● reviewed</dt><dd>you've covered every core and flagged file</dd>
+        </dl>
+      </div>
+      <div><h3>Drafts</h3>
+        <dl>
+          <dt>active</dt><dd>sits under its line</dd>
+          <dt>outdated</dt><dd>its line is gone from the diff; kept, pinned to the top of its file, and posted in the review body</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- DECISIONS -->
+  <section class="screen" id="decisions">
+    <div class="screen-head"><h2>Decided</h2></div>
+    <div class="decisions">
+      <div class="decision"><h3>PR picker</h3><p>Stays a terminal prompt.</p><p class="rec">terminal</p></div>
+      <div class="decision"><h3>Briefing</h3><p>Kept as sketched, opening first at the top of the review.</p><p class="rec">keep</p></div>
+      <div class="decision"><h3>Merge verdict</h3><p>Four levels from fixed rules, with clickable reasons, at the top of the briefing and in the top bar.</p><p class="rec">add</p></div>
+      <div class="decision"><h3>Flags in the diff</h3><p>An amber row above the flagged line, using a line from the model, with fallbacks.</p><p class="rec">add</p></div>
+      <div class="decision"><h3>Sort by feature</h3><p>A By tier / By feature switch in the rail, tier by default. Same model call.</p><p class="rec">add</p></div>
+      <div class="decision"><h3>Model</h3><p>Shown in the briefing and top bar, with a picker to rerun on another model.</p><p class="rec">add</p></div>
+      <div class="decision"><h3>Submit</h3><p>A drawer from the right over the diff.</p><p class="rec">drawer</p></div>
+      <div class="decision"><h3>Posted</h3><p>Kept, with Copy as prompt next to View on GitHub.</p><p class="rec">keep</p></div>
+    </div>
+  </section>
+</div>

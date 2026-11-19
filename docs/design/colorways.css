@@ -1,0 +1,347 @@
+/* changestack colorways: role tokens.
+   Generated from docs/design/colorways.html (the decided set). Design reference only; the viewer doesn't load this yet.
+   Usage: set data-colorway on the root (hazard is the default). Light and dark follow the system,
+   and data-mode="light" or data-mode="dark" overrides it. Screens use these roles, never raw colors.
+   Effects: --grid draws Scope's graticule behind the diff; --hatch is the second color of Hazard's striped flag edge. */
+
+/* Hazard: flag hi-vis yellow, striped; accent ink; added / removed olive / rust; tiers gray ramp */
+:root, [data-colorway="hazard"] {
+  --bg: #e9e9e5;
+  --surface: #f4f4f1;
+  --line: #cfcfc9;
+  --text: #161616;
+  --mute: #5f5f5a;
+  --accent: #161616;
+  --on-accent: #ffd400;
+  --accent-soft: #dcdcd6;
+  --top-bg: #161616;
+  --top-fg: #f4f4f1;
+  --top-btn: #ffd400;
+  --top-btn-fg: #161616;
+  --flag-ink: #7a5f00;
+  --flag-bg: #ffd400;
+  --flag-on: #161616;
+  --flag-edge: #ffd400;
+  --add-bg: #e0e8d5;
+  --add-fg: #33511c;
+  --del-bg: #f0d9cf;
+  --del-fg: #8a2f17;
+  --verdict-careful: #161616;
+  --verdict-careful-bg: #ff5a1f;
+  --verdict-core: #161616;
+  --verdict-core-bg: #ffd400;
+  --verdict-skim: #33511c;
+  --verdict-skim-bg: #d6e6c4;
+  --verdict-reviewed: #ffd400;
+  --verdict-reviewed-bg: #161616;
+  --tier-core: #161616;
+  --tier-glue: #4a4a46;
+  --tier-tests: #7c7c76;
+  --tier-boilerplate: #a5a59f;
+  --tier-generated: #c4c4be;
+  --hatch: #161616;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]), [data-colorway="hazard"]:not([data-mode="light"]) {
+    --bg: #121212;
+    --surface: #1b1b1a;
+    --line: #30302d;
+    --text: #ecebe6;
+    --mute: #8f8e88;
+    --accent: #ecebe6;
+    --on-accent: #121212;
+    --accent-soft: #2a2a27;
+    --top-bg: #1b1b1a;
+    --top-fg: #ecebe6;
+    --top-btn: #ecebe6;
+    --top-btn-fg: #121212;
+    --flag-ink: #ffd400;
+    --flag-bg: #ffd400;
+    --flag-on: #121212;
+    --flag-edge: #ffd400;
+    --add-bg: #1d2616;
+    --add-fg: #b9e08f;
+    --del-bg: #2e1b14;
+    --del-fg: #ffa98a;
+    --verdict-careful: #121212;
+    --verdict-careful-bg: #ff5a1f;
+    --verdict-core: #121212;
+    --verdict-core-bg: #ffd400;
+    --verdict-skim: #b9e08f;
+    --verdict-skim-bg: #253019;
+    --verdict-reviewed: #121212;
+    --verdict-reviewed-bg: #ecebe6;
+    --tier-core: #ecebe6;
+    --tier-glue: #b2b1ab;
+    --tier-tests: #82817c;
+    --tier-boilerplate: #5b5a56;
+    --tier-generated: #42423f;
+    --hatch: #121212;
+    color-scheme: dark;
+  }
+}
+:root[data-mode="dark"], [data-colorway="hazard"][data-mode="dark"] {
+  --bg: #121212;
+  --surface: #1b1b1a;
+  --line: #30302d;
+  --text: #ecebe6;
+  --mute: #8f8e88;
+  --accent: #ecebe6;
+  --on-accent: #121212;
+  --accent-soft: #2a2a27;
+  --top-bg: #1b1b1a;
+  --top-fg: #ecebe6;
+  --top-btn: #ecebe6;
+  --top-btn-fg: #121212;
+  --flag-ink: #ffd400;
+  --flag-bg: #ffd400;
+  --flag-on: #121212;
+  --flag-edge: #ffd400;
+  --add-bg: #1d2616;
+  --add-fg: #b9e08f;
+  --del-bg: #2e1b14;
+  --del-fg: #ffa98a;
+  --verdict-careful: #121212;
+  --verdict-careful-bg: #ff5a1f;
+  --verdict-core: #121212;
+  --verdict-core-bg: #ffd400;
+  --verdict-skim: #b9e08f;
+  --verdict-skim-bg: #253019;
+  --verdict-reviewed: #121212;
+  --verdict-reviewed-bg: #ecebe6;
+  --tier-core: #ecebe6;
+  --tier-glue: #b2b1ab;
+  --tier-tests: #82817c;
+  --tier-boilerplate: #5b5a56;
+  --tier-generated: #42423f;
+  --hatch: #121212;
+  color-scheme: dark;
+}
+
+/* Riso: flag fluoro pink edge, pale row; accent ink; added / removed blue / muted mauve; tiers ink ramp */
+[data-colorway="riso"] {
+  --bg: #f4f4f2;
+  --surface: #fcfcfb;
+  --line: #e0e0dd;
+  --text: #1b1d26;
+  --mute: #6b6d76;
+  --accent: #1b1d26;
+  --on-accent: #fcfcfb;
+  --accent-soft: #ebebee;
+  --top-bg: #fcfcfb;
+  --top-fg: #1b1d26;
+  --top-btn: #1b1d26;
+  --top-btn-fg: #fcfcfb;
+  --flag-ink: #d1306a;
+  --flag-bg: #fbe9ef;
+  --flag-on: #6e1438;
+  --flag-edge: #ff4f8b;
+  --add-bg: #e9edf7;
+  --add-fg: #2c3d8a;
+  --del-bg: #f3eef0;
+  --del-fg: #7d5566;
+  --verdict-careful: #1b1d26;
+  --verdict-careful-bg: #ff4f8b;
+  --verdict-core: #a8285a;
+  --verdict-core-bg: #fbe9ef;
+  --verdict-skim: #3b3f52;
+  --verdict-skim-bg: #ebebee;
+  --verdict-reviewed: #fcfcfb;
+  --verdict-reviewed-bg: #1b1d26;
+  --tier-core: #1b1d26;
+  --tier-glue: #4a4d5e;
+  --tier-tests: #7c7f8e;
+  --tier-boilerplate: #a9abb6;
+  --tier-generated: #cbccd3;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  [data-colorway="riso"]:not([data-mode="light"]) {
+    --bg: #121214;
+    --surface: #1a1a1d;
+    --line: #2c2c31;
+    --text: #ebebee;
+    --mute: #8f9099;
+    --accent: #ebebee;
+    --on-accent: #121214;
+    --accent-soft: #26262b;
+    --top-bg: #1a1a1d;
+    --top-fg: #ebebee;
+    --top-btn: #ebebee;
+    --top-btn-fg: #121214;
+    --flag-ink: #ff7aa8;
+    --flag-bg: #2c1a22;
+    --flag-on: #ffc4d8;
+    --flag-edge: #ff4f8b;
+    --add-bg: #1a2034;
+    --add-fg: #a9b6f0;
+    --del-bg: #261c21;
+    --del-fg: #d9a0b6;
+    --verdict-careful: #121214;
+    --verdict-careful-bg: #ff4f8b;
+    --verdict-core: #ff9cbf;
+    --verdict-core-bg: #2c1a22;
+    --verdict-skim: #c4c6d0;
+    --verdict-skim-bg: #26262b;
+    --verdict-reviewed: #121214;
+    --verdict-reviewed-bg: #ebebee;
+    --tier-core: #ebebee;
+    --tier-glue: #b2b3bb;
+    --tier-tests: #83848e;
+    --tier-boilerplate: #5d5e67;
+    --tier-generated: #45464d;
+    color-scheme: dark;
+  }
+}
+[data-colorway="riso"][data-mode="dark"] {
+  --bg: #121214;
+  --surface: #1a1a1d;
+  --line: #2c2c31;
+  --text: #ebebee;
+  --mute: #8f9099;
+  --accent: #ebebee;
+  --on-accent: #121214;
+  --accent-soft: #26262b;
+  --top-bg: #1a1a1d;
+  --top-fg: #ebebee;
+  --top-btn: #ebebee;
+  --top-btn-fg: #121214;
+  --flag-ink: #ff7aa8;
+  --flag-bg: #2c1a22;
+  --flag-on: #ffc4d8;
+  --flag-edge: #ff4f8b;
+  --add-bg: #1a2034;
+  --add-fg: #a9b6f0;
+  --del-bg: #261c21;
+  --del-fg: #d9a0b6;
+  --verdict-careful: #121214;
+  --verdict-careful-bg: #ff4f8b;
+  --verdict-core: #ff9cbf;
+  --verdict-core-bg: #2c1a22;
+  --verdict-skim: #c4c6d0;
+  --verdict-skim-bg: #26262b;
+  --verdict-reviewed: #121214;
+  --verdict-reviewed-bg: #ebebee;
+  --tier-core: #ebebee;
+  --tier-glue: #b2b3bb;
+  --tier-tests: #83848e;
+  --tier-boilerplate: #5d5e67;
+  --tier-generated: #45464d;
+  color-scheme: dark;
+}
+
+/* Scope: flag Mantis edge, tinted row; accent ink; added / removed sky / muted mauve; tiers ink ramp */
+[data-colorway="scope"] {
+  --bg: #f3f4f3;
+  --surface: #fbfcfb;
+  --line: #dfe2e1;
+  --text: #1a1e1e;
+  --mute: #6a706f;
+  --accent: #1a1e1e;
+  --on-accent: #fbfcfb;
+  --accent-soft: #eaeceb;
+  --top-bg: #fbfcfb;
+  --top-fg: #1a1e1e;
+  --top-btn: #1a1e1e;
+  --top-btn-fg: #fbfcfb;
+  --flag-ink: #3f7a00;
+  --flag-bg: #edf8da;
+  --flag-on: #244600;
+  --flag-edge: #76cc24;
+  --add-bg: #e4edf6;
+  --add-fg: #245f91;
+  --del-bg: #f3eef0;
+  --del-fg: #7d5566;
+  --verdict-careful: #1a1e1e;
+  --verdict-careful-bg: #76cc24;
+  --verdict-core: #3f7a00;
+  --verdict-core-bg: #edf8da;
+  --verdict-skim: #3d4443;
+  --verdict-skim-bg: #eaeceb;
+  --verdict-reviewed: #fbfcfb;
+  --verdict-reviewed-bg: #1a1e1e;
+  --tier-core: #1a1e1e;
+  --tier-glue: #4b5150;
+  --tier-tests: #7d8382;
+  --tier-boilerplate: #a9aead;
+  --tier-generated: #cacecd;
+  --grid: rgb(26 30 30 / .035);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  [data-colorway="scope"]:not([data-mode="light"]) {
+    --bg: #111313;
+    --surface: #181a1a;
+    --line: #2a2e2e;
+    --text: #e8ebea;
+    --mute: #8e9493;
+    --accent: #e8ebea;
+    --on-accent: #111313;
+    --accent-soft: #262a2a;
+    --top-bg: #181a1a;
+    --top-fg: #e8ebea;
+    --top-btn: #e8ebea;
+    --top-btn-fg: #111313;
+    --flag-ink: #a6ec66;
+    --flag-bg: #212c14;
+    --flag-on: #d8f6b8;
+    --flag-edge: #8ee53f;
+    --add-bg: #142230;
+    --add-fg: #8cc8f0;
+    --del-bg: #241e21;
+    --del-fg: #c9a7b5;
+    --verdict-careful: #111313;
+    --verdict-careful-bg: #8ee53f;
+    --verdict-core: #a6ec66;
+    --verdict-core-bg: #212c14;
+    --verdict-skim: #c2c8c7;
+    --verdict-skim-bg: #262a2a;
+    --verdict-reviewed: #111313;
+    --verdict-reviewed-bg: #e8ebea;
+    --tier-core: #e8ebea;
+    --tier-glue: #b0b6b5;
+    --tier-tests: #828887;
+    --tier-boilerplate: #5c6160;
+    --tier-generated: #444847;
+    --grid: rgb(232 235 234 / .03);
+    color-scheme: dark;
+  }
+}
+[data-colorway="scope"][data-mode="dark"] {
+  --bg: #111313;
+  --surface: #181a1a;
+  --line: #2a2e2e;
+  --text: #e8ebea;
+  --mute: #8e9493;
+  --accent: #e8ebea;
+  --on-accent: #111313;
+  --accent-soft: #262a2a;
+  --top-bg: #181a1a;
+  --top-fg: #e8ebea;
+  --top-btn: #e8ebea;
+  --top-btn-fg: #111313;
+  --flag-ink: #a6ec66;
+  --flag-bg: #212c14;
+  --flag-on: #d8f6b8;
+  --flag-edge: #8ee53f;
+  --add-bg: #142230;
+  --add-fg: #8cc8f0;
+  --del-bg: #241e21;
+  --del-fg: #c9a7b5;
+  --verdict-careful: #111313;
+  --verdict-careful-bg: #8ee53f;
+  --verdict-core: #a6ec66;
+  --verdict-core-bg: #212c14;
+  --verdict-skim: #c2c8c7;
+  --verdict-skim-bg: #262a2a;
+  --verdict-reviewed: #111313;
+  --verdict-reviewed-bg: #e8ebea;
+  --tier-core: #e8ebea;
+  --tier-glue: #b0b6b5;
+  --tier-tests: #828887;
+  --tier-boilerplate: #5c6160;
+  --tier-generated: #444847;
+  --grid: rgb(232 235 234 / .03);
+  color-scheme: dark;
+}
