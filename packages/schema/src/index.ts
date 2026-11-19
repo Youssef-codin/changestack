@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { TIERS } from "./tiers";
+import { TIERS, VERDICT_LEVELS } from "./tiers";
 
-export { TIER_ORDER } from "./tiers";
+export { TIER_ORDER, VERDICT_LEVELS, type VerdictLevel } from "./tiers";
 
 /** How much reviewer attention a change deserves. Ordered most → least. */
 export const Tier = z.enum(TIERS);
@@ -15,34 +15,61 @@ export const FlagKind = z.enum([
 ]);
 export type FlagKind = z.infer<typeof FlagKind>;
 
+/** Something the change builds, as the user would name it. Files are grouped by these in the viewer. */
+export const Feature = z.object({
+  name: z.string().describe("2 to 4 words, e.g. \"Reminder scheduling\""),
+  why: z.string().describe("One short sentence: what it does, in product terms"),
+});
+export type Feature = z.infer<typeof Feature>;
+
 /** A reviewable unit: a whole file, or one symbol inside it. */
 export const Section = z.object({
   file: z.string(),
   symbol: z.string().nullable().describe("Function/class/method name, or null for the whole file"),
   tier: Tier,
   why: z.string().describe("One short sentence: what changed and why it matters to a reviewer"),
+  feature: z.string().nullable().describe("Name of the feature (from `features`) this section builds, or null for setup and plumbing that serves none"),
 });
 export type Section = z.infer<typeof Section>;
 
-export const Flag = z.object({
+/** A flag as the model writes it: it quotes the line instead of numbering it, since diffs carry no line numbers per line. */
+export const FlagDraft = z.object({
   file: z.string().nullable(),
   symbol: z.string().nullable(),
   kind: FlagKind,
   note: z.string(),
+  quote: z
+    .string()
+    .nullable()
+    .describe("The one added or unchanged line the flag is about, copied exactly from the diff without its leading + or space; null when it's about the whole file"),
 });
+export type FlagDraft = z.infer<typeof FlagDraft>;
+
+/** A flag as cached and served: the quote resolved to a new-file line number (null when it's about the whole file or couldn't be found). */
+export const Flag = FlagDraft.omit({ quote: true }).extend({ line: z.number().int().positive().nullable() });
 export type Flag = z.infer<typeof Flag>;
+
+/** Set once from what the PR changed; never moves during the review. See packages/cli/src/verdict.ts. */
+export const Verdict = z.object({
+  level: z.enum(VERDICT_LEVELS),
+  score: z.number().int().min(0).max(100),
+});
+export type Verdict = z.infer<typeof Verdict>;
 
 /** What the model returns. Kept separate so the prompt schema stays small. */
 export const AnnotationDraft = z.object({
   summary: z.string().describe("One or two sentences describing the whole change"),
+  features: z.array(Feature).describe("What the change builds, 1 to 5 items, most important first"),
   sections: z.array(Section).describe("Every changed file, in the order a reviewer should read them"),
-  flags: z.array(Flag),
+  flags: z.array(FlagDraft),
 });
 export type AnnotationDraft = z.infer<typeof AnnotationDraft>;
 
 /** What gets cached under `.git/changestack/reviews/` and served to the viewer. */
-export const Annotation = AnnotationDraft.extend({
-  version: z.literal(2),
+export const Annotation = AnnotationDraft.omit({ flags: true }).extend({
+  version: z.literal(3),
+  flags: z.array(Flag),
+  verdict: Verdict,
   pr: z.number().int().positive().describe("Pull request number the annotation was made for"),
   base: z.string().describe("Full sha of the PR's base commit when the diff was fetched"),
   head: z.string().describe("Full sha of the PR's head commit when the diff was fetched"),
