@@ -136,7 +136,6 @@
  * Three timings, nothing else:
  *   toggles  80ms linear: hover, pressed, resolved, reviewed. No scaling, no bounce.
  *   moves    an ease-out for things that travel (panes, the margin, notes, the score fill).
- *   status   steps() for the one thing that waits on the machine (the classifying spinner).
  * No entrance animations on content: lists are there when the page is.
  */
 :root {
@@ -368,9 +367,9 @@ details.fold:not([open])::details-content {
     rotate: 360deg;
   }
 }
-/* Ticks in eight steps, like a terminal spinner, instead of a smooth web loader. */
 .spin {
-  animation: spin 0.8s steps(8) infinite;
+  animation: spin 0.9s linear infinite;
+  will-change: rotate;
 }
 
 @media (prefers-reduced-motion: reduce) {
