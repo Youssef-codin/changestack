@@ -282,7 +282,7 @@ function PanelHandle(props: {
     >
       <Icon name={icon()} />
       <Show when={!props.open && props.count}>
-        <span class="pop absolute -top-[5px] -right-1.5 h-[15px] min-w-[15px] rounded-full bg-pk px-[3px] text-center font-mono text-[10px] leading-[15px] font-semibold text-ink">
+        <span class="appear absolute -top-[5px] -right-1.5 h-[15px] min-w-[15px] rounded-full bg-pk px-[3px] text-center font-mono text-[10px] leading-[15px] font-semibold text-ink">
           {props.count}
         </span>
       </Show>
@@ -295,7 +295,7 @@ function FeatureHead(props: { group: Group }) {
   const s = useStore();
   const flags = () => props.group.files.reduce((n, f) => n + f.flags.filter((fl) => !s.resolved().has(fl.id)).length, 0);
   return (
-    <div class="feature-head rise flex items-center gap-3 border-t border-ln pt-7 pr-7 pb-0 pl-4 first-of-type:border-t-0 sm:pl-8" style={{ "margin-right": "var(--nw)" }}>
+    <div class="feature-head flex items-center gap-3 border-t border-ln pt-7 pr-7 pb-0 pl-4 first-of-type:border-t-0 sm:pl-8" style={{ "margin-right": "var(--nw)" }}>
       <span class="grid size-10 shrink-0 place-items-center rounded-full bg-pkbg text-[20px] text-pkink">
         <Icon name={props.group.name === OTHER ? "folder_open" : "category"} />
       </span>
@@ -372,8 +372,8 @@ function Rail() {
           when={s.groupBy() === "feature"}
           fallback={
             <For each={tierGroups(s.files())}>
-              {(g, i) => (
-                <Fold index={i()} summary={<GroupHead icon={<TierBadge tier={g.tier} size="lg" />} label={g.tier} count={count(g.files)} />}>
+              {(g) => (
+                <Fold summary={<GroupHead icon={<TierBadge tier={g.tier} size="lg" />} label={g.tier} count={count(g.files)} />}>
                   <div class="kids">
                     <For each={g.files}>{(f) => <FileRow file={f} />}</For>
                   </div>
@@ -383,8 +383,8 @@ function Rail() {
           }
         >
           <For each={featureGroups(s.model())}>
-            {(g, i) => (
-              <Fold index={i()} summary={<GroupHead icon={<Icon name={g.name === OTHER ? "folder_open" : "category"} class="text-[16px]" />} label={g.name} count={count(g.files)} title={g.why} />}>
+            {(g) => (
+              <Fold summary={<GroupHead icon={<Icon name={g.name === OTHER ? "folder_open" : "category"} class="text-[16px]" />} label={g.name} count={count(g.files)} title={g.why} />}>
                 <div class="kids">
                   <For each={tierGroups(g.files)}>
                     {(t) => (
@@ -439,10 +439,10 @@ function Rail() {
   );
 }
 
-/** A collapsible group in the file column. With `index`, it rises in after the groups above it (on load and on By tier / By feature). */
-function Fold(props: { summary: JSX.Element; children: JSX.Element; index?: number }) {
+/** A collapsible group in the file column. */
+function Fold(props: { summary: JSX.Element; children: JSX.Element }) {
   return (
-    <details class="fold" classList={{ rise: props.index !== undefined }} style={props.index !== undefined ? { "--i": props.index } : undefined} open>
+    <details class="fold" open>
       {props.summary}
       {props.children}
     </details>
@@ -486,7 +486,7 @@ function FileRow(props: { file: ReviewFile }) {
         onClick={() => s.toggleReviewed(f.file)}
       >
         <Show when={done()}>
-          <Icon name="check" class="pop" />
+          <Icon name="check" class="appear" />
         </Show>
       </button>
       <button class="flex min-w-0 flex-1 items-center gap-1.5 text-left" title={f.file} onClick={() => s.go("review", { file: f.file })}>
@@ -524,7 +524,7 @@ function FlagJump(props: { flag: FlagItem }) {
       <button class="flex min-w-0 flex-1 items-center gap-[9px] text-left" title={props.flag.note} onClick={() => s.goFlag(props.flag)}>
         <FlagIcon kind={props.flag.kind} resolved={done()} class="size-[22px] text-[14px]" />
         <span class="flex min-w-0 flex-1 flex-col leading-[1.3]">
-          <b class="text-[13px] font-semibold capitalize" classList={{ "text-mu line-through": done() }}>
+          <b class="text-[13px] font-semibold capitalize" classList={{ "strike text-mu": done() }}>
             {props.flag.kind}
           </b>
           <small class="truncate font-mono text-xs text-mu">{where()}</small>
@@ -782,7 +782,7 @@ function FileBlock(props: { file: ReviewFile }) {
           onClick={() => s.toggleReviewed(f.file)}
         >
           <Show when={done()} fallback={<Icon name="radio_button_unchecked" class="text-[18px] text-pkink" />}>
-            <Icon name="check_circle-fill" class="pop text-[18px] text-pkink" />
+            <Icon name="check_circle-fill" class="appear text-[18px] text-pkink" />
           </Show>
           {done() ? "Reviewed" : "Mark reviewed"}
         </button>
@@ -1008,7 +1008,7 @@ function Line(props: {
       {/* Only the hovered line gets a button: thousands of sticky buttons made scrolling stutter. */}
       <Show when={s.isHoverLine(key)}>
         <button
-          class="pop sticky right-2 my-0.5 ml-auto grid size-5 shrink-0 place-items-center rounded-full bg-pk text-[15px] text-ink shadow-[0_1px_3px_rgb(0_0_0/.18)]"
+          class="appear sticky right-2 my-0.5 ml-auto grid size-5 shrink-0 place-items-center rounded-full bg-pk text-[15px] text-ink shadow-[0_1px_3px_rgb(0_0_0/.18)]"
           title="Comment on this line"
           aria-label={`Comment on line ${a.line}`}
           onClick={() => s.openComposer({ file: props.file.file, side: a.side, line: a.line, lineText: l.text, editingId: null, replyTo: null })}
@@ -1295,7 +1295,7 @@ function FlagNote(props: { flag: FlagItem }) {
           color="var(--color-mu)"
           on="var(--color-code)"
           icon={<Icon name="check" />}
-          title={<span class="text-mu capitalize line-through decoration-1">{fl.kind}</span>}
+          title={<span class="strike text-mu capitalize">{fl.kind}</span>}
           where="resolved"
           extra={
             <button class="rounded-full px-[9px] py-px text-xs text-tx shadow-[inset_0_0_0_1px_var(--color-ln)] hover:bg-hov" onClick={() => s.setFlagResolved(fl.id, false)}>

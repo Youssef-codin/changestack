@@ -100,18 +100,15 @@
   button:disabled {
     cursor: default;
   }
+  /* State changes are near-instant and linear, like an editor; only things that travel ease. */
   button,
   a,
   summary {
     transition:
-      background-color 0.15s,
-      color 0.15s,
-      box-shadow 0.15s,
-      opacity 0.15s,
-      scale 0.15s;
-  }
-  button:not(:disabled):active {
-    scale: 0.97;
+      background-color var(--t-toggle) linear,
+      color var(--t-toggle) linear,
+      box-shadow var(--t-toggle) linear,
+      opacity var(--t-toggle) linear;
   }
   :focus-visible {
     outline: 2px solid var(--color-pk);
@@ -133,7 +130,16 @@
   scrollbar-color: var(--color-tline) transparent;
 }
 
-/* ---------- motion ---------- */
+/* ---------- motion ----------
+ * Three timings, nothing else:
+ *   toggles  80ms linear: hover, pressed, resolved, reviewed. No scaling, no bounce.
+ *   moves    an ease-out for things that travel (panes, the margin, notes, the score fill).
+ *   status   steps() for the one thing that waits on the machine (the classifying spinner).
+ * No entrance animations on content: lists are there when the page is.
+ */
+:root {
+  --t-toggle: 80ms;
+}
 
 /* The notes margin width, animatable so the margin tint slides when notes fold. */
 @property --nw {
@@ -148,11 +154,6 @@
     translate: 0 10px;
   }
 }
-/* Fade up on mount; set --i on siblings to stagger them. */
-.rise {
-  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--i, 0) * 45ms);
-}
 
 @keyframes slide-in {
   from {
@@ -164,16 +165,50 @@
   animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-@keyframes pop {
-  0% {
-    scale: 0.4;
-  }
-  60% {
-    scale: 1.2;
+/* Something switched on (a check, a count, a line's comment button): it's just there, fast. */
+@keyframes appear {
+  from {
+    opacity: 0;
   }
 }
-.pop {
-  animation: pop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+.appear {
+  animation: appear var(--t-toggle) linear;
+}
+
+/* Resolved: a pen line drawn across the word, left to right. */
+@keyframes strike {
+  from {
+    background-size: 0 1.5px;
+  }
+}
+.strike {
+  width: fit-content;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 100% 1.5px;
+  animation: strike 0.18s linear both;
+}
+
+/* Hover marks the row like a highlighted diff line: a 2px bar in --mark on the left edge. */
+.gutter-mark {
+  position: relative;
+}
+.gutter-mark::before {
+  content: "";
+  position: absolute;
+  inset-block: 0 -1px;
+  left: 0;
+  width: 2px;
+  background: var(--mark, var(--color-pk));
+  opacity: 0;
+  transition: opacity var(--t-toggle) linear;
+}
+.gutter-mark:hover::before,
+.gutter-mark:focus-visible::before {
+  opacity: 1;
+}
+
+/* The verdict's score range lights up before the fill settles inside it. */
+.range-lit {
+  animation: fade-in 0.15s linear both;
 }
 
 @keyframes fade-in {
@@ -331,8 +366,9 @@ details.fold:not([open])::details-content {
     rotate: 360deg;
   }
 }
+/* Ticks in eight steps, like a terminal spinner, instead of a smooth web loader. */
 .spin {
-  animation: spin 0.9s linear infinite;
+  animation: spin 0.8s steps(8) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

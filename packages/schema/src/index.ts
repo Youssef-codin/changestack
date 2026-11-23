@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TIERS, VERDICT_LEVELS } from "./tiers";
 
-export { TIER_ORDER, VERDICT_LEVELS, type VerdictLevel } from "./tiers";
+export { TIER_ORDER, VERDICT_LEVELS, VERDICT_RANGES, type VerdictLevel } from "./tiers";
 
 /** How much reviewer attention a change deserves. Ordered most → least. */
 export const Tier = z.enum(TIERS);

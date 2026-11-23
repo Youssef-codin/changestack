@@ -175,7 +175,7 @@ function Posted(props: { result: { url: string; posted: number; inBody: number }
     <>
       <Header title={`#${s.pr()?.number ?? ""} ${s.pr()?.title ?? ""}`} />
       <div class="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-        <span class="pop grid size-16 place-items-center rounded-full bg-pk text-[34px] text-ink">
+        <span class="appear grid size-16 place-items-center rounded-full bg-pk text-[34px] text-ink">
           <Icon name="check" />
         </span>
         <div class="text-[28px] font-semibold tracking-[-.03em]">Review posted</div>

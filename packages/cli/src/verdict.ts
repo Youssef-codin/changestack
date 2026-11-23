@@ -1,5 +1,5 @@
 import type { Annotation, Flag, Section, Tier, Verdict, VerdictLevel } from "@changestack/schema";
-import { TIER_ORDER } from "@changestack/schema";
+import { TIER_ORDER, VERDICT_RANGES } from "@changestack/schema";
 import type { FileDiff } from "./git";
 
 /**
@@ -14,13 +14,6 @@ import type { FileDiff } from "./git";
  * - The level picks a score range; the size of the change picks the spot in it,
  *   on a log scale, so bigger changes score lower.
  */
-
-const RANGES: Record<VerdictLevel, [lo: number, hi: number]> = {
-  careful: [5, 39],
-  core: [40, 69],
-  skim: [70, 89],
-  merge: [90, 100],
-};
 
 /** How much one changed line in each tier counts toward size. Generated code is free. */
 const WEIGHT: Record<Tier, number> = { core: 1, glue: 1 / 3, tests: 1 / 6, docs: 1 / 8, boilerplate: 1 / 10, generated: 0 };
@@ -69,6 +62,6 @@ export function computeVerdict(
   let size = 0;
   for (const f of files) size += changedLines(f.text) * WEIGHT[tiers.get(f.file) ?? "glue"];
   const pos = Math.min(1, Math.log10(1 + size) / 3);
-  const [lo, hi] = RANGES[level];
+  const [lo, hi] = VERDICT_RANGES[level];
   return { level, score: Math.round(hi - pos * (hi - lo)) };
 }
