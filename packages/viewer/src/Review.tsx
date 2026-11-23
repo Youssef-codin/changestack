@@ -504,8 +504,27 @@ function FileRow(props: { file: ReviewFile }) {
     for (const fl of f.flags) seen.set(fl.kind, (seen.get(fl.kind) ?? true) && s.resolved().has(fl.id));
     return [...seen];
   };
+  let row!: HTMLDivElement;
+  // Keep the file being read in view in the list, as the diff scrolls past it. Only the list
+  // scrolls (scrollIntoView would move the diff too), and only as far as it takes.
+  createEffect(
+    on(
+      () => s.isCurrent(f.file),
+      (cur) => {
+        const nav = row.closest("nav");
+        if (!cur || !nav || !row.offsetParent) return;
+        const r = row.getBoundingClientRect();
+        const n = nav.getBoundingClientRect();
+        const pad = 48;
+        if (r.top < n.top + pad) nav.scrollBy({ top: r.top - n.top - pad, behavior: "smooth" });
+        else if (r.bottom > n.bottom - pad) nav.scrollBy({ top: r.bottom - n.bottom + pad, behavior: "smooth" });
+      },
+      { defer: true },
+    ),
+  );
   return (
     <div
+      ref={row}
       class="twig my-0.5 flex items-center gap-2 rounded-full py-1 pr-2 pl-1 transition-colors duration-200"
       classList={{ "bg-pkbg": s.isCurrent(f.file), "hover:bg-hov": !s.isCurrent(f.file) }}
     >
@@ -523,8 +542,11 @@ function FileRow(props: { file: ReviewFile }) {
       <button class="flex min-w-0 flex-1 items-center gap-1.5 text-left" title={f.file} onClick={() => s.go("review", { file: f.file })}>
         <FileName
           name={f.label}
-          class={`font-mono text-[13px] font-medium ${s.isCurrent(f.file) ? "text-pkink" : done() ? "text-mu" : ""}`}
+          class={`font-mono text-[13px] font-medium ${s.isCurrent(f.file) ? "text-pkink" : done() ? "text-mu" : ""} ${f.status === "deleted" ? "line-through decoration-delt/70" : ""}`}
         />
+        <Show when={f.status === "deleted"}>
+          <Icon name="delete" class="shrink-0 text-[14px] text-delt" title="Deleted in this PR" />
+        </Show>
         <Show when={f.unclassified}>
           <span class="size-1.5 shrink-0 rounded-full bg-mu" title={f.unclassified!} />
         </Show>
