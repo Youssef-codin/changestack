@@ -14,6 +14,16 @@ export interface RunJsonResult<T> {
   data: T;
   /** The model that actually answered, as reported by the harness. */
   model: string;
+  /** Tokens the call used, when the harness reports them. */
+  usage?: Usage;
+}
+
+export interface Usage {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  costUsd: number | null;
 }
 
 export interface SessionContextRequest {

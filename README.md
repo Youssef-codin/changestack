@@ -34,7 +34,7 @@ Options: `--port <n>` (default 4317), `--no-open`, `--refresh` (classify again e
 1. **The PR.** The diff comes from `gh pr diff`; nothing is checked out.
 2. **Cache.** Classifications are stored in `.git/changestack/` by a hash of the diff. Reopening an unchanged PR costs nothing. Usage is only spent when a PR's diff changes.
 3. **Transcripts.** changestack reads your Claude Code sessions for the repo (and its worktrees) on the PR's head branch, and passes the classifier what you asked for, what the agent said, which files it edited, test runs that failed or skipped, and edits you rejected. If this machine has no transcript for the PR, you still get tiers and ordering, just without transcript-based flags.
-4. **Classify.** Haiku sorts every changed file, or symbol within it, into a tier and raises flags. The diff shows in the browser right away; the order arrives when the model finishes.
+4. **Classify.** Haiku sorts every changed file, or symbol within it, into a tier and raises flags. It gets a condensed diff (each file's hunk headers and first few changed lines, with counts for the rest; lockfiles and generated files by counts only), since sorting doesn't need every line. It doesn't review the code for bugs; leave that to a code review tool. The diff shows in the browser right away; the order arrives when the model finishes. The tokens the call used are saved with the classification.
 5. **Rules.** Deterministic path rules set minimum tiers, and the viewer shows when one fired.
 
 ### Tiers
@@ -50,7 +50,9 @@ What to check first:
 - `uncertain`: the agent guessed or said it wasn't sure
 - `untested`: core logic with no test change, or tests that failed or were skipped
 - `deviation`: the agent diverged from what you asked or abandoned an approach
-- `risky`: touches auth, money, persistence or security
+- `risky`: touches auth, money, persistence or security. It names the area only, never a bug
+
+`uncertain` and `deviation` come from the session transcript only.
 
 ### Configuration
 

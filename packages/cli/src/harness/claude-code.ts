@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { sessionContext } from "./claude-code-transcripts";
-import type { Harness, RunJsonRequest, RunJsonResult } from "./index";
+import type { Harness, RunJsonRequest, RunJsonResult, Usage } from "./index";
 
 const TIMEOUT_MS = 5 * 60_000;
 
@@ -22,7 +22,29 @@ const CliResult = z.object({
   result: z.string().optional(),
   structured_output: z.unknown().optional(),
   modelUsage: z.record(z.string(), z.unknown()).optional(),
+  total_cost_usd: z.number().optional(),
 });
+
+/** Per-model token counts as `claude -p` reports them, summed (a call can touch more than one model). */
+const ModelUsage = z.object({
+  inputTokens: z.number().default(0),
+  outputTokens: z.number().default(0),
+  cacheReadInputTokens: z.number().default(0),
+  cacheCreationInputTokens: z.number().default(0),
+});
+
+function usageOf(parsed: z.infer<typeof CliResult>): Usage | undefined {
+  const all = Object.values(parsed.modelUsage ?? {}).map((u) => ModelUsage.safeParse(u)).filter((r) => r.success).map((r) => r.data);
+  if (!all.length) return undefined;
+  const sum = (k: keyof z.infer<typeof ModelUsage>) => all.reduce((n, u) => n + u[k], 0);
+  return {
+    input: sum("inputTokens"),
+    output: sum("outputTokens"),
+    cacheRead: sum("cacheReadInputTokens"),
+    cacheWrite: sum("cacheCreationInputTokens"),
+    costUsd: parsed.total_cost_usd ?? null,
+  };
+}
 
 async function runOnce<T>(req: RunJsonRequest<T>, model: string, jsonSchema: string): Promise<RunJsonResult<T>> {
   const argv = [
@@ -80,7 +102,7 @@ async function runOnce<T>(req: RunJsonRequest<T>, model: string, jsonSchema: str
   if (!checked.success) throw new Error(`output failed schema validation: ${z.prettifyError(checked.error)}`);
 
   const used = Object.keys(parsed.modelUsage ?? {});
-  return { data: checked.data, model: used[0] ?? model };
+  return { data: checked.data, model: used[0] ?? model, usage: usageOf(parsed) };
 }
 
 /** Errors that a retry can't fix. */

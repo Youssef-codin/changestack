@@ -77,6 +77,10 @@ export const Annotation = AnnotationDraft.omit({ flags: true }).extend({
   diffHash: z.string(),
   createdAt: z.string(),
   model: z.string(),
+  /** Tokens the classifier call used, as the harness reported them. */
+  usage: z
+    .object({ input: z.number(), output: z.number(), cacheRead: z.number(), cacheWrite: z.number(), costUsd: z.number().nullable() })
+    .optional(),
   /** Session transcripts that fed the classifier, if any were found. */
   transcripts: z.array(z.string()),
   /** Sections whose tier was forced up by a deterministic rule. */
