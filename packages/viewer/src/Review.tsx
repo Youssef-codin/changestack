@@ -3,9 +3,13 @@ import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, o
 import { type DiffLine } from "./diff";
 import { type DisplayRow, displayRows, outermost } from "./folds";
 import { anchorOf } from "./drafts";
+import NumberFlow, { define } from "number-flow";
+
+define("number-flow", NumberFlow);
 import { commentPrefix, highlight } from "./highlight";
+import { type OutlineItem, outlineOf } from "./outline";
 import { Icon } from "./icons";
-import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, type ReviewFile, tierGroups } from "./model";
+import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, type ReviewFile, rowIndex, tierGroups } from "./model";
 import { LINE_CAP, useStore } from "./store";
 import { FileName, FlagIcon, GroupSwitch, plural, TierBadge, TierTag, TopBar, VerdictChip } from "./ui";
 
@@ -14,6 +18,8 @@ const TOOLS_H = 54;
 const NOTES_W = 320;
 const RAIL_W = 300;
 const MARKERS_W = 56;
+/** Jumps farther than this many screens skip ahead and glide only the last stretch. */
+const SKIP_SCREENS = 1.5;
 
 /**
  * Review, "Margin" layout (docs/design/review-layouts.html#margin): files, flags and drafts
@@ -42,8 +48,8 @@ export function Review() {
   // tool row. An observer instead of measuring on every scroll frame, which forced layout.
   const atTop = new Set<string>();
   let io: IntersectionObserver | undefined;
+  // Runs during a jump's glide too, so the file counter ticks past each file on the way.
   const pickCurrent = () => {
-    if (s.jump()) return;
     const first = s.order().find((f) => atTop.has(f.file));
     if (first) s.setCurrent(first.file);
   };
@@ -70,54 +76,88 @@ export function Review() {
   onCleanup(() => io?.disconnect());
   createEffect(on(entries, () => queueMicrotask(observeAll), { defer: true }));
 
-  // Scroll to a pending jump once it's rendered, gliding there. Off-screen files skip layout
-  // (content-visibility), so their height is a guess until they render: after each glide, measure
-  // again and glide the rest of the way (a few passes at most). Reduced motion jumps instantly.
+  // Jumps use the browser's own smooth scroll: it runs on the compositor, so it stays smooth
+  // while the main thread lays out files coming into view (a scroll driven from JS every frame
+  // stuttered whenever it was busy). A new press mid-glide re-aims it and keeps its speed.
+  // Far jumps first skip to a little over a screen away, so the files in between are never
+  // laid out and painted. Off-screen files skip layout (content-visibility), so their heights
+  // are guesses until they render: when a glide ends, measure again and correct if needed.
+  let settleTimer = 0;
+  let passes = 0;
+  let waits = 0;
+  const destination = (j: NonNullable<ReturnType<typeof s.jump>>) => {
+    const lineEl = j.line != null ? document.getElementById(`L:${j.file}:${j.side ?? "new"}:${j.line}`) : null;
+    const el = lineEl ?? document.getElementById(`F:${j.file}`);
+    if (!el) return null;
+    const want = lineEl ? offsetIn(lineEl, scroller) - scroller.clientHeight / 2 + LINE_H / 2 : offsetIn(el, scroller) - TOOLS_H;
+    return Math.max(0, Math.min(want, scroller.scrollHeight - scroller.clientHeight));
+  };
+  const land = (j: NonNullable<ReturnType<typeof s.jump>>) => {
+    clearTimeout(settleTimer);
+    scroller.removeEventListener("scrollend", onEnd);
+    if (s.jump() !== j) return;
+    s.setJump(null);
+    s.setCurrent(j.file);
+    if (j.line != null) flash(s.litKey(j.file, j.side ?? "new", j.line));
+  };
+  /** Glide toward the pending jump (or land when there). */
+  const glide = () => {
+    const j = s.jump();
+    if (!j) return;
+    const want = destination(j);
+    if (want === null) {
+      // Not rendered yet (just unfolded or uncapped): wait a few frames.
+      if (++waits > 12) return land(j);
+      return void requestAnimationFrame(glide);
+    }
+    const left = want - scroller.scrollTop;
+    if (Math.abs(left) <= 2 || passes >= 4) {
+      if (Math.abs(left) > 2) scroller.scrollTop = want;
+      return land(j);
+    }
+    passes++;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      scroller.scrollTop = want;
+      return void requestAnimationFrame(glide);
+    }
+    const skip = scroller.clientHeight * SKIP_SCREENS;
+    if (Math.abs(left) > skip) scroller.scrollTop = want - Math.sign(left) * skip;
+    scroller.addEventListener("scrollend", onEnd);
+    clearTimeout(settleTimer);
+    // If the browser never reports the end, check anyway.
+    settleTimer = window.setTimeout(onEnd, 1500);
+    scroller.scrollTo({ top: want, behavior: "smooth" });
+  };
+  function onEnd() {
+    scroller.removeEventListener("scrollend", onEnd);
+    clearTimeout(settleTimer);
+    requestAnimationFrame(glide);
+  }
+  onCleanup(() => {
+    clearTimeout(settleTimer);
+    scroller.removeEventListener("scrollend", onEnd);
+  });
+  // Scrolling by hand mid-glide takes over: the jump ends where it is.
+  const takeOver = () => {
+    const j = s.jump();
+    if (!j) return;
+    clearTimeout(settleTimer);
+    scroller.removeEventListener("scrollend", onEnd);
+    s.setJump(null);
+    s.setCurrent(j.file);
+  };
+  onMount(() => {
+    for (const ev of ["wheel", "touchstart", "pointerdown"] as const) scroller.addEventListener(ev, takeOver, { passive: true });
+    onCleanup(() => {
+      for (const ev of ["wheel", "touchstart", "pointerdown"] as const) scroller.removeEventListener(ev, takeOver);
+    });
+  });
   createEffect(
     on(s.jump, (j) => {
       if (!j) return;
-      const target = () => {
-        const lineEl = j.line != null ? document.getElementById(`L:${j.file}:${j.side ?? "new"}:${j.line}`) : null;
-        const el = lineEl ?? document.getElementById(`F:${j.file}`);
-        if (!el) return null;
-        const want = lineEl ? offsetIn(lineEl, scroller) - scroller.clientHeight / 2 + LINE_H / 2 : offsetIn(el, scroller) - TOOLS_H;
-        return Math.max(0, Math.min(want, scroller.scrollHeight - scroller.clientHeight));
-      };
-      const finish = () => {
-        s.setJump(null);
-        s.setCurrent(j.file);
-        if (j.line != null) flash(s.litKey(j.file, j.side ?? "new", j.line));
-      };
-      const still = matchMedia("(prefers-reduced-motion: reduce)").matches || !("onscrollend" in window);
-      let passes = 0;
-      // Set when a glide stalls (no scrollend): the rest of the way is an instant jump.
-      let instant = still;
-      const step = () => {
-        const want = target();
-        if (want === null) return ++passes < 12 ? requestAnimationFrame(step) : finish();
-        if (Math.abs(scroller.scrollTop - want) <= 2 || passes >= 12) return finish();
-        passes++;
-        if (instant || passes > 3) {
-          scroller.scrollTop = want;
-          requestAnimationFrame(step);
-        } else {
-          // Next pass when the glide ends; if the browser never says so, carry on anyway.
-          let done = false;
-          const next = () => {
-            if (done) return;
-            done = true;
-            clearTimeout(timer);
-            requestAnimationFrame(step);
-          };
-          const timer = setTimeout(() => {
-            instant = true;
-            next();
-          }, 1200);
-          scroller.addEventListener("scrollend", next, { once: true });
-          scroller.scrollTo({ top: want, behavior: "smooth" });
-        }
-      };
-      requestAnimationFrame(step);
+      passes = 0;
+      waits = 0;
+      requestAnimationFrame(glide);
     }),
   );
   const flash = (key: string) => {
@@ -227,7 +267,7 @@ function PanelHandle(props: {
   class?: string;
   style?: JSX.CSSProperties;
 }) {
-  const what = () => (props.side === "left" ? "files" : "notes");
+  const what = () => (props.side === "left" ? "files" : "context");
   const label = () => `${props.open ? "Collapse" : "Show"} ${what()} (${props.side === "left" ? "[" : "]"})`;
   const icon = () =>
     props.side === "left" ? (props.open ? "left_panel_close" : "left_panel_open") : props.open ? "right_panel_close" : "right_panel_open";
@@ -255,7 +295,7 @@ function FeatureHead(props: { group: Group }) {
   const s = useStore();
   const flags = () => props.group.files.reduce((n, f) => n + f.flags.filter((fl) => !s.resolved().has(fl.id)).length, 0);
   return (
-    <div class="rise flex items-center gap-3 border-t border-ln pt-7 pr-7 pb-1 pl-4 first-of-type:border-t-0 sm:pl-8" style={{ "margin-right": "var(--nw)" }}>
+    <div class="feature-head rise flex items-center gap-3 border-t border-ln pt-7 pr-7 pb-0 pl-4 first-of-type:border-t-0 sm:pl-8" style={{ "margin-right": "var(--nw)" }}>
       <span class="grid size-10 shrink-0 place-items-center rounded-full bg-pkbg text-[20px] text-pkink">
         <Icon name={props.group.name === OTHER ? "folder_open" : "category"} />
       </span>
@@ -554,7 +594,7 @@ function Tools() {
         {(f) => (
           <>
             <span class="shrink-0 whitespace-nowrap max-md:hidden">
-              {idx() + 1} of {files().length}
+              <RollingNumber value={idx() + 1} /> of {files().length}
             </span>
             <TierBadge tier={f().tier} />
             <button class="min-w-0 truncate text-left font-mono text-tx" title={`${f().file}: back to the top of this file`} onClick={() => s.go("review", { file: f().file })}>
@@ -581,8 +621,8 @@ function Tools() {
         style={{ left: "calc(100% - var(--nw) + 26px)" }}
         aria-hidden={!s.notesOpen()}
       >
-        <Icon name="sticky_note_2" class="text-[16px]" />
-        Notes
+        <Icon name="info" class="text-[16px]" />
+        Context
         <em class="font-mono text-xs font-medium tracking-normal not-italic">{count()}</em>
       </span>
       <PanelHandle
@@ -598,12 +638,26 @@ function Tools() {
   );
 }
 
+/**
+ * A number whose digits roll to each new value (NumberFlow): up when it grows, down when it
+ * shrinks. It respects reduced motion on its own.
+ */
+function RollingNumber(props: { value: number }) {
+  const el = document.createElement("number-flow") as NumberFlow;
+  el.spinTiming = { duration: 450, easing: "cubic-bezier(.2,.7,.2,1)" };
+  el.transformTiming = { duration: 450, easing: "cubic-bezier(.2,.7,.2,1)" };
+  el.classList.add("tabular-nums");
+  createEffect(() => el.update(props.value));
+  return el;
+}
+
 function FileBlock(props: { file: ReviewFile }) {
   const s = useStore();
   const f = props.file;
-  const open = () => !s.collapsed().has(f.file);
-  const done = () => s.reviewed().has(f.file);
-  const shownCount = () => (s.uncapped().has(f.file) ? f.lines.length : Math.min(f.lines.length, LINE_CAP));
+  // Memos, so folding or marking one file doesn't re-run every file that reads the shared sets.
+  const open = createMemo(() => !s.collapsed().has(f.file));
+  const done = createMemo(() => s.reviewed().has(f.file));
+  const shownCount = createMemo(() => (s.uncapped().has(f.file) ? f.lines.length : Math.min(f.lines.length, LINE_CAP)));
   // This file's folded block starts, as a string so other files' folds don't rebuild this one.
   const regions = () => s.regionsOf(f.file);
   const foldedHere = createMemo(() => regions().filter((r) => s.isFolded(f.file, r.start)).map((r) => r.start).join(","));
@@ -651,17 +705,30 @@ function FileBlock(props: { file: ReviewFile }) {
   // Plus room on the left for the fold arrow when the file has blocks to fold.
   const gutter = () => Math.max(48, String(maxNo).length * 8 + (f.flags.some((fl) => fl.placed) ? 30 : 12)) + (regions().length ? 14 : 0);
   // A guess at the rendered height, used while the file is off screen (see .file-section).
-  const estimate = () => 90 + f.whys.length * 26 + (open() ? display().length * LINE_H + 24 : 30);
+  const estimate = () => 130 + (s.notesOpen() ? 0 : f.whys.length * 26) + (open() ? display().length * LINE_H + 24 : 30);
+  const place = () => s.order().findIndex((x) => x.file === f.file) + 1;
+  // "In this file": the declarations the diff changes, from the parsed blocks.
+  const outline = createMemo(() => outlineOf(f.lines, regions()));
+  // With the margin open, the why moves out of the header into a card beside the divider.
+  const whyCard = () => s.notesOpen() && f.whys.length > 0;
+  let head!: HTMLDivElement;
+  let body!: HTMLDivElement;
 
   return (
     <section
       id={`F:${f.file}`}
       data-file={f.file}
-      class="file-section border-t border-ln pt-3 pb-2 pl-4 first-of-type:border-t-0 sm:pl-8 [&+&]:mt-[22px]"
+      // Right under a feature heading, the divider (and the Why card beside it) sits close to it.
+      class="file-section pt-9 pb-2 pl-4 first-of-type:pt-7 sm:pl-8 [.feature-head+&]:pt-[18px]"
       style={{ "--est": `${estimate()}px` }}
     >
+      {/* Divider, header and code share the left column, so the context margin starts level with the divider. */}
+      <div class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(.2,.7,.2,1)]" style={{ "grid-template-columns": `minmax(0,1fr) ${s.notesOpen() ? NOTES_W : MARKERS_W}px` }}>
+      <div class="min-w-0">
+      <div ref={head}>
+      <FileDivider file={f} place={place()} total={s.order().length} joined={whyCard()} />
       {/* Not sticky: one sticky header per file cost real frames while scrolling. The tool row shows the current file instead. */}
-      <div class="flex flex-wrap items-center gap-2.5 py-2.5 pr-5" style={{ "margin-right": "var(--nw)" }}>
+      <div class="flex flex-wrap items-center gap-2.5 py-2.5 pr-5">
         <button
           class="-ml-1 grid size-6 place-items-center rounded-full text-[20px] text-mu hover:bg-hov hover:text-tx"
           title={open() ? "Fold this file (x)" : "Show this file (x)"}
@@ -721,8 +788,8 @@ function FileBlock(props: { file: ReviewFile }) {
         </button>
       </div>
 
-      <Show when={f.whys.length}>
-        <div class="mt-2 mb-3.5 flex flex-col gap-1 pr-5" style={{ "margin-right": "var(--nw)" }}>
+      <Show when={f.whys.length && !s.notesOpen()}>
+        <div class="mt-2 mb-3.5 flex flex-col gap-1 pr-5">
           <For each={f.whys}>
             {(w) => (
               <div class="flex items-baseline gap-2 text-mu">
@@ -738,7 +805,9 @@ function FileBlock(props: { file: ReviewFile }) {
           </For>
         </div>
       </Show>
+      </div>
 
+      <div ref={body}>
       <Show
         when={open()}
         fallback={
@@ -748,10 +817,7 @@ function FileBlock(props: { file: ReviewFile }) {
           </button>
         }
       >
-        <div
-          class="fade-in mt-2 grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(.2,.7,.2,1)]"
-          style={{ "grid-template-columns": `minmax(0,1fr) ${s.notesOpen() ? NOTES_W : MARKERS_W}px` }}
-        >
+        <div class="fade-in mt-2">
           <div class="min-w-0">
             <div class="overflow-x-auto" classList={{ "mr-5": s.notesOpen() }}>
               <div class="w-max min-w-full font-mono text-[13px] leading-6 text-codetx" onMouseLeave={() => s.setHoverLine(null)}>
@@ -760,7 +826,13 @@ function FileBlock(props: { file: ReviewFile }) {
                 <For each={runs()}>
                   {(run) => (
                     <div class="rounded-lg" classList={{ "bg-add": run.kind === "add", "bg-del": run.kind === "del" }}>
-                      <For each={run.rows}>
+                      {/* Rows go in chunks that each skip layout and paint until near the screen, so a
+                          long file renders a chunk at a time instead of all at once (each chunk keeps
+                          its exact height, so line positions and notes don't move). */}
+                      <For each={chunks(run.rows)}>
+                        {(rows) => (
+                          <div class="diff-chunk" style={{ "contain-intrinsic-block-size": `auto ${rows.length * LINE_H}px` }}>
+                      <For each={rows}>
                         {(r) =>
                           r.kind === "fold" ? (
                             <FoldedRow hidden={r.hidden} gutter={gutter()} onOpen={() => s.toggleFold(f.file, r.region.start, false)} />
@@ -775,6 +847,9 @@ function FileBlock(props: { file: ReviewFile }) {
                             />
                           )
                         }
+                      </For>
+                          </div>
+                        )}
                       </For>
                     </div>
                   )}
@@ -791,12 +866,45 @@ function FileBlock(props: { file: ReviewFile }) {
               <p class="m-0 py-1 pl-[66px] text-[13px] text-mu">No text changes (binary file, or a rename only).</p>
             </Show>
           </div>
-          <Notes file={f} rows={rows()} shown={display().length} />
         </div>
       </Show>
+      </div>
+      </div>
+      <Notes file={f} rows={rows()} shown={display().length} open={open()} outline={outline()} head={() => head} body={() => body} />
+      </div>
     </section>
   );
 }
+
+/**
+ * The rule that opens each file, with its place in the reading order and its name set into it.
+ * Joined: the rule runs on to the column edge, where the Why card beside it picks it up.
+ */
+function FileDivider(props: { file: ReviewFile; place: number; total: number; joined: boolean }) {
+  return (
+    <div
+      class="flex h-5 items-center gap-3 font-mono text-xs font-medium whitespace-nowrap text-mu before:h-px before:flex-1 before:bg-ln after:h-px after:flex-1 after:bg-ln"
+      classList={{ "mr-5": !props.joined }}
+    >
+      <span>
+        File {props.place} of {props.total}
+      </span>
+      <TierBadge tier={props.file.tier} />
+      <span class="min-w-0 truncate">
+        <b class="font-semibold text-tx">{props.file.name}</b>
+        <span class="max-md:hidden"> {props.file.dir}</span>
+      </span>
+    </div>
+  );
+}
+
+/** Rows per render chunk of a file's diff. */
+const CHUNK_ROWS = 40;
+const chunks = <T,>(rows: T[]): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < rows.length; i += CHUNK_ROWS) out.push(rows.slice(i, i + CHUNK_ROWS));
+  return out;
+};
 
 /** "deviation, line 14 →" in the file header: jumps to the flagged line. */
 function FlagPointer(props: { flag: FlagItem }) {
@@ -915,27 +1023,46 @@ function Line(props: {
 // ---------------------------------------------------------------- notes margin
 
 type NoteItem =
+  | { id: string; row: number; side: "old" | "new"; line: null; kind: "why" }
+  | { id: string; row: number; side: "old" | "new"; line: null; kind: "outline"; items: OutlineItem[] }
   | { id: string; row: number; side: "old" | "new"; line: number | null; kind: "flag"; flag: FlagItem }
   | { id: string; row: number; side: "old" | "new"; line: number | null; kind: "draft"; draft: Draft }
   | { id: string; row: number; side: "old" | "new"; line: number; kind: "composer" };
 
-const KIND_ORDER = { flag: 0, draft: 1, composer: 2 } as const;
+const KIND_ORDER = { why: 0, outline: 1, flag: 2, draft: 3, composer: 4 } as const;
+
+/** Rows for the items that head the margin, above whole-file notes (row -1). */
+const WHY_ROW = -3;
+const OUTLINE_ROW = -2;
 
 /**
  * The margin beside one file's diff. Each note starts level with its line and pushes
  * later notes down when they'd overlap; whole-file notes sit at the top. Folded, each
  * note is a small marker at its line.
  */
-function Notes(props: { file: ReviewFile; rows: Map<string, number>; shown: number }) {
+function Notes(props: {
+  file: ReviewFile;
+  rows: Map<string, number>;
+  shown: number;
+  /** The diff is shown; folded away, only the Why card stays. */
+  open: boolean;
+  outline: OutlineItem[];
+  /** The divider and header, and the diff below them: line rows are measured from the diff's top. */
+  head: () => HTMLElement;
+  body: () => HTMLElement;
+}) {
   const s = useStore();
   const f = props.file;
   let col!: HTMLDivElement;
   let prevItems = new Map<string, NoteItem>();
   const signature = (it: NoteItem) =>
-    `${it.row}:${it.side}:${it.line}:${it.kind === "draft" ? `${it.draft.updatedAt}:${it.draft.status}:${it.draft.line}` : ""}`;
+    `${it.row}:${it.side}:${it.line}:${it.kind === "draft" ? `${it.draft.updatedAt}:${it.draft.status}:${it.draft.line}` : it.kind === "outline" ? it.items.map((o) => `${o.index}:${o.name}`).join(",") : ""}`;
 
   const items = createMemo<NoteItem[]>(() => {
     const out: NoteItem[] = [];
+    if (s.notesOpen() && f.whys.length) out.push({ id: "why", row: WHY_ROW, side: "new", line: null, kind: "why" });
+    if (!props.open) return out;
+    if (s.notesOpen() && props.outline.length) out.push({ id: "outline", row: OUTLINE_ROW, side: "new", line: null, kind: "outline", items: props.outline });
     const at = (side: "old" | "new", line: number | null) => {
       if (line === null) return -1;
       const r = props.rows.get(`${side}:${line}`);
@@ -967,20 +1094,28 @@ function Notes(props: { file: ReviewFile; rows: Map<string, number>; shown: numb
   const layout = () => {
     if (!col) return;
     const openNotes = s.notesOpen();
-    let y = 0;
+    // Line rows count from the top of the diff, which sits below the divider and header.
+    const diffTop = props.body().offsetTop - col.offsetTop + 8;
+    let y = -Infinity;
     for (const el of Array.from(col.children) as HTMLElement[]) {
       const row = Number(el.dataset.row);
-      const want = row < 0 ? 0 : row * LINE_H - (openNotes ? 0 : 1);
+      // The Why card's title row lines up with the divider (20px tall) at the top of the column.
+      const want = row === WHY_ROW ? -9 : row < 0 ? 0 : diffTop + row * LINE_H - (openNotes ? 0 : 1);
       const top = Math.max(want, y);
       el.style.top = `${top}px`;
       y = top + el.offsetHeight + (openNotes ? 12 : 4);
       // Place first without motion; after that, moves glide.
       if (!el.classList.contains("note-placed")) requestAnimationFrame(() => el.classList.add("note-placed"));
     }
-    col.style.minHeight = `${y}px`;
+    col.style.minHeight = `${Math.max(0, y)}px`;
   };
   const ro = new ResizeObserver(() => layout());
   onCleanup(() => ro.disconnect());
+  // The header can wrap and the diff can grow or fold: either moves where line rows start.
+  onMount(() => {
+    ro.observe(props.head());
+    ro.observe(props.body());
+  });
   createEffect(() => {
     items();
     s.notesOpen();
@@ -1013,11 +1148,119 @@ function Notes(props: { file: ReviewFile; rows: Map<string, number>; shown: numb
             onMouseLeave={() => hover(it, false)}
           >
             <Show when={s.notesOpen()} fallback={<Marker item={it} />}>
-              {it.kind === "flag" ? <FlagNote flag={it.flag} /> : it.kind === "draft" ? <DraftNote draft={it.draft} /> : <ComposerNote />}
+              {it.kind === "why" ? (
+                <WhyCard file={f} />
+              ) : it.kind === "outline" ? (
+                <OutlineCard file={f} items={it.items} />
+              ) : it.kind === "flag" ? (
+                <FlagNote flag={it.flag} />
+              ) : it.kind === "draft" ? (
+                <DraftNote draft={it.draft} />
+              ) : (
+                <ComposerNote />
+              )}
             </Show>
           </div>
         )}
       </For>
+    </div>
+  );
+}
+
+/** Why the classifier says this file exists, beside its divider; the divider's rule runs into it. */
+function WhyCard(props: { file: ReviewFile }) {
+  return (
+    <div class="relative rounded-[14px] bg-code px-3 pt-[9px] pb-2.5 text-[13px] leading-[1.45] shadow-[inset_0_0_0_1px_var(--color-ln)]">
+      <span class="absolute top-[19px] -left-[18px] h-px w-[18px] bg-ln" />
+      <div class="mb-1 flex h-5 items-center gap-1.5 text-xs font-semibold tracking-[.07em] text-mu uppercase">
+        <Icon name="info" class="text-[15px]" />
+        Why this file
+      </div>
+      <For each={props.file.whys}>
+        {(w) => (
+          <div class="grid grid-cols-[18px_1fr] gap-x-1.5 [&+&]:mt-1.5">
+            <Icon name="function" class="mt-px text-[16px] text-tx" />
+            <Show when={w.symbol} fallback={<p class="selectable m-0 text-mu">{w.why}</p>}>
+              <b class="truncate font-mono text-[13px] font-medium text-tx">{w.symbol}</b>
+              <p class="selectable col-start-2 m-0 text-mu">{w.why}</p>
+            </Show>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
+
+/** Long lists stop here, with a "N more" line. */
+const OUTLINE_MAX = 12;
+
+/** "In this file": the declarations the diff changes, with their lines; click one to jump there. */
+function OutlineCard(props: { file: ReviewFile; items: OutlineItem[] }) {
+  const s = useStore();
+  const f = props.file;
+  const [all, setAll] = createSignal(false);
+  // Flags and drafts by diff line index, to mark the declarations that hold them.
+  const marks = createMemo(() => {
+    const idx = rowIndex(f.lines);
+    const flags = f.flags.filter((fl) => fl.placed && !s.resolved().has(fl.id)).map((fl) => ({ flag: fl, at: idx.get(`new:${fl.line}`) ?? -1 }));
+    const drafts = (s.draftsByFile().get(f.file) ?? []).filter((d) => d.status === "active").map((d) => idx.get(`${d.side}:${d.line}`) ?? -1);
+    return { flags, drafts };
+  });
+  // A mark belongs to the innermost listed declaration around it (a method, not also its class).
+  const owner = (at: number) => props.items.filter((o) => o.index <= at && at < o.end).at(-1);
+  const shown = () => (all() ? props.items : props.items.slice(0, OUTLINE_MAX));
+  return (
+    <div class="text-[13px]">
+      <div class="mt-0.5 mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-[.07em] text-mu uppercase">
+        <Icon name="format_list_bulleted" class="text-[15px]" />
+        In this file
+      </div>
+      <For each={shown()}>
+        {(o) => {
+          const flag = () => marks().flags.find((m) => owner(m.at) === o)?.flag;
+          const draft = () => marks().drafts.some((at) => owner(at) === o);
+          return (
+            <div
+              role="button"
+              tabIndex={0}
+              class="flex w-full cursor-pointer items-center gap-2 rounded-full py-[3px] pr-2.5 pl-2 text-left font-mono hover:bg-hov"
+              style={{ "padding-left": `${8 + o.depth * 14}px` }}
+              title={`Go to ${o.name}, line ${o.line}`}
+              onClick={() => s.go("review", { file: f.file, side: o.side, line: o.line })}
+              onKeyDown={(e) => e.key === "Enter" && s.go("review", { file: f.file, side: o.side, line: o.line })}
+            >
+              <span class="min-w-[44px] text-[11px] font-medium text-mu">{o.kind}</span>
+              <span class="min-w-0 flex-1 truncate text-tx">{o.name}</span>
+              {/* The flag sits somewhere inside the block: its own button goes to the flagged line. */}
+              <Show when={flag()}>
+                {(fl) => (
+                  <button
+                    class="grid size-4 shrink-0 place-items-center rounded-full text-[11px] text-onfl hover:ring-2 hover:ring-ln"
+                    style={{ background: flagColor(fl().kind) }}
+                    title={`${fl().kind}, line ${fl().line}: go to the flag`}
+                    aria-label={`${fl().kind} flag, line ${fl().line}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      s.goFlag(fl());
+                    }}
+                  >
+                    <Icon name={FLAG_ICON[fl().kind]} />
+                  </button>
+                )}
+              </Show>
+              <Show when={draft()}>
+                <Icon name="edit_note" class="shrink-0 text-[14px] text-mu" />
+              </Show>
+              <em class="shrink-0 text-xs text-mu not-italic">{o.line}</em>
+            </div>
+          );
+        }}
+      </For>
+      <Show when={props.items.length > OUTLINE_MAX}>
+        <button class="mt-0.5 ml-2 text-xs text-mu hover:text-tx" onClick={() => setAll(!all())}>
+          {all() ? "Show fewer" : `${props.items.length - OUTLINE_MAX} more`}
+        </button>
+      </Show>
     </div>
   );
 }
@@ -1179,7 +1422,7 @@ function Marker(props: { item: NoteItem }) {
       class="relative grid size-[26px] place-items-center rounded-full text-[15px]"
       style={{ background: color(), color: on() }}
       title={label()}
-      aria-label={`${label()}. Show notes.`}
+      aria-label={`${label()}. Show the context margin.`}
       onClick={() => s.setNotesOpen(true)}
     >
       <span class="absolute top-3 -left-3.5 h-0.5 w-2.5 rounded-sm" style={{ background: color() }} />

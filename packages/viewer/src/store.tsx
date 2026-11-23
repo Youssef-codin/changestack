@@ -98,9 +98,13 @@ export function createStore() {
     setCollapsed(new Set(files.filter((f) => COLLAPSED_BY_DEFAULT.includes(f.tier) || rev.has(f.file)).map((f) => f.file)));
   });
 
+  // The same set back when nothing changes, so a no-op (every jump unfolds its target) doesn't
+  // notify every file that reads the set.
   const toggled = (s: Set<string>, k: string, on?: boolean) => {
+    const want = on ?? !s.has(k);
+    if (want === s.has(k)) return s;
     const next = new Set(s);
-    (on ?? !next.has(k)) ? next.add(k) : next.delete(k);
+    want ? next.add(k) : next.delete(k);
     return next;
   };
   const toggleReviewed = (file: string) => {

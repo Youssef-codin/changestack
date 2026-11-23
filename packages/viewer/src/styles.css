@@ -316,6 +316,11 @@ details.fold:not([open])::details-content {
 
 /* Files far off screen skip layout and paint. Each file sets its own estimated height
    (--est) so the scrollbar doesn't jump as files render; the browser remembers real sizes after. */
+/* A file's diff in chunks of rows: only chunks near the screen are laid out and painted. */
+.diff-chunk {
+  content-visibility: auto;
+}
+
 .file-section {
   content-visibility: auto;
   contain-intrinsic-size: auto var(--est, 600px);
