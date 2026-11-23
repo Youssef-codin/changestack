@@ -1,5 +1,7 @@
 import type { Draft, ReviewPayload, SubmitResult } from "@changestack/schema";
 import { batch, createContext, createEffect, createMemo, createResource, createSelector, createSignal, onCleanup, useContext } from "solid-js";
+import type { Region } from "./folds";
+import { regionsFor } from "./syntaxFolds";
 import { anchorKey, copyText, draftsPrompt, fetchDrafts, newId, putDrafts, reanchor, removeDraft, type Side, submitReview } from "./drafts";
 import {
   buildModel,
@@ -115,6 +117,19 @@ export function createStore() {
   };
   const toggleCollapsed = (file: string, on?: boolean) => setCollapsed(toggled(collapsed(), file, on));
 
+  // Foldable blocks per file, from a real parse (syntaxFolds.ts). Grammars load on demand,
+  // so this fills in a moment after the diff shows; until then files have no fold arrows.
+  const [regions, setRegions] = createSignal(new Map<string, Region[]>());
+  const regionsOf = (file: string) => regions().get(file) ?? [];
+  createEffect(() => {
+    const files = model().files;
+    let stale = false;
+    onCleanup(() => (stale = true));
+    void Promise.all(files.map(async (f) => [f.file, await regionsFor(f.file, f.lines)] as const)).then((list) => {
+      if (!stale) setRegions(new Map(list));
+    });
+  });
+
   // Folded blocks inside files, keyed `file\0startIndex`. Not saved: a fold is a moment's tidying.
   const [folds, setFolds] = createSignal(new Set<string>());
   const foldKey = (file: string, start: number) => `${file}\0${start}`;
@@ -127,7 +142,7 @@ export function createStore() {
   };
   /** Unfold every block hiding line `index` of `file`, so a jump can land on it. */
   const reveal = (file: ReviewFile, index: number) => {
-    const hiding = file.regions.filter((r) => r.start < index && index < r.end && isFolded(file.file, r.start));
+    const hiding = regionsOf(file.file).filter((r) => r.start < index && index < r.end && isFolded(file.file, r.start));
     if (hiding.length) foldMany(file.file, hiding.map((r) => r.start), false);
   };
   const uncap = (file: string) => setUncapped(toggled(uncapped(), file, true));
@@ -321,6 +336,7 @@ export function createStore() {
     collapsed,
     toggleCollapsed,
     folds,
+    regionsOf,
     isFolded,
     toggleFold,
     foldMany,

@@ -605,17 +605,24 @@ function FileBlock(props: { file: ReviewFile }) {
   const done = () => s.reviewed().has(f.file);
   const shownCount = () => (s.uncapped().has(f.file) ? f.lines.length : Math.min(f.lines.length, LINE_CAP));
   // This file's folded block starts, as a string so other files' folds don't rebuild this one.
-  const foldedHere = createMemo(() => f.regions.filter((r) => s.isFolded(f.file, r.start)).map((r) => r.start).join(","));
+  const regions = () => s.regionsOf(f.file);
+  const foldedHere = createMemo(() => regions().filter((r) => s.isFolded(f.file, r.start)).map((r) => r.start).join(","));
   const display = createMemo(() => {
     const folded = new Set(foldedHere().split(",").filter(Boolean).map(Number));
-    return displayRows(f.lines, shownCount(), f.regions, (st) => folded.has(st));
+    return displayRows(f.lines, shownCount(), regions(), (st) => folded.has(st));
   });
   const runs = createMemo(() => {
     const out: { kind: DiffLine["kind"] | "fold"; rows: DisplayRow[] }[] = [];
     for (const r of display()) {
-      const kind = r.kind === "fold" ? "fold" : r.line.kind;
       const last = out.at(-1);
-      if (last && last.kind === kind && kind !== "hunk" && kind !== "fold") last.rows.push(r);
+      // A folded row stays inside the block it interrupts, so the tint doesn't break around it.
+      if (r.kind === "fold") {
+        if (last && last.kind !== "hunk") last.rows.push(r);
+        else out.push({ kind: "fold", rows: [r] });
+        continue;
+      }
+      const kind = r.line.kind;
+      if (last && last.kind === kind && kind !== "hunk") last.rows.push(r);
       else out.push({ kind, rows: [r] });
     }
     return out;
@@ -633,16 +640,16 @@ function FileBlock(props: { file: ReviewFile }) {
     });
     return m;
   });
-  const starts = new Set(f.regions.map((r) => r.start));
-  const tops = outermost(f.regions).map((r) => r.start);
-  const allFolded = () => tops.length > 0 && tops.every((st) => s.isFolded(f.file, st));
+  const starts = createMemo(() => new Set(regions().map((r) => r.start)));
+  const tops = createMemo(() => outermost(regions()).map((r) => r.start));
+  const allFolded = () => tops().length > 0 && tops().every((st) => s.isFolded(f.file, st));
   const comment = commentPrefix(f.file);
   // Placed flags by new-file line, for the line tint and number pill.
   const flagAt = new Map(f.flags.filter((fl) => fl.placed).map((fl) => [fl.line!, fl]));
   // Line-number column wide enough for this file's longest number, plus the flag pill's icon and padding.
   const maxNo = f.lines.reduce((m, l) => Math.max(m, l.newNo ?? 0, l.oldNo ?? 0), 0);
   // Plus room on the left for the fold arrow when the file has blocks to fold.
-  const gutter = Math.max(48, String(maxNo).length * 8 + (f.flags.some((fl) => fl.placed) ? 30 : 12)) + (f.regions.length ? 14 : 0);
+  const gutter = () => Math.max(48, String(maxNo).length * 8 + (f.flags.some((fl) => fl.placed) ? 30 : 12)) + (regions().length ? 14 : 0);
   // A guess at the rendered height, used while the file is off screen (see .file-section).
   const estimate = () => 90 + f.whys.length * 26 + (open() ? display().length * LINE_H + 24 : 30);
 
@@ -683,13 +690,13 @@ function FileBlock(props: { file: ReviewFile }) {
           </span>
         </Show>
         <For each={f.flags}>{(fl) => <FlagPointer flag={fl} />}</For>
-        <Show when={open() && tops.length > 0}>
+        <Show when={open() && tops().length > 0}>
           <button
             class="grid size-7 place-items-center rounded-full text-[17px] text-mu shadow-[inset_0_0_0_1px_var(--color-ln)] hover:bg-hov hover:text-tx"
             classList={{ "text-pkink": allFolded() }}
             title={allFolded() ? "Unfold every block in this file" : "Fold every top-level block (functions, types) in this file"}
             aria-label={allFolded() ? "Unfold all" : "Fold all"}
-            onClick={() => s.foldMany(f.file, allFolded() ? f.regions.map((r) => r.start) : tops, !allFolded())}
+            onClick={() => s.foldMany(f.file, allFolded() ? regions().map((r) => r.start) : tops(), !allFolded())}
           >
             <Icon name={allFolded() ? "unfold_more" : "unfold_less"} />
           </button>
@@ -756,15 +763,15 @@ function FileBlock(props: { file: ReviewFile }) {
                       <For each={run.rows}>
                         {(r) =>
                           r.kind === "fold" ? (
-                            <FoldedRow hidden={r.hidden} gutter={gutter} onOpen={() => s.toggleFold(f.file, r.region.start, false)} />
+                            <FoldedRow hidden={r.hidden} gutter={gutter()} onOpen={() => s.toggleFold(f.file, r.region.start, false)} />
                           ) : (
                             <Line
                               file={f}
                               line={r.line}
                               flag={r.line.kind !== "del" && r.line.newNo !== null ? flagAt.get(r.line.newNo) : undefined}
                               comment={comment}
-                              gutter={gutter}
-                              fold={starts.has(r.index) ? { folded: s.isFolded(f.file, r.index), toggle: () => s.toggleFold(f.file, r.index) } : undefined}
+                              gutter={gutter()}
+                              fold={starts().has(r.index) ? { folded: s.isFolded(f.file, r.index), toggle: () => s.toggleFold(f.file, r.index) } : undefined}
                             />
                           )
                         }
