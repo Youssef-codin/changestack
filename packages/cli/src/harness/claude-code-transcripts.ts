@@ -38,6 +38,11 @@ export function findTranscripts(root: string, branch: string): { file: string; r
   if (!existsSync(dir)) return [];
   const trees = worktrees(root);
   const prefixes = trees.map(encode);
+  // Removed worktrees are often named after the repo's first word, not its full name
+  // (`lustre-day` beside `lustre-clinic`); the gitBranch check below keeps this narrow.
+  const parent = root.slice(0, root.lastIndexOf("/"));
+  const stem = root.slice(parent.length + 1).split("-")[0]!;
+  if (stem && stem !== root.slice(parent.length + 1)) prefixes.push(encode(`${parent}/${stem}`));
   const dirs = readdirSync(dir).filter((name) => prefixes.some((p) => name === p || name.startsWith(`${p}-`)));
 
   const files = dirs.flatMap((d) =>

@@ -45,3 +45,16 @@ test("test runs carry the user turn they followed and whether they passed", () =
   ]);
   expect(runs[0]!.session).toBe("2026-11-01T10:00:00Z");
 });
+
+test("sessions from a removed worktree named after the repo's first word still count", () => {
+  const root = join(tmp, "acme-app");
+  mkdirSync(root, { recursive: true });
+  const projects = join(tmp, "config", "projects");
+  for (const [dir, branch] of [["acme-day", "feat"], ["acmeother", "feat"], ["acme-night", "other"]] as const) {
+    const d = join(projects, join(tmp, dir).replace(/[^a-zA-Z0-9]/g, "-"));
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "s.jsonl"), [user("go"), bash(dir, "bun test"), result(dir, false)].map((l) => JSON.stringify({ gitBranch: branch, timestamp: `t-${dir}`, ...l })).join("\n"));
+  }
+  process.env.CLAUDE_CONFIG_DIR = join(tmp, "config");
+  expect(sessionTestRuns({ root, branch: "feat" }).map((r) => r.session)).toEqual(["t-acme-day"]);
+});
