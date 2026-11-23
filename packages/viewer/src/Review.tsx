@@ -382,7 +382,6 @@ function Rail() {
   const total = () => s.files().length;
   const done = () => s.files().filter((f) => s.reviewed().has(f.file)).length;
   const count = (files: ReviewFile[]) => `${files.filter((f) => s.reviewed().has(f.file)).length}/${files.length}`;
-  const homeless = () => s.model().rabbit.filter((c) => !c.file || !s.fileByName(c.file));
   return (
     <aside
       class="flex min-h-0 flex-col overflow-hidden bg-(--side) max-lg:hidden [&>*]:w-[300px] [&>*]:shrink-0"
@@ -439,12 +438,10 @@ function Rail() {
           </Fold>
         </div>
       </Show>
-      {/* Comments on diff lines live in the Context margin (and as a count on each file row);
-          here go only the ones with nowhere else to be: the whole PR, or files outside the diff. */}
-      <Show when={homeless().length}>
-        <div class="scroll-quiet max-h-[30vh] overflow-auto border-t border-ln pt-1 pr-3.5 pb-2.5 pl-[18px]">
-          <Fold summary={<GroupHead icon={<Icon name={RABBIT_ICON} class="text-[16px]" />} label="CodeRabbit" count={`${homeless().filter((c) => !s.rabbitDone(c)).length} open`} />}>
-            <For each={homeless()}>{(c) => <RabbitJump comment={c} />}</For>
+      <Show when={s.model().rabbit.length}>
+        <div class="scroll-quiet max-h-[22vh] overflow-auto border-t border-ln pt-1 pr-3.5 pb-2.5 pl-[18px]">
+          <Fold summary={<GroupHead icon={<Icon name={RABBIT_ICON} class="text-[16px]" />} label="CodeRabbit" count={`${s.openRabbit().length} open`} />}>
+            <For each={s.model().rabbit}>{(c) => <RabbitJump comment={c} />}</For>
           </Fold>
         </div>
       </Show>
@@ -634,21 +631,16 @@ function RabbitJump(props: { comment: RabbitItem }) {
   const where = () => (!c.file ? "whole PR" : `${s.fileByName(c.file)?.label ?? c.file}${c.line !== null ? `:${c.line}` : ""}`);
   return (
     <button
-      class="my-0.5 flex w-full min-w-0 items-center gap-[9px] rounded-full py-1 pr-2 pl-1 text-left hover:bg-hov"
+      class="flex w-full min-w-0 items-center gap-2 rounded-full py-[3px] pr-2 pl-1 text-left hover:bg-hov"
       classList={{ "bg-pkbg": !!c.file && s.isCurrent(c.file) }}
-      title={inDiff() ? c.title : `${c.title} (opens on GitHub)`}
+      title={`${c.title}\n${where()}${c.severity ? ` · ${c.severity}` : ""}${inDiff() ? "" : " (opens on GitHub)"}`}
       onClick={() => s.goRabbit(c)}
     >
-      <RabbitIcon done={done()} class="size-[22px] text-[14px]" />
-      <span class="flex min-w-0 flex-1 flex-col leading-[1.3]">
-        <b class="truncate text-[13px] font-semibold" classList={{ "strike text-mu": done() }}>
-          {c.title}
-        </b>
-        <small class="truncate font-mono text-xs text-mu">
-          {where()}
-          {c.severity ? ` · ${c.severity}` : ""}
-        </small>
+      <RabbitIcon done={done()} class="size-[18px] text-[12px]" />
+      <span class="min-w-0 flex-1 truncate text-xs font-medium" classList={{ "strike text-mu": done() }}>
+        {c.title}
       </span>
+      <small class="shrink-0 font-mono text-[11px] text-mu">{c.line !== null ? c.line : ""}</small>
       <Show when={!inDiff()}>
         <Icon name="open_in_new" class="shrink-0 text-[14px] text-mu" />
       </Show>
