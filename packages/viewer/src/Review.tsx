@@ -382,6 +382,7 @@ function Rail() {
   const total = () => s.files().length;
   const done = () => s.files().filter((f) => s.reviewed().has(f.file)).length;
   const count = (files: ReviewFile[]) => `${files.filter((f) => s.reviewed().has(f.file)).length}/${files.length}`;
+  const homeless = () => s.model().rabbit.filter((c) => !c.file || !s.fileByName(c.file));
   return (
     <aside
       class="flex min-h-0 flex-col overflow-hidden bg-(--side) max-lg:hidden [&>*]:w-[300px] [&>*]:shrink-0"
@@ -438,10 +439,12 @@ function Rail() {
           </Fold>
         </div>
       </Show>
-      <Show when={s.model().rabbit.length}>
+      {/* Comments on diff lines live in the Context margin (and as a count on each file row);
+          here go only the ones with nowhere else to be: the whole PR, or files outside the diff. */}
+      <Show when={homeless().length}>
         <div class="scroll-quiet max-h-[30vh] overflow-auto border-t border-ln pt-1 pr-3.5 pb-2.5 pl-[18px]">
-          <Fold summary={<GroupHead icon={<Icon name={RABBIT_ICON} class="text-[16px]" />} label="CodeRabbit" count={`${s.openRabbit().length} open`} />}>
-            <For each={s.model().rabbit}>{(c) => <RabbitJump comment={c} />}</For>
+          <Fold summary={<GroupHead icon={<Icon name={RABBIT_ICON} class="text-[16px]" />} label="CodeRabbit" count={`${homeless().filter((c) => !s.rabbitDone(c)).length} open`} />}>
+            <For each={homeless()}>{(c) => <RabbitJump comment={c} />}</For>
           </Fold>
         </div>
       </Show>
