@@ -165,3 +165,71 @@ export function submitReview(
   const posted = JSON.parse(out) as { html_url?: string };
   return posted.html_url ?? pr.url;
 }
+
+/** One review thread on a PR, as GraphQL returns it, with its first comment and reply count. */
+export interface RawThread {
+  isResolved: boolean;
+  isOutdated: boolean;
+  path: string;
+  line: number | null;
+  startLine: number | null;
+  originalLine: number | null;
+  diffSide: "LEFT" | "RIGHT";
+  subjectType: "LINE" | "FILE";
+  comments: {
+    totalCount: number;
+    nodes: { databaseId: number; url: string; createdAt: string; body: string; author: { login: string } | null }[];
+  };
+}
+
+/** One submitted review, as REST returns it. */
+export interface RawReview {
+  id: number;
+  body: string;
+  commit_id: string;
+  html_url: string;
+  submitted_at: string;
+  user: { login: string } | null;
+}
+
+const THREADS_QUERY = `query($owner: String!, $repo: String!, $number: Int!, $endCursor: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $endCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          isResolved isOutdated path line startLine originalLine diffSide subjectType
+          comments(first: 1) { totalCount nodes { databaseId url createdAt body author { login } } }
+        }
+      }
+    }
+  }
+}`;
+
+async function ghAsync(root: string, args: string[]): Promise<string> {
+  requireGh();
+  const proc = Bun.spawn(["gh", ...args], { cwd: root, stdout: "pipe", stderr: "pipe" });
+  const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+  if (code !== 0) throw new GhError(`gh ${args.slice(0, 2).join(" ")} failed: ${err.trim() || "unknown error"}`);
+  return out;
+}
+
+/**
+ * Every review thread and submitted review on `pr`, for reading bot reviews (coderabbit.ts).
+ * Read-only; runs without blocking, so the viewer can start while it loads.
+ */
+export async function reviewThreadsAndReviews(root: string, pr: PullRequest): Promise<{ threads: RawThread[]; reviews: RawReview[] }> {
+  const m = pr.url.match(/^https?:\/\/([^/]+)\/([^/]+)\/([^/]+)\/pull\/\d+/);
+  if (!m) throw new GhError(`can't tell the repository from ${pr.url}`);
+  const [, host, owner, repo] = m;
+  const hostArgs = host === "github.com" ? [] : ["--hostname", host!];
+  const [threadPages, reviewPages] = await Promise.all([
+    ghAsync(root, ["api", "graphql", "--paginate", "--slurp", ...hostArgs, "-f", `query=${THREADS_QUERY}`, "-f", `owner=${owner}`, "-f", `repo=${repo}`, "-F", `number=${pr.number}`]),
+    ghAsync(root, ["api", "--paginate", "--slurp", ...hostArgs, `repos/${owner}/${repo}/pulls/${pr.number}/reviews?per_page=100`]),
+  ]);
+  type Page = { data: { repository: { pullRequest: { reviewThreads: { nodes: RawThread[] } } } } };
+  return {
+    threads: (JSON.parse(threadPages) as Page[]).flatMap((p) => p.data.repository.pullRequest.reviewThreads.nodes),
+    reviews: (JSON.parse(reviewPages) as RawReview[][]).flat(),
+  };
+}

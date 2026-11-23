@@ -54,6 +54,10 @@ What to check first:
 
 `uncertain` and `deviation` come from the session transcript only.
 
+### CodeRabbit
+
+If [CodeRabbit](https://coderabbit.ai) has reviewed the PR, its comments show in the Context margin beside their lines, with their own icon and color. Comments on a whole file, outdated ones, and the "outside diff range" ones from its review bodies sit at the top of the file; ones on files outside the diff open on GitHub. They're read once with `gh api` when changestack starts. Threads resolved on GitHub show as resolved. **Resolve** and **Reply as draft** work as they do for flags, and change nothing on GitHub until you submit.
+
 ### Configuration
 
 | Variable | Default | |

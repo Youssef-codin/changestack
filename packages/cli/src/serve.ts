@@ -1,5 +1,5 @@
 import { join, normalize, resolve } from "node:path";
-import { type Annotation, type ClassifyStatus, Draft, DraftScope, type ReviewPayload, type SubmitResult } from "@changestack/schema";
+import { type Annotation, type ClassifyStatus, type CodeRabbitComment, Draft, DraftScope, type ReviewPayload, type SubmitResult } from "@changestack/schema";
 import { z } from "zod";
 import { deleteDraft, loadDrafts, prScope, removeDrafts, upsertDrafts } from "./drafts";
 import { type PullRequest, type ReviewComment, submitReview } from "./gh";
@@ -14,6 +14,8 @@ export interface ReviewState {
   diff: string;
   status: ClassifyStatus;
   annotation: Annotation | null;
+  /** CodeRabbit's comments; filled in once the fetch at startup returns. */
+  coderabbit: CodeRabbitComment[];
 }
 
 const DraftsPut = z.object({ drafts: z.array(Draft).max(1000) });
@@ -102,6 +104,7 @@ export function startServer(state: ReviewState, port: number) {
         status: state.status,
         annotation: state.annotation,
         diff: state.diff,
+        coderabbit: state.coderabbit,
       };
       return Response.json(payload);
     }

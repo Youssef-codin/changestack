@@ -9,7 +9,8 @@ define("number-flow", NumberFlow);
 import { commentPrefix, highlight } from "./highlight";
 import { type OutlineItem, outlineOf } from "./outline";
 import { Icon } from "./icons";
-import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, type ReviewFile, rowIndex, tierGroups } from "./model";
+import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, RABBIT_ICON, type RabbitItem, type ReviewFile, rabbitColor, rowIndex, tierGroups } from "./model";
+import { Prose } from "./prose";
 import { LINE_CAP, useStore } from "./store";
 import { FileName, FlagIcon, GroupSwitch, plural, TierBadge, TierTag, TopBar, VerdictChip } from "./ui";
 
@@ -415,6 +416,13 @@ function Rail() {
           </Fold>
         </div>
       </Show>
+      <Show when={s.model().rabbit.length}>
+        <div class="scroll-quiet max-h-[30vh] overflow-auto border-t border-ln pt-1 pr-3.5 pb-2.5 pl-[18px]">
+          <Fold summary={<GroupHead icon={<Icon name={RABBIT_ICON} class="text-[16px]" />} label="CodeRabbit" count={`${s.openRabbit().length} open`} />}>
+            <For each={s.model().rabbit}>{(c) => <RabbitJump comment={c} />}</For>
+          </Fold>
+        </div>
+      </Show>
       <Show when={s.drafts().length}>
         <div class="scroll-quiet fade-in max-h-[30vh] overflow-auto border-t border-ln pt-1 pr-3.5 pb-2.5 pl-[18px]">
           <Fold summary={<GroupHead icon={<Icon name="edit_note" class="text-[16px]" />} label="Your drafts" count={String(s.drafts().length)} />}>
@@ -468,6 +476,7 @@ function FileRow(props: { file: ReviewFile }) {
   const f = props.file;
   const done = () => s.reviewed().has(f.file);
   const drafts = () => s.draftsByFile().get(f.file)?.length ?? 0;
+  const rabbit = () => f.rabbit.filter((c) => !s.rabbitDone(c)).length;
   const kinds = () => {
     const seen = new Map<string, boolean>();
     for (const fl of f.flags) seen.set(fl.kind, (seen.get(fl.kind) ?? true) && s.resolved().has(fl.id));
@@ -503,6 +512,12 @@ function FileRow(props: { file: ReviewFile }) {
           <span class="inline-flex items-center gap-0.5 font-mono text-[11px] font-semibold text-mu" title={plural(drafts(), "draft")}>
             <Icon name="edit_note" class="text-[14px]" />
             {drafts()}
+          </span>
+        </Show>
+        <Show when={rabbit()}>
+          <span class="inline-flex items-center gap-0.5 font-mono text-[11px] font-semibold text-(--color-rabbit)" title={`${plural(rabbit(), "open CodeRabbit comment")}`}>
+            <Icon name={RABBIT_ICON} class="text-[14px]" />
+            {rabbit()}
           </span>
         </Show>
         <For each={kinds()}>{([k, res]) => <FlagIcon kind={k as FlagItem["kind"]} resolved={res} />}</For>
@@ -563,6 +578,49 @@ function DraftJump(props: { draft: Draft }) {
   );
 }
 
+/** A CodeRabbit comment in the file column: jumps to its line, or opens it on GitHub when its file isn't in the diff. */
+function RabbitJump(props: { comment: RabbitItem }) {
+  const s = useStore();
+  const c = props.comment;
+  const done = () => s.rabbitDone(c);
+  const inDiff = () => !!c.file && !!s.fileByName(c.file);
+  const where = () => (!c.file ? "whole PR" : `${s.fileByName(c.file)?.label ?? c.file}${c.line !== null ? `:${c.line}` : ""}`);
+  return (
+    <button
+      class="my-0.5 flex w-full min-w-0 items-center gap-[9px] rounded-full py-1 pr-2 pl-1 text-left hover:bg-hov"
+      classList={{ "bg-pkbg": !!c.file && s.isCurrent(c.file) }}
+      title={inDiff() ? c.title : `${c.title} (opens on GitHub)`}
+      onClick={() => s.goRabbit(c)}
+    >
+      <RabbitIcon done={done()} class="size-[22px] text-[14px]" />
+      <span class="flex min-w-0 flex-1 flex-col leading-[1.3]">
+        <b class="truncate text-[13px] font-semibold" classList={{ "strike text-mu": done() }}>
+          {c.title}
+        </b>
+        <small class="truncate font-mono text-xs text-mu">
+          {where()}
+          {c.severity ? ` · ${c.severity}` : ""}
+        </small>
+      </span>
+      <Show when={!inDiff()}>
+        <Icon name="open_in_new" class="shrink-0 text-[14px] text-mu" />
+      </Show>
+    </button>
+  );
+}
+
+/** CodeRabbit's round icon; gray with a check once resolved. */
+function RabbitIcon(props: { done?: boolean; class?: string }) {
+  return (
+    <span
+      class={`inline-grid shrink-0 place-items-center rounded-full ${props.done ? "bg-hov text-mu" : "text-onfl"} ${props.class ?? "size-5 text-[13px]"}`}
+      style={props.done ? undefined : { background: rabbitColor }}
+    >
+      <Icon name={props.done ? "check" : RABBIT_ICON} />
+    </span>
+  );
+}
+
 // ---------------------------------------------------------------- diff column
 
 function Tools() {
@@ -570,7 +628,7 @@ function Tools() {
   const files = () => s.order();
   const idx = () => files().findIndex((f) => f.file === s.current());
   const cur = () => files()[idx()];
-  const count = () => s.openFlags().filter((f) => f.file).length + s.drafts().length;
+  const count = () => s.openFlags().filter((f) => f.file).length + s.drafts().length + s.openRabbit().filter((c) => c.file && s.fileByName(c.file)).length;
   const nav = (d: number) => {
     // Count from where a pending jump is headed, so quick repeated clicks keep moving.
     const from = files().findIndex((f) => f.file === (s.jump()?.file ?? s.current()));
@@ -1026,10 +1084,11 @@ type NoteItem =
   | { id: string; row: number; side: "old" | "new"; line: null; kind: "why" }
   | { id: string; row: number; side: "old" | "new"; line: null; kind: "outline"; items: OutlineItem[] }
   | { id: string; row: number; side: "old" | "new"; line: number | null; kind: "flag"; flag: FlagItem }
+  | { id: string; row: number; side: "old" | "new"; line: number | null; kind: "rabbit"; comment: RabbitItem }
   | { id: string; row: number; side: "old" | "new"; line: number | null; kind: "draft"; draft: Draft }
   | { id: string; row: number; side: "old" | "new"; line: number; kind: "composer" };
 
-const KIND_ORDER = { why: 0, outline: 1, flag: 2, draft: 3, composer: 4 } as const;
+const KIND_ORDER = { why: 0, outline: 1, flag: 2, rabbit: 3, draft: 4, composer: 5 } as const;
 
 /** Rows for the items that head the margin, above whole-file notes (row -1). */
 const WHY_ROW = -3;
@@ -1070,6 +1129,9 @@ function Notes(props: {
     };
     for (const fl of f.flags) {
       out.push({ id: `f${fl.id}`, row: fl.placed ? at("new", fl.line) : -1, side: "new", line: fl.placed ? fl.line : null, kind: "flag", flag: fl });
+    }
+    for (const cr of f.rabbit) {
+      out.push({ id: `r${cr.id}`, row: cr.placed ? at(cr.side, cr.line) : -1, side: cr.side, line: cr.placed ? cr.line : null, kind: "rabbit", comment: cr });
     }
     const c = s.composer();
     for (const d of s.draftsByFile().get(f.file) ?? []) {
@@ -1154,6 +1216,8 @@ function Notes(props: {
                 <OutlineCard file={f} items={it.items} />
               ) : it.kind === "flag" ? (
                 <FlagNote flag={it.flag} />
+              ) : it.kind === "rabbit" ? (
+                <RabbitNote comment={it.comment} />
               ) : it.kind === "draft" ? (
                 <DraftNote draft={it.draft} />
               ) : (
@@ -1204,7 +1268,8 @@ function OutlineCard(props: { file: ReviewFile; items: OutlineItem[] }) {
     const idx = rowIndex(f.lines);
     const flags = f.flags.filter((fl) => fl.placed && !s.resolved().has(fl.id)).map((fl) => ({ flag: fl, at: idx.get(`new:${fl.line}`) ?? -1 }));
     const drafts = (s.draftsByFile().get(f.file) ?? []).filter((d) => d.status === "active").map((d) => idx.get(`${d.side}:${d.line}`) ?? -1);
-    return { flags, drafts };
+    const rabbit = f.rabbit.filter((c) => c.placed && !s.rabbitDone(c)).map((c) => ({ comment: c, at: idx.get(`${c.side}:${c.line}`) ?? -1 }));
+    return { flags, drafts, rabbit };
   });
   // A mark belongs to the innermost listed declaration around it (a method, not also its class).
   const owner = (at: number) => props.items.filter((o) => o.index <= at && at < o.end).at(-1);
@@ -1219,6 +1284,7 @@ function OutlineCard(props: { file: ReviewFile; items: OutlineItem[] }) {
         {(o) => {
           const flag = () => marks().flags.find((m) => owner(m.at) === o)?.flag;
           const draft = () => marks().drafts.some((at) => owner(at) === o);
+          const rabbit = () => marks().rabbit.find((m) => owner(m.at) === o)?.comment;
           return (
             <div
               role="button"
@@ -1245,6 +1311,22 @@ function OutlineCard(props: { file: ReviewFile; items: OutlineItem[] }) {
                     }}
                   >
                     <Icon name={FLAG_ICON[fl().kind]} />
+                  </button>
+                )}
+              </Show>
+              <Show when={rabbit()}>
+                {(cr) => (
+                  <button
+                    class="grid size-4 shrink-0 place-items-center rounded-full text-[11px] text-onfl hover:ring-2 hover:ring-ln"
+                    style={{ background: rabbitColor }}
+                    title={`CodeRabbit, line ${cr().line}: ${cr().title}`}
+                    aria-label={`CodeRabbit comment, line ${cr().line}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      s.goRabbit(cr());
+                    }}
+                  >
+                    <Icon name={RABBIT_ICON} />
                   </button>
                 )}
               </Show>
@@ -1317,6 +1399,100 @@ function FlagNote(props: { flag: FlagItem }) {
             <Icon name="add_comment" class="text-[14px]" />
             Reply as draft
           </button>
+        </div>
+      </div>
+    </Show>
+  );
+}
+
+/** "line 64" or "lines 49–64"; for a comment off the diff, why it sits at the top. */
+function rabbitWhere(c: RabbitItem): string {
+  const lines = c.line === null ? null : c.startLine ? `lines ${c.startLine}–${c.line}` : `line ${c.line}`;
+  if (c.placed) return lines!;
+  if (c.outdated) return "outdated";
+  return lines ? `${lines}, off the diff` : "whole file";
+}
+
+/** Long comments show this many lines until "Show all". */
+const RABBIT_CLAMP = "line-clamp-6";
+
+function RabbitNote(props: { comment: RabbitItem }) {
+  const s = useStore();
+  const c = props.comment;
+  const done = () => s.rabbitDone(c);
+  const [all, setAll] = createSignal(false);
+  // "Show all" only when the clamp actually hides something; re-measured as the margin opens or resizes.
+  const [over, setOver] = createSignal(false);
+  const ro = new ResizeObserver(([e]) => {
+    const el = e!.target as HTMLElement;
+    if (!all()) setOver(el.scrollHeight > el.clientHeight + 1);
+  });
+  onCleanup(() => ro.disconnect());
+  const clamp = (el: HTMLDivElement) => ro.observe(el);
+  const title = (
+    <>
+      CodeRabbit
+      <Show when={c.severity}>
+        <span class="font-normal text-mu"> · {c.severity}</span>
+      </Show>
+    </>
+  );
+  const github = (
+    <a class={noteBtn} href={c.url} target="_blank" rel="noopener noreferrer" title="Open this comment and its thread on GitHub">
+      <Icon name="open_in_new" class="text-[14px]" />
+      {c.replies ? plural(c.replies, "reply", "replies") : "GitHub"}
+    </a>
+  );
+  return (
+    <Show
+      when={!done()}
+      fallback={
+        <div class="text-sm">
+          <NoteHead
+            color="var(--color-mu)"
+            on="var(--color-code)"
+            icon={<Icon name="check" />}
+            title={<span class="strike text-mu">{c.title}</span>}
+            where={c.resolved ? "resolved on GitHub" : "resolved"}
+            extra={
+              <Show when={!c.resolved}>
+                <button class="rounded-full px-[9px] py-px text-xs text-tx shadow-[inset_0_0_0_1px_var(--color-ln)] hover:bg-hov" onClick={() => s.setFlagResolved(c.id, false)}>
+                  Undo
+                </button>
+              </Show>
+            }
+          />
+        </div>
+      }
+    >
+      <div class="text-sm">
+        <NoteHead color={rabbitColor} on="var(--color-onfl)" icon={<Icon name={RABBIT_ICON} />} title={title} where={rabbitWhere(c)} />
+        <p class="selectable mt-1 mb-0 ml-8 font-semibold">{c.title}</p>
+        <Show when={c.body}>
+          <div class="ml-8">
+            <div ref={clamp} class={all() ? undefined : RABBIT_CLAMP}>
+              <Prose text={c.body} class="selectable mt-1 text-[13px] leading-[1.45] text-mu" />
+            </div>
+            <Show when={all() || over()}>
+              <button class="mt-0.5 text-xs text-mu hover:text-tx" onClick={() => setAll(!all())}>
+                {all() ? "Show less" : "Show all"}
+              </button>
+            </Show>
+          </div>
+        </Show>
+        <Show when={c.tags.length}>
+          <div class="mt-1 ml-8 text-xs text-mu">{c.tags.join(" · ")}</div>
+        </Show>
+        <div class="mt-1.5 ml-8 flex flex-wrap gap-1">
+          <button class={`${noteBtn} text-tx shadow-[inset_0_0_0_1px_var(--color-ln)]`} title="Resolve here; GitHub is not changed" onClick={() => s.setFlagResolved(c.id, true)}>
+            <Icon name="check_circle" class="text-[14px] text-addt" />
+            Resolve
+          </button>
+          <button class={noteBtn} title="Write a review comment from this; saving it resolves the comment here" onClick={() => s.replyToRabbit(c)}>
+            <Icon name="add_comment" class="text-[14px]" />
+            Reply as draft
+          </button>
+          {github}
         </div>
       </div>
     </Show>
@@ -1410,12 +1586,21 @@ function ComposerNote() {
 function Marker(props: { item: NoteItem }) {
   const s = useStore();
   const it = props.item;
-  const resolved = () => it.kind === "flag" && s.resolved().has(it.flag.id);
-  const color = () => (it.kind === "flag" ? (resolved() ? "var(--color-mu)" : flagColor(it.flag.kind)) : it.kind === "composer" ? "var(--color-pk)" : "var(--color-tx)");
-  const on = () => (it.kind === "flag" ? (resolved() ? "var(--color-code)" : "var(--color-onfl)") : it.kind === "composer" ? "var(--color-ink)" : "var(--color-bg)");
+  const resolved = () => (it.kind === "flag" && s.resolved().has(it.flag.id)) || (it.kind === "rabbit" && s.rabbitDone(it.comment));
+  const color = () =>
+    resolved() ? "var(--color-mu)"
+    : it.kind === "flag" ? flagColor(it.flag.kind)
+    : it.kind === "rabbit" ? rabbitColor
+    : it.kind === "composer" ? "var(--color-pk)"
+    : "var(--color-tx)";
+  const on = () =>
+    resolved() ? "var(--color-code)"
+    : it.kind === "flag" || it.kind === "rabbit" ? "var(--color-onfl)"
+    : it.kind === "composer" ? "var(--color-ink)"
+    : "var(--color-bg)";
   const label = () => {
     const where = it.line === null ? "whole file" : `line ${it.line}`;
-    return it.kind === "flag" ? `${it.flag.kind}, ${where}` : it.kind === "draft" ? `Your draft, ${where}` : `New comment, ${where}`;
+    return it.kind === "flag" ? `${it.flag.kind}, ${where}` : it.kind === "rabbit" ? `CodeRabbit: ${it.comment.title}, ${where}` : it.kind === "draft" ? `Your draft, ${where}` : `New comment, ${where}`;
   };
   return (
     <button
@@ -1426,7 +1611,7 @@ function Marker(props: { item: NoteItem }) {
       onClick={() => s.setNotesOpen(true)}
     >
       <span class="absolute top-3 -left-3.5 h-0.5 w-2.5 rounded-sm" style={{ background: color() }} />
-      <Icon name={it.kind === "flag" ? (resolved() ? "check" : FLAG_ICON[it.flag.kind]) : it.kind === "draft" ? "edit_note" : "add_comment"} />
+      <Icon name={resolved() ? "check" : it.kind === "flag" ? FLAG_ICON[it.flag.kind] : it.kind === "rabbit" ? RABBIT_ICON : it.kind === "draft" ? "edit_note" : "add_comment"} />
     </button>
   );
 }

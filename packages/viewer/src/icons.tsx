@@ -58,6 +58,7 @@ import i_unfold_less from "@material-symbols/svg-400/sharp/unfold_less.svg?raw";
 import i_info from "@material-symbols/svg-400/sharp/info.svg?raw";
 import i_format_list_bulleted from "@material-symbols/svg-400/sharp/format_list_bulleted.svg?raw";
 import i_arrow_back from "@material-symbols/svg-400/sharp/arrow_back.svg?raw";
+import i_cruelty_free from "@material-symbols/svg-400/sharp/cruelty_free.svg?raw";
 
 const ICONS = {
   "stacks": i_stacks,
@@ -118,6 +119,7 @@ const ICONS = {
   "left_panel_open": i_left_panel_open,
   "right_panel_close": i_right_panel_close,
   "right_panel_open": i_right_panel_open,
+  "cruelty_free": i_cruelty_free,
 } as const;
 
 export type IconName = keyof typeof ICONS;
