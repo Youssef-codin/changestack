@@ -54,6 +54,7 @@ import i_left_panel_close from "@material-symbols/svg-400/sharp/left_panel_close
 import i_left_panel_open from "@material-symbols/svg-400/sharp/left_panel_open.svg?raw";
 import i_right_panel_close from "@material-symbols/svg-400/sharp/right_panel_close.svg?raw";
 import i_right_panel_open from "@material-symbols/svg-400/sharp/right_panel_open.svg?raw";
+import i_unfold_less from "@material-symbols/svg-400/sharp/unfold_less.svg?raw";
 import i_arrow_back from "@material-symbols/svg-400/sharp/arrow_back.svg?raw";
 
 const ICONS = {
@@ -108,6 +109,7 @@ const ICONS = {
   "speed": i_speed,
   "done_all": i_done_all,
   "arrow_back": i_arrow_back,
+  "unfold_less": i_unfold_less,
   "left_panel_close": i_left_panel_close,
   "left_panel_open": i_left_panel_open,
   "right_panel_close": i_right_panel_close,

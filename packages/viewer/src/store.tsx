@@ -114,6 +114,22 @@ export function createStore() {
     saveJson(`${keyBase()}:resolved`, [...next]);
   };
   const toggleCollapsed = (file: string, on?: boolean) => setCollapsed(toggled(collapsed(), file, on));
+
+  // Folded blocks inside files, keyed `file\0startIndex`. Not saved: a fold is a moment's tidying.
+  const [folds, setFolds] = createSignal(new Set<string>());
+  const foldKey = (file: string, start: number) => `${file}\0${start}`;
+  const isFolded = (file: string, start: number) => folds().has(foldKey(file, start));
+  const toggleFold = (file: string, start: number, on?: boolean) => setFolds(toggled(folds(), foldKey(file, start), on));
+  const foldMany = (file: string, starts: number[], on: boolean) => {
+    const next = new Set(folds());
+    for (const st of starts) on ? next.add(foldKey(file, st)) : next.delete(foldKey(file, st));
+    setFolds(next);
+  };
+  /** Unfold every block hiding line `index` of `file`, so a jump can land on it. */
+  const reveal = (file: ReviewFile, index: number) => {
+    const hiding = file.regions.filter((r) => r.start < index && index < r.end && isFolded(file.file, r.start));
+    if (hiding.length) foldMany(file.file, hiding.map((r) => r.start), false);
+  };
   const uncap = (file: string) => setUncapped(toggled(uncapped(), file, true));
 
   const order = createMemo(() => readingOrder(model(), groupBy()));
@@ -218,6 +234,7 @@ export function createStore() {
       if (file && target.line != null) {
         const row = rowIndex(file.lines).get(`${target.side ?? "new"}:${target.line}`);
         if (row !== undefined && row >= LINE_CAP) uncap(file.file);
+        if (row !== undefined) reveal(file, row);
       }
       setJump(target);
     }
@@ -303,6 +320,10 @@ export function createStore() {
     openFlags,
     collapsed,
     toggleCollapsed,
+    folds,
+    isFolded,
+    toggleFold,
+    foldMany,
     uncapped,
     uncap,
     drafts,

@@ -2,6 +2,8 @@ import type { Annotation, Flag, ReviewPayload, Tier, VerdictLevel } from "@chang
 import { TIER_ORDER } from "@changestack/schema/tiers";
 import { type DiffLine, type ParsedFile, parseDiff } from "./diff";
 import { anchorOf } from "./drafts";
+import { foldRegions, type Region } from "./folds";
+import { commentPrefix } from "./highlight";
 import type { IconName } from "./icons";
 
 export const TIER_ICON: Record<Tier, IconName> = {
@@ -49,6 +51,8 @@ export interface ReviewFile extends ParsedFile {
   dir: string;
   /** The name, plus as much of its folder as it takes to tell it from other files with the same name. */
   label: string;
+  /** Foldable blocks (functions, if bodies, …) found in this file's diff. */
+  regions: Region[];
 }
 
 export interface Model {
@@ -103,6 +107,7 @@ export function buildModel(payload: ReviewPayload): Model {
       name: name.slice(slash + 1),
       dir: slash === -1 ? "" : name.slice(0, slash + 1),
       label: name.slice(slash + 1),
+      regions: foldRegions(byFile.get(name)!.lines, commentPrefix(name)),
     };
   });
   labelDuplicates(files);

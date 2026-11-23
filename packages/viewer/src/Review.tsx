@@ -1,10 +1,11 @@
 import type { Draft } from "@changestack/schema";
 import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, onMount, Show } from "solid-js";
 import { type DiffLine } from "./diff";
+import { type DisplayRow, displayRows, outermost } from "./folds";
 import { anchorOf } from "./drafts";
 import { commentPrefix, highlight } from "./highlight";
 import { Icon } from "./icons";
-import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, type ReviewFile, rowIndex, tierGroups } from "./model";
+import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, type ReviewFile, tierGroups } from "./model";
 import { LINE_CAP, useStore } from "./store";
 import { FileName, FlagIcon, GroupSwitch, plural, TierBadge, TierTag, TopBar, VerdictChip } from "./ui";
 
@@ -603,25 +604,47 @@ function FileBlock(props: { file: ReviewFile }) {
   const open = () => !s.collapsed().has(f.file);
   const done = () => s.reviewed().has(f.file);
   const shownCount = () => (s.uncapped().has(f.file) ? f.lines.length : Math.min(f.lines.length, LINE_CAP));
-  const shown = createMemo(() => f.lines.slice(0, shownCount()));
+  // This file's folded block starts, as a string so other files' folds don't rebuild this one.
+  const foldedHere = createMemo(() => f.regions.filter((r) => s.isFolded(f.file, r.start)).map((r) => r.start).join(","));
+  const display = createMemo(() => {
+    const folded = new Set(foldedHere().split(",").filter(Boolean).map(Number));
+    return displayRows(f.lines, shownCount(), f.regions, (st) => folded.has(st));
+  });
   const runs = createMemo(() => {
-    const out: { kind: DiffLine["kind"]; lines: DiffLine[] }[] = [];
-    for (const l of shown()) {
+    const out: { kind: DiffLine["kind"] | "fold"; rows: DisplayRow[] }[] = [];
+    for (const r of display()) {
+      const kind = r.kind === "fold" ? "fold" : r.line.kind;
       const last = out.at(-1);
-      if (last && last.kind === l.kind && l.kind !== "hunk") last.lines.push(l);
-      else out.push({ kind: l.kind, lines: [l] });
+      if (last && last.kind === kind && kind !== "hunk" && kind !== "fold") last.rows.push(r);
+      else out.push({ kind, rows: [r] });
     }
     return out;
   });
-  const rows = rowIndex(f.lines);
+  // Where each line is drawn, in rows of LINE_H. Lines inside a folded block map to its "folded" row.
+  const rows = createMemo(() => {
+    const m = new Map<string, number>();
+    display().forEach((r, row) => {
+      const mark = (l: DiffLine) => {
+        const a = anchorOf(l);
+        if (a) m.set(`${a.side}:${a.line}`, row);
+      };
+      if (r.kind === "line") mark(r.line);
+      else for (let i = r.region.start + 1; i < r.region.end; i++) if (f.lines[i]) mark(f.lines[i]!);
+    });
+    return m;
+  });
+  const starts = new Set(f.regions.map((r) => r.start));
+  const tops = outermost(f.regions).map((r) => r.start);
+  const allFolded = () => tops.length > 0 && tops.every((st) => s.isFolded(f.file, st));
   const comment = commentPrefix(f.file);
   // Placed flags by new-file line, for the line tint and number pill.
   const flagAt = new Map(f.flags.filter((fl) => fl.placed).map((fl) => [fl.line!, fl]));
   // Line-number column wide enough for this file's longest number, plus the flag pill's icon and padding.
   const maxNo = f.lines.reduce((m, l) => Math.max(m, l.newNo ?? 0, l.oldNo ?? 0), 0);
-  const gutter = Math.max(48, String(maxNo).length * 8 + (f.flags.some((fl) => fl.placed) ? 30 : 12));
+  // Plus room on the left for the fold arrow when the file has blocks to fold.
+  const gutter = Math.max(48, String(maxNo).length * 8 + (f.flags.some((fl) => fl.placed) ? 30 : 12)) + (f.regions.length ? 14 : 0);
   // A guess at the rendered height, used while the file is off screen (see .file-section).
-  const estimate = () => 90 + f.whys.length * 26 + (open() ? shownCount() * LINE_H + 24 : 30);
+  const estimate = () => 90 + f.whys.length * 26 + (open() ? display().length * LINE_H + 24 : 30);
 
   return (
     <section
@@ -660,6 +683,17 @@ function FileBlock(props: { file: ReviewFile }) {
           </span>
         </Show>
         <For each={f.flags}>{(fl) => <FlagPointer flag={fl} />}</For>
+        <Show when={open() && tops.length > 0}>
+          <button
+            class="grid size-7 place-items-center rounded-full text-[17px] text-mu shadow-[inset_0_0_0_1px_var(--color-ln)] hover:bg-hov hover:text-tx"
+            classList={{ "text-pkink": allFolded() }}
+            title={allFolded() ? "Unfold every block in this file" : "Fold every top-level block (functions, types) in this file"}
+            aria-label={allFolded() ? "Unfold all" : "Fold all"}
+            onClick={() => s.foldMany(f.file, allFolded() ? f.regions.map((r) => r.start) : tops, !allFolded())}
+          >
+            <Icon name={allFolded() ? "unfold_more" : "unfold_less"} />
+          </button>
+        </Show>
         <Show when={!open() && (s.draftsByFile().get(f.file)?.length ?? 0) > 0}>
           <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] text-mu shadow-[inset_0_0_0_1px_var(--color-ln)]">
             <Icon name="edit_note" class="text-[16px]" />
@@ -719,8 +753,21 @@ function FileBlock(props: { file: ReviewFile }) {
                 <For each={runs()}>
                   {(run) => (
                     <div class="rounded-lg" classList={{ "bg-add": run.kind === "add", "bg-del": run.kind === "del" }}>
-                      <For each={run.lines}>
-                        {(l) => <Line file={f} line={l} flag={l.kind !== "del" && l.newNo !== null ? flagAt.get(l.newNo) : undefined} comment={comment} gutter={gutter} />}
+                      <For each={run.rows}>
+                        {(r) =>
+                          r.kind === "fold" ? (
+                            <FoldedRow hidden={r.hidden} gutter={gutter} onOpen={() => s.toggleFold(f.file, r.region.start, false)} />
+                          ) : (
+                            <Line
+                              file={f}
+                              line={r.line}
+                              flag={r.line.kind !== "del" && r.line.newNo !== null ? flagAt.get(r.line.newNo) : undefined}
+                              comment={comment}
+                              gutter={gutter}
+                              fold={starts.has(r.index) ? { folded: s.isFolded(f.file, r.index), toggle: () => s.toggleFold(f.file, r.index) } : undefined}
+                            />
+                          )
+                        }
                       </For>
                     </div>
                   )}
@@ -737,7 +784,7 @@ function FileBlock(props: { file: ReviewFile }) {
               <p class="m-0 py-1 pl-[66px] text-[13px] text-mu">No text changes (binary file, or a rename only).</p>
             </Show>
           </div>
-          <Notes file={f} rows={rows} shown={shownCount()} />
+          <Notes file={f} rows={rows()} shown={display().length} />
         </div>
       </Show>
     </section>
@@ -767,7 +814,30 @@ function FlagPointer(props: { flag: FlagItem }) {
   );
 }
 
-function Line(props: { file: ReviewFile; line: DiffLine; flag: FlagItem | undefined; comment: string; gutter: number }) {
+/** Stands in for a folded block: click to unfold. */
+function FoldedRow(props: { hidden: number; gutter: number; onOpen: () => void }) {
+  return (
+    <div class="flex h-6 items-center" style={{ "padding-left": `${props.gutter + 18}px` }}>
+      <button
+        class="fade-in inline-flex items-center gap-1.5 rounded-full bg-hov px-2.5 text-xs leading-5 text-mu hover:bg-pkbg hover:text-pkink"
+        title="Unfold"
+        onClick={props.onOpen}
+      >
+        <Icon name="unfold_more" class="text-[14px]" />⋯ {plural(props.hidden, "line")} folded
+      </button>
+    </div>
+  );
+}
+
+function Line(props: {
+  file: ReviewFile;
+  line: DiffLine;
+  flag: FlagItem | undefined;
+  comment: string;
+  gutter: number;
+  /** Set on a line that opens a foldable block. */
+  fold?: { folded: boolean; toggle: () => void };
+}) {
   const s = useStore();
   const l = props.line;
   if (l.kind === "hunk") {
@@ -795,7 +865,20 @@ function Line(props: { file: ReviewFile; line: DiffLine; flag: FlagItem | undefi
       }}
     >
       {/* Faded with a text color, never opacity: opacity on thousands of elements makes each one its own blend. */}
-      <span class="shrink-0 pr-2 text-right whitespace-nowrap select-none" style={{ width: `${props.gutter}px` }} classList={{ "text-mu/50": l.kind === "del", "text-mu/80": l.kind !== "del" }} title={l.kind === "del" ? "old line" : "line"}>
+      <span class="relative shrink-0 pr-2 text-right whitespace-nowrap select-none" style={{ width: `${props.gutter}px` }} classList={{ "text-mu/50": l.kind === "del", "text-mu/80": l.kind !== "del" }} title={l.kind === "del" ? "old line" : "line"}>
+        {/* Fold arrow: on hover for a line that opens a block, always while it's folded. */}
+        <Show when={props.fold && (props.fold.folded || s.isHoverLine(key))}>
+          <button
+            class="absolute top-0.5 left-0 grid size-5 place-items-center rounded-full text-[16px] text-mu hover:bg-hov hover:text-tx"
+            classList={{ "text-pkink": props.fold!.folded }}
+            title={props.fold!.folded ? "Unfold this block" : "Fold this block"}
+            aria-label={props.fold!.folded ? "Unfold this block" : "Fold this block"}
+            aria-expanded={!props.fold!.folded}
+            onClick={() => props.fold!.toggle()}
+          >
+            <Icon name="keyboard_arrow_down" class={`transition-[rotate] ${props.fold!.folded ? "-rotate-90" : ""}`} />
+          </button>
+        </Show>
         <Show when={flag} fallback={a.line}>
           <b class="inline-flex items-center gap-0.5 rounded-full pr-1.5 pl-1 leading-[18px] font-semibold" style={{ background: color(), color: resolved() ? "var(--color-code)" : "var(--color-onfl)" }}>
             <Icon name={resolved() ? "check" : FLAG_ICON[flag!.kind]} class="text-[12px]" />
