@@ -1,3 +1,5 @@
+import type { CiCheck, CiStatus } from "@changestack/schema";
+
 /**
  * Thin wrapper over the GitHub CLI. Nothing here touches the working tree. Only
  * `submitReview` writes to GitHub, and only when the reviewer clicks Submit.
@@ -164,4 +166,34 @@ export function submitReview(
   }
   const posted = JSON.parse(out) as { html_url?: string };
   return posted.html_url ?? pr.url;
+}
+
+/**
+ * CI checks on the PR's head (`gh pr checks`). Null when gh can't tell, so the
+ * viewer can say "unknown" rather than "no CI". gh exits 8 while checks are pending.
+ */
+export async function prChecks(root: string, pr: PullRequest): Promise<CiStatus | null> {
+  // Async, unlike the rest: the server re-asks while checks run and mustn't block meanwhile.
+  requireGh();
+  const proc = Bun.spawn(["gh", "pr", "checks", String(pr.number), "--json", "name,bucket,link"], { cwd: root, stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
+  const res = { stdout, stderr };
+  const checkedAt = new Date().toISOString();
+  if (/no checks reported/i.test(res.stderr)) return { state: "none", checks: [], checkedAt };
+  let rows: { name: string; bucket: string; link: string }[];
+  try {
+    rows = JSON.parse(res.stdout);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(rows)) return null;
+  const known = new Set(["pass", "fail", "pending", "skipping", "cancel"]);
+  const checks: CiCheck[] = rows.map((r) => ({
+    name: r.name,
+    bucket: (known.has(r.bucket) ? r.bucket : "pending") as CiCheck["bucket"],
+    url: r.link ?? "",
+  }));
+  const has = (b: CiCheck["bucket"]) => checks.some((c) => c.bucket === b);
+  const state = checks.length === 0 ? "none" : has("fail") || has("cancel") ? "failing" : has("pending") ? "pending" : "passing";
+  return { state, checks, checkedAt };
 }

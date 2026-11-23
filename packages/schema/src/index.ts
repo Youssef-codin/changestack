@@ -108,12 +108,54 @@ export const ClassifyStatus = z.discriminatedUnion("state", [
 ]);
 export type ClassifyStatus = z.infer<typeof ClassifyStatus>;
 
+/** One CI check on the PR's head, as `gh pr checks` buckets it. */
+export const CiCheck = z.object({
+  name: z.string(),
+  bucket: z.enum(["pass", "fail", "pending", "skipping", "cancel"]),
+  url: z.string(),
+});
+export type CiCheck = z.infer<typeof CiCheck>;
+
+/** The PR head's CI, summed up: any failure wins, then anything still running. */
+export const CiStatus = z.object({
+  state: z.enum(["passing", "failing", "pending", "none"]),
+  checks: z.array(CiCheck),
+  checkedAt: z.string(),
+});
+export type CiStatus = z.infer<typeof CiStatus>;
+
+/** A test, type-check or lint command the agent ran in one of the PR's sessions. */
+export const TestRun = z.object({
+  command: z.string(),
+  kind: z.enum(["test", "check"]),
+  ok: z.boolean(),
+  /** 1-based: which of the user's prompts in that session the run followed. */
+  turn: z.number().int().nonnegative(),
+  /** When the session started; tells runs from different sessions apart. */
+  session: z.string(),
+  at: z.string().nullable(),
+});
+export type TestRun = z.infer<typeof TestRun>;
+
+/** Plain facts for the Briefing's Check first row. Gathered without the model, never cached. */
+export const BriefingFacts = z.object({
+  /** Null when `gh pr checks` couldn't be asked. */
+  ci: CiStatus.nullable(),
+  /** Oldest first. Empty when no session was found or none ran tests. */
+  testRuns: z.array(TestRun),
+  /** Test files the PR adds or changes. */
+  testFiles: z.array(z.object({ file: z.string(), status: z.enum(["added", "modified"]) })),
+});
+export type BriefingFacts = z.infer<typeof BriefingFacts>;
+
 /** Payload of GET /api/review. */
 export const ReviewPayload = z.object({
   pr: PrInfo,
   status: ClassifyStatus,
   annotation: Annotation.nullable(),
   diff: z.string(),
+  /** Null until gathered, a second or so after startup. */
+  facts: BriefingFacts.nullable(),
 });
 export type ReviewPayload = z.infer<typeof ReviewPayload>;
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sessionContext } from "./claude-code-transcripts";
+import { sessionContext, sessionTestRuns } from "./claude-code-transcripts";
 import type { Harness, RunJsonRequest, RunJsonResult, Usage } from "./index";
 
 const TIMEOUT_MS = 5 * 60_000;
@@ -112,6 +112,7 @@ export const claudeCode: Harness = {
   name: "claude-code",
   defaultModel: "haiku",
   sessionContext,
+  testRuns: sessionTestRuns,
 
   async runJson<T>(req: RunJsonRequest<T>): Promise<RunJsonResult<T>> {
     const model = req.model ?? this.defaultModel;
