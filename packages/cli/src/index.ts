@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { classify, diffHash, loadCached } from "./classify";
 import { gatherFacts } from "./facts";
+import { coderabbitComments } from "./coderabbit";
 import { describePr, parsePrTarget, prDiff, resolvePr } from "./gh";
 import { splitDiff } from "./git";
 import { configuredModel, getHarness } from "./harness";
@@ -44,6 +45,14 @@ async function openPr(args: string[]): Promise<void> {
 
   const root = repoRoot();
   const pr = resolvePr(root, positional[0]);
+  // Started first so it runs while the diff downloads. Read-only and best effort: a review
+  // without CodeRabbit's comments is still a review.
+  const coderabbit = args.includes("--diff")
+    ? Promise.resolve([])
+    : coderabbitComments(root, pr).catch((err) => {
+        console.error(`changestack: couldn't read CodeRabbit's comments: ${err instanceof Error ? err.message : String(err)}`);
+        return [];
+      });
   const diff = prDiff(root, pr);
   if (args.includes("--diff")) {
     process.stdout.write(diff);
@@ -62,6 +71,7 @@ async function openPr(args: string[]): Promise<void> {
     diff,
     annotation: cached,
     facts: null,
+    coderabbit: await coderabbit,
     status: cached
       ? { state: "ready", cached: true }
       : files.length === 0
@@ -71,6 +81,7 @@ async function openPr(args: string[]): Promise<void> {
 
   const server = startServer(state, port);
   const url = `http://${server.hostname}:${server.port}`;
+  if (state.coderabbit.length) console.error(`changestack: ${state.coderabbit.length} CodeRabbit comment(s)`);
   console.error(`changestack: ${cached ? "using cached classification" : files.length ? "classifying in the background" : "nothing to classify"}`);
   console.error(`changestack: open ${url}  (Ctrl+C to stop)`);
   if (!args.includes("--no-open")) openBrowser(url);

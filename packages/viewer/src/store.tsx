@@ -9,6 +9,7 @@ import {
   type FlagItem,
   loadJson,
   type Model,
+  type RabbitItem,
   readingOrder,
   type ReviewFile,
   resumeTarget,
@@ -62,7 +63,7 @@ export function createStore() {
   const review = createMemo(() => payload.latest, undefined, {
     equals: (a, b) => !!a && !!b && a.pr.headRefOid === b.pr.headRefOid && a.annotation?.createdAt === b.annotation?.createdAt,
   });
-  const empty: Model = { files: [], flags: [], features: [] };
+  const empty: Model = { files: [], flags: [], rabbit: [], features: [] };
   const model = createMemo(() => (review() ? buildModel(review()!) : empty));
   const pr = () => review()?.pr;
   const keyBase = () => `changestack:pr-${pr()?.number ?? 0}:${pr()?.headRefOid ?? "none"}`;
@@ -153,6 +154,9 @@ export function createStore() {
 
   const order = createMemo(() => readingOrder(model(), groupBy()));
   const openFlags = () => model().flags.filter((f) => !resolved().has(f.id));
+  /** Resolved on GitHub, or here (kept in the same set as flags; CodeRabbit ids don't clash with flag ids). */
+  const rabbitDone = (c: RabbitItem) => c.resolved || resolved().has(c.id);
+  const openRabbit = () => model().rabbit.filter((c) => !rabbitDone(c));
 
   // ---------- drafts, saved on the server under .git/changestack/drafts/ ----------
   const [draftSet, { mutate: setDraftSet }] = createResource(fetchDrafts);
@@ -198,17 +202,23 @@ export function createStore() {
       toggleCollapsed(c.file, false);
     });
   };
-  const replyToFlag = (flag: FlagItem) => {
-    const file = model().files.find((f) => f.file === flag.file);
+  /** A draft that answers a flag or CodeRabbit comment: on its line, else the file's first line that takes a comment. */
+  const replyOn = (fileName: string, side: Side, at: number | null, replyTo: string, text: string) => {
+    const file = model().files.find((f) => f.file === fileName);
     if (!file) return;
-    // A whole-file flag replies on the file's first line that can take a comment.
     const line =
-      (flag.placed && file.lines.find((l) => l.newNo === flag.line && l.kind !== "del")) ||
+      (at !== null && file.lines.find((l) => (side === "old" ? l.oldNo === at && l.kind === "del" : l.newNo === at && l.kind !== "del"))) ||
       file.lines.find((l) => l.kind === "add" || l.kind === "ctx") ||
       file.lines.find((l) => l.kind === "del");
     if (!line) return;
-    const side: Side = line.kind === "del" ? "old" : "new";
-    openComposer({ file: file.file, side, line: (side === "old" ? line.oldNo : line.newNo)!, lineText: line.text, editingId: null, replyTo: flag.id }, `${flag.note} `);
+    const on: Side = line.kind === "del" ? "old" : "new";
+    openComposer({ file: file.file, side: on, line: (on === "old" ? line.oldNo : line.newNo)!, lineText: line.text, editingId: null, replyTo }, text);
+  };
+  const replyToFlag = (flag: FlagItem) => {
+    if (flag.file) replyOn(flag.file, "new", flag.placed ? flag.line : null, flag.id, `${flag.note} `);
+  };
+  const replyToRabbit = (c: RabbitItem) => {
+    if (c.file) replyOn(c.file, c.side, c.placed ? c.line : null, c.id, `CodeRabbit: ${c.title}. `);
   };
   const editDraft = (d: Draft) =>
     openComposer({ file: d.file, side: d.side, line: d.line, lineText: d.lineText, editingId: d.id, replyTo: null }, d.body);
@@ -263,6 +273,11 @@ export function createStore() {
   const goFlag = (f: FlagItem) => {
     if (!f.file) return go("review");
     go("review", { file: f.file, side: "new", line: f.placed ? f.line : null });
+  };
+  /** A comment on a file outside the diff, or on the whole PR, opens on GitHub instead. */
+  const goRabbit = (c: RabbitItem) => {
+    if (!c.file || !model().files.some((f) => f.file === c.file)) return void window.open(c.url, "_blank", "noopener");
+    go("review", { file: c.file, side: c.side, line: c.placed ? c.line : null });
   };
   const goDraft = (d: Draft) => go("review", { file: d.file, side: d.side, line: d.status === "active" ? d.line : null });
   const resume = () => resumeTarget(order(), reviewed(), resolved());
@@ -337,6 +352,8 @@ export function createStore() {
     resolved,
     setFlagResolved,
     openFlags,
+    rabbitDone,
+    openRabbit,
     collapsed,
     toggleCollapsed,
     folds,
@@ -357,6 +374,7 @@ export function createStore() {
     setComposerText,
     openComposer,
     replyToFlag,
+    replyToRabbit,
     editDraft,
     saveComposer,
     deleteDraft,
@@ -364,6 +382,7 @@ export function createStore() {
     go,
     goFlag,
     goDraft,
+    goRabbit,
     jump,
     setJump,
     resume,

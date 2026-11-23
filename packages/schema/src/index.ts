@@ -148,6 +148,37 @@ export const BriefingFacts = z.object({
 });
 export type BriefingFacts = z.infer<typeof BriefingFacts>;
 
+/**
+ * A CodeRabbit review comment, cleaned for the Context margin: its badges, title and prose,
+ * without the collapsed analysis, suggestion and agent-prompt blocks (those stay on GitHub).
+ * `line` is the new-file line (old-file for `side: "old"`), or null for a whole-file or
+ * whole-PR comment. Comments CodeRabbit had to put in a review body ("outside diff range")
+ * carry a line that usually isn't in the diff; the viewer puts those at the top of the file.
+ */
+export const CodeRabbitComment = z.object({
+  id: z.string(),
+  file: z.string().nullable(),
+  side: z.enum(["old", "new"]),
+  line: z.number().int().positive().nullable(),
+  startLine: z.number().int().positive().nullable(),
+  /** "Critical", "Major", "Minor", "Trivial", "Info", or null when CodeRabbit gave none. */
+  severity: z.string().nullable(),
+  /** The other badges, e.g. "Functional Correctness", "Quick win". */
+  tags: z.array(z.string()),
+  title: z.string(),
+  /** Markdown prose: paragraphs, lists, `code` and fenced blocks. */
+  body: z.string(),
+  url: z.string(),
+  createdAt: z.string(),
+  /** The thread is resolved on GitHub. */
+  resolved: z.boolean(),
+  /** Written against an earlier commit, and the code has moved on. */
+  outdated: z.boolean(),
+  /** Replies in the thread after CodeRabbit's comment. */
+  replies: z.number().int().nonnegative(),
+});
+export type CodeRabbitComment = z.infer<typeof CodeRabbitComment>;
+
 /** Payload of GET /api/review. */
 export const ReviewPayload = z.object({
   pr: PrInfo,
@@ -156,6 +187,8 @@ export const ReviewPayload = z.object({
   diff: z.string(),
   /** Null until gathered, a second or so after startup. */
   facts: BriefingFacts.nullable(),
+  /** CodeRabbit's comments on the PR, fetched at startup; empty when it hasn't reviewed (or gh failed). */
+  coderabbit: z.array(CodeRabbitComment),
 });
 export type ReviewPayload = z.infer<typeof ReviewPayload>;
 

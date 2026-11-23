@@ -1,4 +1,4 @@
-import type { Annotation, Flag, ReviewPayload, Tier, VerdictLevel } from "@changestack/schema";
+import type { Annotation, CodeRabbitComment, Flag, ReviewPayload, Tier, VerdictLevel } from "@changestack/schema";
 import { TIER_ORDER } from "@changestack/schema/tiers";
 import { type DiffLine, type ParsedFile, parseDiff } from "./diff";
 import { anchorOf } from "./drafts";
@@ -35,12 +35,22 @@ export interface FlagItem extends Flag {
   placed: boolean;
 }
 
+/** A CodeRabbit comment as the viewer tracks it. `placed` is false when its line isn't in the diff (outdated, whole-file, outside the diff), so it sits at the top of the file. */
+export interface RabbitItem extends CodeRabbitComment {
+  placed: boolean;
+}
+
+export const RABBIT_ICON: IconName = "cruelty_free";
+export const rabbitColor = "var(--color-rabbit)";
+
 export interface ReviewFile extends ParsedFile {
   tier: Tier;
   whys: { symbol: string | null; why: string }[];
   /** Feature names this file builds, in annotation order; empty means "Setup and other". */
   features: string[];
   flags: FlagItem[];
+  /** CodeRabbit's comments on this file, by line. */
+  rabbit: RabbitItem[];
   /** Rule that forced the tier up, if any. */
   overridden: string | null;
   /** Set when the annotation doesn't cover this file. */
@@ -55,6 +65,8 @@ export interface Model {
   files: ReviewFile[];
   /** Every flag, including ones about the whole PR (file null), in annotation order. */
   flags: FlagItem[];
+  /** Every CodeRabbit comment, including ones on files outside the diff and on the whole PR. */
+  rabbit: RabbitItem[];
   features: { name: string; why: string }[];
 }
 
@@ -88,6 +100,12 @@ export function buildModel(payload: ReviewPayload): Model {
     return { ...f, id: String(i), placed };
   });
 
+  const rabbit: RabbitItem[] = (payload.coderabbit ?? []).map((c) => {
+    const file = c.file ? byFile.get(c.file) : undefined;
+    const placed = !!file && c.line !== null && rowIndex(file.lines).has(`${c.side}:${c.line}`);
+    return { ...c, placed };
+  });
+
   const unclassified = ann ? "Changed after classification" : null;
   const files = [...order, ...parsed.map((f) => f.file).filter((f) => !meta.has(f))].map((name): ReviewFile => {
     const m = meta.get(name);
@@ -98,6 +116,7 @@ export function buildModel(payload: ReviewPayload): Model {
       whys: m?.whys ?? [],
       features: m?.features ?? [],
       flags: flags.filter((f) => f.file === name),
+      rabbit: rabbit.filter((c) => c.file === name),
       overridden: ann?.overrides.find((o) => o.file === name)?.rule ?? null,
       unclassified: m ? null : unclassified,
       name: name.slice(slash + 1),
@@ -111,7 +130,7 @@ export function buildModel(payload: ReviewPayload): Model {
 
   const features = [...(ann?.features ?? [])];
   for (const f of files) for (const name of f.features) if (!features.some((x) => x.name === name)) features.push({ name, why: "" });
-  return { files, flags, features };
+  return { files, flags, rabbit, features };
 }
 
 /** Go and friends have many `service.go`s: prefix each clashing name with folders until it's unique. */

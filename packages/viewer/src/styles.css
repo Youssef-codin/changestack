@@ -52,6 +52,8 @@
   --color-deviation: light-dark(#a0592b, #d9915f);
   --color-untested: light-dark(#1098ad, #3bc9db);
   --color-uncertain: light-dark(#c2255c, #f06595);
+  /* CodeRabbit's comments: their own hue, apart from tiers and flags. */
+  --color-rabbit: light-dark(#7048e8, #9775fa);
   --color-onfl: light-dark(#ffffff, #1b1d26);
 }
 

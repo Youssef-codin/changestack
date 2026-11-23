@@ -1,5 +1,5 @@
 import { join, normalize, resolve } from "node:path";
-import { type Annotation, type BriefingFacts, type ClassifyStatus, Draft, DraftScope, type ReviewPayload, type SubmitResult } from "@changestack/schema";
+import { type Annotation, type BriefingFacts, type ClassifyStatus, type CodeRabbitComment, Draft, DraftScope, type ReviewPayload, type SubmitResult } from "@changestack/schema";
 import { z } from "zod";
 import { refreshCi } from "./facts";
 import { deleteDraft, loadDrafts, prScope, removeDrafts, upsertDrafts } from "./drafts";
@@ -17,6 +17,8 @@ export interface ReviewState {
   annotation: Annotation | null;
   /** Null until gathered; see facts.ts. */
   facts: BriefingFacts | null;
+  /** CodeRabbit's comments; filled in once the fetch at startup returns. */
+  coderabbit: CodeRabbitComment[];
 }
 
 const DraftsPut = z.object({ drafts: z.array(Draft).max(1000) });
@@ -108,6 +110,7 @@ export function startServer(state: ReviewState, port: number) {
         annotation: state.annotation,
         diff: state.diff,
         facts: state.facts,
+        coderabbit: state.coderabbit,
       };
       return Response.json(payload);
     }
