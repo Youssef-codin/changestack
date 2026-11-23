@@ -895,10 +895,29 @@ function FileBlock(props: { file: ReviewFile }) {
       <Show
         when={open()}
         fallback={
-          <button class="mt-2 mb-1 ml-1 flex items-center gap-1.5 text-xs text-mu hover:text-tx" onClick={() => s.toggleCollapsed(f.file, false)}>
-            <Icon name="unfold_more" class="text-[16px]" />
-            {plural(f.additions + f.deletions, "changed line")} folded
-          </button>
+          <Show
+            when={f.status === "deleted"}
+            fallback={
+              <button class="mt-2 mb-1 ml-1 flex items-center gap-1.5 text-xs text-mu hover:text-tx" onClick={() => s.toggleCollapsed(f.file, false)}>
+                <Icon name="unfold_more" class="text-[16px]" />
+                {plural(f.additions + f.deletions, "changed line")} folded
+              </button>
+            }
+          >
+            <button
+              class="mt-2 mb-1 flex w-full items-center gap-2.5 rounded-lg bg-del px-3 py-2.5 text-left text-[13px] text-mu hover:text-tx"
+              classList={{ "max-w-[calc(100%-20px)]": s.notesOpen() }}
+              onClick={() => s.toggleCollapsed(f.file, false)}
+            >
+              <Icon name="delete" class="text-[18px] text-delt" />
+              <span>
+                <b class="font-semibold text-tx">File deleted</b> · {plural(f.deletions, "line")} removed
+              </span>
+              <span class="ml-auto inline-flex items-center gap-1 text-xs">
+                <Icon name="unfold_more" class="text-[16px]" /> Show
+              </span>
+            </button>
+          </Show>
         }
       >
         <div class="fade-in mt-2">

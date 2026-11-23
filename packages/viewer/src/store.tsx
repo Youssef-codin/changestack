@@ -97,7 +97,9 @@ export function createStore() {
     const rev = new Set(loadJson<string[]>(reviewedKey(), []));
     setReviewed(rev);
     setResolved(new Set(loadJson<string[]>(`${keyBase()}:resolved`, [])));
-    setCollapsed(new Set(files.filter((f) => COLLAPSED_BY_DEFAULT.includes(f.tier) || rev.has(f.file)).map((f) => f.file)));
+    // A deleted file is only red lines; fold it unless a flag or comment points into it.
+    const goneQuietly = (f: (typeof files)[number]) => f.status === "deleted" && !f.flags.length && !f.rabbit.length;
+    setCollapsed(new Set(files.filter((f) => COLLAPSED_BY_DEFAULT.includes(f.tier) || rev.has(f.file) || goneQuietly(f)).map((f) => f.file)));
   });
 
   // The same set back when nothing changes, so a no-op (every jump unfolds its target) doesn't
