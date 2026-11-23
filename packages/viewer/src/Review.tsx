@@ -55,11 +55,17 @@ export function Review() {
     const first = s.order().find((f) => atTop.has(f.file));
     if (first) s.setCurrent(first.file);
   };
+  // Files whose own header is on screen: the tool row leaves out what that header already shows.
+  const [headsShown, setHeadsShown] = createSignal<ReadonlySet<string>>(new Set());
+  let headIo: IntersectionObserver | undefined;
   const observeAll = () => {
-    if (!io) return;
+    if (!io || !headIo) return;
     io.disconnect();
+    headIo.disconnect();
     atTop.clear();
+    setHeadsShown(new Set<string>());
     for (const el of scroller.querySelectorAll<HTMLElement>("section[data-file]")) io.observe(el);
+    for (const el of scroller.querySelectorAll<HTMLElement>("[data-head]")) headIo.observe(el);
   };
   onMount(() => {
     io = new IntersectionObserver(
@@ -72,10 +78,24 @@ export function Review() {
       },
       { root: scroller, rootMargin: `-${TOOLS_H + 1}px 0px -80% 0px` },
     );
+    headIo = new IntersectionObserver(
+      (entries) => {
+        const next = new Set(headsShown());
+        for (const e of entries) {
+          const file = (e.target as HTMLElement).dataset.head!;
+          e.isIntersecting ? next.add(file) : next.delete(file);
+        }
+        setHeadsShown(next);
+      },
+      { root: scroller, rootMargin: `-${TOOLS_H}px 0px 0px 0px` },
+    );
     observeAll();
     if (!s.jump()) s.setCurrent(s.order()[0]?.file ?? null);
   });
-  onCleanup(() => io?.disconnect());
+  onCleanup(() => {
+    io?.disconnect();
+    headIo?.disconnect();
+  });
   createEffect(on(entries, () => queueMicrotask(observeAll), { defer: true }));
 
   // Jumps use the browser's own smooth scroll: it runs on the compositor, so it stays smooth
@@ -235,7 +255,7 @@ export function Review() {
           class="relative min-w-0 overflow-x-hidden overflow-y-auto bg-code"
           style={{ "--nw": s.notesOpen() ? `${NOTES_W}px` : "0px", transition: "--nw .3s cubic-bezier(.2,.7,.2,1)" }}
         >
-          <Tools />
+          <Tools headShown={(file) => headsShown().has(file)} />
           <div class="paper" style={{ "min-height": `calc(100% - ${TOOLS_H}px)` }}>
           <Show when={s.status()?.state === "classifying"}>
             <div class="flex items-center gap-2 border-b border-ln px-8 py-2 text-[13px] text-mu" role="status">
@@ -625,7 +645,7 @@ function RabbitIcon(props: { done?: boolean; class?: string }) {
 
 // ---------------------------------------------------------------- diff column
 
-function Tools() {
+function Tools(props: { headShown: (file: string) => boolean }) {
   const s = useStore();
   const files = () => s.order();
   const idx = () => files().findIndex((f) => f.file === s.current());
@@ -656,6 +676,9 @@ function Tools() {
             <span class="shrink-0 whitespace-nowrap max-md:hidden">
               <RollingNumber value={idx() + 1} /> of {files().length}
             </span>
+            {/* The file's own header says all this while it's on screen; repeat it only once it scrolls away. */}
+            <Show when={!props.headShown(f().file)}>
+            <>
             <TierBadge tier={f().tier} />
             <button class="min-w-0 truncate text-left font-mono text-tx" title={`${f().file}: back to the top of this file`} onClick={() => s.go("review", { file: f().file })}>
               <span class="text-mu max-xl:hidden">{f().dir}</span>
@@ -671,6 +694,8 @@ function Tools() {
               <Icon name={s.reviewed().has(f().file) ? "check_circle-fill" : "radio_button_unchecked"} class="text-[16px] text-pkink" />
               {s.reviewed().has(f().file) ? "Reviewed" : "Mark reviewed"}
             </button>
+            </>
+            </Show>
           </>
         )}
       </Show>
@@ -766,7 +791,6 @@ function FileBlock(props: { file: ReviewFile }) {
   const gutter = () => Math.max(48, String(maxNo).length * 8 + (f.flags.some((fl) => fl.placed) ? 30 : 12)) + (regions().length ? 14 : 0);
   // A guess at the rendered height, used while the file is off screen (see .file-section).
   const estimate = () => 130 + (s.notesOpen() ? 0 : f.whys.length * 26) + (open() ? display().length * LINE_H + 24 : 30);
-  const place = () => s.order().findIndex((x) => x.file === f.file) + 1;
   // "In this file": the declarations the diff changes, from the parsed blocks.
   const outline = createMemo(() => outlineOf(f.lines, regions()));
   // With the margin open, the why moves out of the header into a card beside the divider.
@@ -786,9 +810,9 @@ function FileBlock(props: { file: ReviewFile }) {
       <div class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(.2,.7,.2,1)]" style={{ "grid-template-columns": `minmax(0,1fr) ${s.notesOpen() ? NOTES_W : MARKERS_W}px` }}>
       <div class="min-w-0">
       <div ref={head}>
-      <FileDivider file={f} place={place()} total={s.order().length} joined={whyCard()} />
+      <FileDivider joined={whyCard()} />
       {/* Not sticky: one sticky header per file cost real frames while scrolling. The tool row shows the current file instead. */}
-      <div class="flex flex-wrap items-center gap-2.5 py-2.5 pr-5">
+      <div data-head={f.file} class="flex flex-wrap items-center gap-2.5 py-2.5 pr-5">
         <button
           class="-ml-1 grid size-6 place-items-center rounded-full text-[20px] text-mu hover:bg-hov hover:text-tx"
           title={open() ? "Fold this file (x)" : "Show this file (x)"}
@@ -945,25 +969,11 @@ function FileBlock(props: { file: ReviewFile }) {
 }
 
 /**
- * The rule that opens each file, with its place in the reading order and its name set into it.
+ * The rule that opens each file. The header right under it names the file.
  * Joined: the rule runs on to the column edge, where the Why card beside it picks it up.
  */
-function FileDivider(props: { file: ReviewFile; place: number; total: number; joined: boolean }) {
-  return (
-    <div
-      class="flex h-5 items-center gap-3 font-mono text-xs font-medium whitespace-nowrap text-mu before:h-px before:flex-1 before:bg-ln after:h-px after:flex-1 after:bg-ln"
-      classList={{ "mr-5": !props.joined }}
-    >
-      <span>
-        File {props.place} of {props.total}
-      </span>
-      <TierBadge tier={props.file.tier} />
-      <span class="min-w-0 truncate">
-        <b class="font-semibold text-tx">{props.file.name}</b>
-        <span class="max-md:hidden"> {props.file.dir}</span>
-      </span>
-    </div>
-  );
+function FileDivider(props: { joined: boolean }) {
+  return <div class="flex h-5 items-center before:h-px before:flex-1 before:bg-ln" classList={{ "mr-5": !props.joined }} />;
 }
 
 /** Rows per render chunk of a file's diff. */
