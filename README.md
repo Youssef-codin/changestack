@@ -68,7 +68,7 @@ Everything lives in `.git/changestack/`: cached classifications and draft commen
 ```text
 packages/schema   Zod schemas shared by the CLI and viewer
 packages/cli      Bun CLI, compiled to a single binary
-packages/viewer   Solid + Vite viewer, virtualized diff
+packages/viewer   Solid + Vite + Tailwind viewer: Briefing, Review, Submit
 ```
 
 ```sh

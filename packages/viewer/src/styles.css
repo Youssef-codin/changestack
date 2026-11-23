@@ -1,151 +1,340 @@
-:root {
-  --bg: #fbfbfa;
-  --panel: #f2f1ee;
-  --border: #e2e0db;
-  --text: #1d1c1a;
-  --muted: #77736b;
-  --add-bg: #e7f5ea;
-  --add-fg: #1f6b35;
-  --del-bg: #fbeaea;
-  --del-fg: #9a2b2b;
-  --hunk-bg: #eef1f8;
-  --hunk-fg: #4b5a80;
-  --accent: #3b5bdb;
-  --core: #c2410c;
-  --glue: #4b5a80;
-  --tests: #2f7d4f;
-  --boilerplate: #8a857c;
-  --generated: #a8a39a;
-  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
-  --sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  color-scheme: light;
+@import "tailwindcss";
+
+/*
+ * Riso colorway (docs/design/README.md, "Colorways"): black ink on paper, fluoro pink
+ * as the one spot color. Every token is light-dark(), so the OS theme picks the side.
+ */
+@theme static {
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  --color-bg: light-dark(#f5f5f3, #101012);
+  --color-sf: light-dark(#ffffff, #18181b);
+  --color-code: light-dark(#ffffff, #141417);
+  --color-ln: light-dark(#e3e3e0, #26262b);
+  --color-tline: light-dark(#c9c9c4, #3a3a41);
+  --color-tx: light-dark(#1b1d26, #ececef);
+  --color-mu: light-dark(#6e7079, #8e8f97);
+  --color-hov: light-dark(#ececea, #1d1d21);
+  --color-ink: #1b1d26;
+
+  --color-pk: #ff4f8b;
+  --color-pkink: light-dark(#c92a63, #ff7aa8);
+  --color-pkbg: light-dark(#ffe8f0, #2c1a22);
+  --color-gh: #1f883d;
+
+  --color-add: light-dark(#e3f5e7, #12261a);
+  --color-addt: light-dark(#1d7a3a, #6fd08f);
+  --color-del: light-dark(#fde9e9, #2c1517);
+  --color-delt: light-dark(#b3261e, #ff8a80);
+  /* Code letters only: Catppuccin Latte (light) and Mocha (dark) syntax colors. Backgrounds stay Riso. */
+  --color-codetx: light-dark(#4c4f69, #cdd6f4);
+  --color-kw: light-dark(#8839ef, #cba6f7); /* mauve */
+  --color-str: light-dark(#40a02b, #a6e3a1); /* green */
+  --color-com: light-dark(#9ca0b0, #6c7086); /* overlay0 */
+  --color-fn: light-dark(#1e66f5, #89b4fa); /* blue */
+  --color-ty: light-dark(#df8e1d, #f9e2af); /* yellow */
+  --color-num: light-dark(#fe640b, #fab387); /* peach */
+  --color-op: light-dark(#04a5e5, #89dceb); /* sky */
+  --color-punc: light-dark(#7c7f93, #9399b2); /* overlay2 */
+  --color-lit: light-dark(#fe640b, #fab387); /* peach: true, false, nil */
+
+  /* tiers: a severity scale, never color alone (each has an icon) */
+  --color-core: light-dark(#e5383b, #ff5a5d);
+  --color-glue: light-dark(#f2711c, #ff8a3d);
+  --color-tests: light-dark(#f5c400, #ffd43b);
+  --color-docs: light-dark(#4c8df6, #74a8ff);
+  --color-boilerplate: light-dark(#3fae5a, #5cc977);
+  --color-generated: light-dark(#9a9ca6, #7d7f89);
+
+  /* flags: one color per kind, everywhere the flag shows */
+  --color-risky: light-dark(#e03131, #ff6b6b);
+  --color-deviation: light-dark(#a0592b, #d9915f);
+  --color-untested: light-dark(#1098ad, #3bc9db);
+  --color-uncertain: light-dark(#c2255c, #f06595);
+  --color-onfl: light-dark(#ffffff, #1b1d26);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141413;
-    --panel: #1c1b1a;
-    --border: #2c2b29;
-    --text: #e8e6e1;
-    --muted: #8f8a80;
-    --add-bg: #15291b;
-    --add-fg: #7fd09a;
-    --del-bg: #2e1717;
-    --del-fg: #f0a0a0;
-    --hunk-bg: #1b2030;
-    --hunk-fg: #9aa8cf;
-    --accent: #8ea4ff;
-    --core: #fb923c;
-    --glue: #9aa8cf;
-    --tests: #7fd09a;
-    --boilerplate: #8f8a80;
-    --generated: #6b675f;
-    color-scheme: dark;
+
+:root {
+  color-scheme: light dark;
+  /* side columns are translucent so the glow shows through */
+  --side: light-dark(color-mix(in srgb, #f5f5f3 45%, transparent), color-mix(in srgb, #000 30%, transparent));
+  /* The same tint, opaque: what --side looks like over the page background. Used inside the scrolling diff. */
+  --side-solid: light-dark(#f5f5f3, #0b0b0d);
+  --glow-a: light-dark(rgb(255 79 139 / 0.22), rgb(255 79 139 / 0.16));
+  --glow-b: light-dark(rgb(255 176 92 / 0.18), rgb(140 90 255 / 0.1));
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    /* Glow (picked in the design): soft pink top-left, warm bottom-right; still, no grain. */
+    background:
+      radial-gradient(900px 520px at 8% -10%, var(--glow-a), transparent 70%),
+      radial-gradient(800px 600px at 105% 110%, var(--glow-b), transparent 70%),
+      var(--color-bg);
+    min-height: 100dvh;
+    color: var(--color-tx);
+    font: 15px/1.5 var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* The interface isn't text to copy: clicks shouldn't select labels or icons.
+       Code, notes and flag text opt back in with .selectable. */
+    user-select: none;
+    cursor: default;
+  }
+  .selectable,
+  textarea,
+  input {
+    user-select: text;
+  }
+  .selectable {
+    cursor: text;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+  button,
+  a,
+  summary {
+    transition:
+      background-color 0.15s,
+      color 0.15s,
+      box-shadow 0.15s,
+      opacity 0.15s,
+      scale 0.15s;
+  }
+  button:not(:disabled):active {
+    scale: 0.97;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-pk);
+    outline-offset: 2px;
+  }
+  /* Thin scrollbars everywhere, in the theme's line color. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-tline) transparent;
   }
 }
 
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
-body { background: var(--bg); color: var(--text); font: 13px/1.45 var(--sans); }
-code { font-family: var(--mono); font-size: 12px; }
-button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
-
-.layout { display: grid; grid-template-columns: 320px 1fr; height: 100%; }
-
-.sidebar { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 16px; }
-.brand { font: 600 14px var(--mono); margin-bottom: 12px; }
-.sidebar h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 20px 0 8px; display: flex; justify-content: space-between; }
-.summary { margin: 0; }
-.muted { color: var(--muted); }
-.error { color: var(--del-fg); }
-.keys { margin-top: 20px; font-size: 11px; }
-
-.file-link { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 6px; border-radius: 4px; text-align: left; }
-.file-link:hover { background: var(--border); }
-.file-link.active { outline: 1px solid var(--accent); }
-.file-link.done .file-name { text-decoration: line-through; color: var(--muted); }
-.file-name { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; flex: 1; }
-.flag-count { background: var(--core); color: var(--bg); border-radius: 8px; padding: 0 6px; font-size: 11px; }
-
-.tier { font: 600 10px var(--mono); text-transform: uppercase; padding: 1px 5px; border-radius: 3px; border: 1px solid currentColor; flex-shrink: 0; }
-.tier-core { color: var(--core); }
-.tier-glue { color: var(--glue); }
-.tier-tests { color: var(--tests); }
-.tier-boilerplate { color: var(--boilerplate); }
-.tier-generated { color: var(--generated); }
-
-.flag { padding: 6px 8px; border-left: 3px solid var(--core); background: var(--bg); margin-bottom: 6px; border-radius: 0 4px 4px 0; }
-.flag-kind { font: 600 11px var(--mono); }
-.flag-inline { font-size: 12px; color: var(--core); margin-right: 12px; }
-
-.diff { overflow: auto; }
-.row { position: absolute; top: 0; left: 0; min-width: 100%; }
-
-.file-header { height: 100%; padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.file-header.done { opacity: .55; }
-.file-header-top { display: flex; align-items: center; gap: 10px; }
-.file-header-why { margin: 4px 0 0 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.why { color: var(--muted); font-size: 12px; }
-.chevron { width: 18px; color: var(--muted); }
-.file-path { font: 600 12px var(--mono); }
-.stat { font: 12px var(--mono); }
-.stat.add { color: var(--add-fg); }
-.stat.del { color: var(--del-fg); }
-.override { font-size: 11px; color: var(--muted); border: 1px dashed var(--border); padding: 0 5px; border-radius: 3px; }
-.reviewed { margin-left: auto; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 4px; }
-
-.line { display: flex; height: 20px; font: 12px/20px var(--mono); white-space: pre; }
-.ln { width: 48px; flex-shrink: 0; text-align: right; padding-right: 8px; color: var(--muted); user-select: none; }
-.code { padding-left: 8px; }
-.line-add { background: var(--add-bg); }
-.line-add .code { color: var(--add-fg); }
-.line-del { background: var(--del-bg); }
-.line-del .code { color: var(--del-fg); }
-.line-hunk { background: var(--hunk-bg); color: var(--hunk-fg); }
-
-@media (max-width: 760px) {
-  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .sidebar { max-height: 40vh; border-right: 0; border-bottom: 1px solid var(--border); }
+/* Side lists: the scrollbar only shows while the pointer is over the list. */
+.scroll-quiet {
+  scrollbar-color: transparent transparent;
+}
+.scroll-quiet:hover,
+.scroll-quiet:focus-within {
+  scrollbar-color: var(--color-tline) transparent;
 }
 
-/* Draft line comments */
-.add-comment { width: 20px; flex-shrink: 0; color: var(--accent); font-weight: 600; opacity: 0; }
-.line:hover .add-comment, .add-comment:focus-visible { opacity: 1; }
-.draft { margin: 4px 12px 8px 124px; max-width: 760px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; font-family: var(--sans); }
-.draft-outdated { border-left-color: var(--muted); }
-.draft-meta { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-.draft-meta .link:first-of-type { margin-left: auto; }
-.draft-body { white-space: pre-wrap; overflow-wrap: anywhere; }
-.outdated { font-size: 11px; color: var(--muted); border: 1px dashed var(--border); padding: 0 5px; border-radius: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
-.composer textarea { width: 100%; resize: vertical; font: 13px/1.45 var(--sans); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; }
-.composer textarea:focus { outline: 1px solid var(--accent); }
-.composer-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 6px; }
-.link { color: var(--accent); font-size: 12px; }
-.link.danger { color: var(--del-fg); }
-.primary { background: var(--accent); color: var(--bg); border-radius: 4px; padding: 3px 10px; font-size: 12px; }
-.primary:disabled { opacity: .5; cursor: default; }
-.copy-prompt { width: 100%; margin-bottom: 8px; padding: 5px 8px; border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; }
-.copy-prompt:hover { background: var(--bg); }
-.draft-link { display: block; width: 100%; text-align: left; padding: 4px 6px; border-radius: 4px; }
-.draft-link:hover { background: var(--border); }
-.draft-where { display: flex; gap: 6px; align-items: center; font: 12px var(--mono); }
-.draft-preview { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.draft-count { background: var(--accent); color: var(--bg); border-radius: 8px; padding: 0 6px; font-size: 11px; }
-@media (max-width: 760px) { .draft { margin-left: 24px; } }
+/* ---------- motion ---------- */
 
-.pr { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
-.pr-title { color: var(--text); font-weight: 600; text-decoration: none; }
-.pr-title:hover { text-decoration: underline; }
-.pr-refs { font: 11px var(--mono); }
-.meta { font-size: 11px; margin: 6px 0 0; }
-.ok { color: var(--add-fg); }
-.ok a, .error a { color: inherit; }
-.progress { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); margin-bottom: 12px; }
-.spinner { flex: none; width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-.draft-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-.draft-actions .copy-prompt { margin: 0; width: auto; flex: 1; }
-.confirm { border: 1px solid var(--border); border-radius: 6px; background: var(--bg); padding: 10px; margin-bottom: 10px; }
-.confirm p { margin: 0 0 8px; }
-.confirm textarea { width: 100%; font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px; resize: vertical; }
-button:disabled { opacity: .5; cursor: default; }
+/* The notes margin width, animatable so the margin tint slides when notes fold. */
+@property --nw {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+/* Fade up on mount; set --i on siblings to stagger them. */
+.rise {
+  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    translate: 10px 0;
+  }
+}
+.slide-in {
+  animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes pop {
+  0% {
+    scale: 0.4;
+  }
+  60% {
+    scale: 1.2;
+  }
+}
+.pop {
+  animation: pop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+@keyframes drawer-in {
+  from {
+    translate: 100% 0;
+  }
+}
+.drawer-in {
+  animation: drawer-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Margin notes glide when one above them grows, shrinks or goes away (set after first placement). */
+.note-placed {
+  transition: top 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Screen changes (Briefing ↔ Review) cross-fade with a small lift. */
+::view-transition-old(root) {
+  animation: 0.18s ease-in both fade-out;
+}
+::view-transition-new(root) {
+  animation: 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both rise;
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Inline SVG icons (Material Symbols Sharp), sized by font-size like the icon font would be. */
+.icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  line-height: 1;
+}
+.icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+/* Collapsible groups: native <details>, chevron before the label, slide open where supported. */
+details.fold > summary {
+  list-style: none;
+}
+details.fold > summary::-webkit-details-marker {
+  display: none;
+}
+details.fold:not([open]) > summary .chev {
+  rotate: -90deg;
+}
+details.fold::details-content {
+  interpolate-size: allow-keywords;
+  overflow: clip;
+}
+details.fold:not([open])::details-content {
+  block-size: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  details.fold > summary .chev {
+    transition: rotate 0.2s;
+  }
+  details.fold::details-content {
+    transition:
+      block-size 0.25s ease-in-out,
+      content-visibility 0.25s allow-discrete;
+  }
+}
+
+/* Tree guide lines: a vertical rule down the children, a short tick into each row. */
+.kids {
+  position: relative;
+  margin-left: 13px;
+  padding-left: 9px;
+}
+.kids::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 14px;
+  width: 1.5px;
+  border-radius: 2px;
+  background: var(--color-tline);
+}
+.kids > .twig,
+.kids > details > summary {
+  position: relative;
+}
+.kids > .twig::before,
+.kids > details > summary::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 50%;
+  width: 7px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--color-tline);
+}
+
+/*
+ * Review surfaces: code on paper, the notes margin a tinted side strip with a 1px separator.
+ * --nw is the margin's width; 0 when notes are folded, so the tint goes away.
+ */
+/* The diff's notes strip, painted on the scrolling content in opaque colors so the code layer stays opaque. */
+.paper {
+  background: linear-gradient(
+    to left,
+    var(--side-solid) var(--nw),
+    var(--color-ln) var(--nw),
+    var(--color-ln) calc(var(--nw) + 1px),
+    var(--color-code) calc(var(--nw) + 1px)
+  );
+}
+
+/* The sticky tool row: the same strip and separator as the diff below, so the separator runs straight
+   through it and the notes handle sits on the line (as in the design). Opaque, so it stays cheap to scroll. */
+.paper-solid {
+  background: linear-gradient(
+    to left,
+    var(--side-solid) var(--nw),
+    var(--color-ln) var(--nw),
+    var(--color-ln) calc(var(--nw) + 1px),
+    var(--color-code) calc(var(--nw) + 1px)
+  );
+}
+
+/* Files far off screen skip layout and paint. Each file sets its own estimated height
+   (--est) so the scrollbar doesn't jump as files render; the browser remembers real sizes after. */
+.file-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--est, 600px);
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

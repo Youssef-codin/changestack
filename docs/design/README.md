@@ -4,14 +4,14 @@ Handoff for designing the viewer. What each screen holds is settled; what it loo
 
 - **Screens guide:** https://claude.ai/artifact/9MM8NuutTRkAZxP5KaeWtN (source: `docs/design/screens.html`). It covers each screen's purpose, contents, data sources and a rough sketch, plus states, where flags show, and the merge verdict rules.
 - The sketches are wireframes for content and placement, not visual design. Every visual choice is open.
-- Current viewer: `packages/viewer/src/App.tsx` (Solid, virtualized diff) and `styles.css` (palette and tier colors).
+- Built: `packages/viewer/src/` (Solid + Tailwind v4). `Briefing.tsx`, `Review.tsx` and `Submit.tsx` are the screens, `store.tsx` holds the state, and `styles.css` has the Riso tokens as `light-dark()` values.
 
 ## Flow
 
 1. **Pick a PR:** stays a terminal prompt. Not a browser screen.
 2. **Briefing:** opens first, at the top of the review.
    - **Layout locked: Open** (`docs/design/briefing-layouts.html#open`). Top bar, then the verdict as a full-width colored band (score, verdict, tier tags, sentence, meter), then the page itself with no cards: Check first on the left, a vertical rule, Resume review and What it builds on the right, thin rules between items.
-   - Narrow widths: the band stacks (score above verdict), and the two columns become one in this order: Resume review, Check first, What it builds. Very wide: content caps at about 1200px while the band stays full width.
+   - Narrow widths: the band stacks (score above verdict), and the two columns become one in this order: Resume review, Check first, What it builds. Very wide: the band and the page below it share the full width, with no content cap, so they always line up.
    - Merge verdict
    - "Check first" flags
    - Tier breakdown
