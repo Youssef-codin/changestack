@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { SessionContext, SessionContextRequest } from "./index";
+import type { TestRun } from "@changestack/schema";
+import type { SessionContext, SessionContextRequest, TestRunsRequest } from "./index";
 
 /**
  * Reads Claude Code session transcripts (`~/.claude/projects/<encoded cwd>/<session>.jsonl`)
@@ -89,6 +90,8 @@ function isTestRun(cmd: string): boolean {
   const head = cmd.split("<<")[0]!;
   return head.split(/&&|\|\||;|\|/).some((seg) => TEST_SEGMENT.test(seg));
 }
+/** A run that executes tests, as opposed to only type-checking or linting. */
+const RUNS_TESTS = /\b(test|jest|vitest|pytest|mocha|unittest)\b/i;
 const SKIP_IN_CODE = /\b(it|test|describe)\.(skip|todo)\(|\bx(it|describe)\(|@(pytest\.mark\.)?skip\b|#\[ignore\]|t\.Skip\(/;
 const TELLING =
   /\b(not sure|unsure|uncertain|guess|assum|probably|might|unclear|workaround|hack|todo|skip|instead|revert|abandon|give up|gave up|fall ?back|for now|temporar|doesn'?t work|didn'?t work|couldn'?t|can'?t|fail|broke|flaky|deviat|out of scope)/i;
@@ -112,6 +115,9 @@ function readSession(file: string, roots: string[], branch: string, changed: Set
   const pending = new Map<string, { name: string; input: Record<string, unknown> }>();
   let order = 0;
   let started: string | undefined;
+  /** User prompts seen so far: the turn a test run belongs to. */
+  let turn = 0;
+  const runs: Omit<TestRun, "session">[] = [];
   // Shell commands often name a file relative to a subdirectory; trust a bare basename only when it's unambiguous.
   const base = (f: string) => f.split("/").pop()!;
   const counts = new Map<string, number>();
@@ -136,7 +142,10 @@ function readSession(file: string, roots: string[], branch: string, changed: Set
     for (const b of blocks) {
       if (b.type === "text" && e.type === "user") {
         // The user's own prompts frame everything else; harness noise is skipped.
-        if (!NOISE.test(b.text)) snippets.push({ order: order++, score: 4, text: `User asked: ${clip(b.text, 400)}` });
+        if (!NOISE.test(b.text)) {
+          turn++;
+          snippets.push({ order: order++, score: 4, text: `User asked: ${clip(b.text, 400)}` });
+        }
       } else if (b.type === "text" && e.type === "assistant") {
         snippets.push({ order: order++, score: TELLING.test(b.text) ? 3 : 1, text: `Agent: ${clip(b.text)}` });
       } else if (b.type === "thinking" && b.thinking) {
@@ -164,6 +173,7 @@ function readSession(file: string, roots: string[], branch: string, changed: Set
           snippets.push({ order: order++, score: 5, text: `User rejected an edit to ${relTo(path, roots, changed)} (approach abandoned)` });
         } else if (call.name === "Bash" && isTestRun(String(call.input.command ?? ""))) {
           const cmd = clip(String(call.input.command), 160);
+          runs.push({ command: cmd, kind: RUNS_TESTS.test(cmd) ? "test" : "check", ok: !b.is_error, turn, at: e.timestamp ?? null });
           if (b.is_error) snippets.push({ order: order++, score: 4, text: `Failed: \`${cmd}\` → ${clip(out, 300)}` });
           else if (/\bskip(ped)?\b/i.test(out)) snippets.push({ order: order++, score: 4, text: `Reported skips: \`${cmd}\` → ${clip(out, 200)}` });
           else snippets.push({ order: order++, score: 2, text: `Passed: \`${cmd}\`` });
@@ -173,7 +183,7 @@ function readSession(file: string, roots: string[], branch: string, changed: Set
   }
 
   const touched = [...edited].filter((f) => changed.has(f)).sort();
-  return { snippets, touched, started };
+  return { snippets, touched, started, runs };
 }
 
 /**
@@ -227,4 +237,12 @@ export function sessionContext(req: SessionContextRequest): SessionContext | nul
     untouched.length ? `Changed files with no edit seen in these sessions (possibly written by a human, another tool, or an earlier session): ${untouched.join(", ")}` : "",
   ].filter(Boolean);
   return { text: [...header, "", ...parts].join("\n"), sources };
+}
+
+/** Every test, type-check and lint run in the PR's sessions, oldest first. */
+export function sessionTestRuns(req: TestRunsRequest): TestRun[] {
+  return [...findTranscripts(req.root, req.branch)].reverse().flatMap(({ file, roots }) => {
+    const { runs, started } = readSession(file, roots, req.branch, new Set());
+    return runs.map((r) => ({ ...r, session: started ?? "?" }));
+  });
 }

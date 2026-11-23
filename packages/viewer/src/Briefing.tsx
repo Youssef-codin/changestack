@@ -1,7 +1,7 @@
-import type { ClassifyStatus, Verdict } from "@changestack/schema";
+import type { BriefingFacts, ClassifyStatus, ReviewPayload, TestRun, Verdict } from "@changestack/schema";
 import { VERDICT_LEVELS, VERDICT_RANGES } from "@changestack/schema/tiers";
-import { createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
-import { Icon } from "./icons";
+import { createEffect, createSignal, For, type JSX, Match, onCleanup, onMount, Show, Switch } from "solid-js";
+import { Icon, type IconName } from "./icons";
 import { ago, flagColor, type FlagItem, OTHER, featureGroups, TIER_ICON, tierColor, tierStats, VERDICT, verdictLine } from "./model";
 import { useStore } from "./store";
 import { FlagIcon, Heading, plural, Spinner, TopBar } from "./ui";
@@ -272,6 +272,7 @@ function CheckFirst() {
       <Heading icon="flag" id="check-first">
         Check first
       </Heading>
+      <Facts />
       <Show
         when={s.model().flags.length}
         fallback={
@@ -283,6 +284,150 @@ function CheckFirst() {
         <For each={s.model().flags}>{(f) => <FlagRow flag={f} />}</For>
       </Show>
     </>
+  );
+}
+
+/**
+ * The store polls only while classifying, but facts land a second after startup and CI
+ * may still be running, so this asks again on its own until both have settled.
+ */
+function useFacts() {
+  const s = useStore();
+  const [fresh, setFresh] = createSignal<BriefingFacts | null | undefined>(undefined, { equals: false });
+  const facts = () => (fresh() === undefined ? (s.payload.latest?.facts ?? null) : fresh()!);
+  createEffect(() => {
+    if (!s.payload.latest) return;
+    const f = facts();
+    if (f && f.ci?.state !== "pending") return;
+    const timer = setTimeout(
+      () =>
+        void fetch("/api/review")
+          .then((r) => (r.ok ? (r.json() as Promise<ReviewPayload>) : null))
+          .then((p) => setFresh(p ? p.facts : facts()))
+          .catch(() => setFresh(facts())),
+      f ? 15_000 : 1_500,
+    );
+    onCleanup(() => clearTimeout(timer));
+  });
+  return facts;
+}
+
+interface Fact {
+  icon: IconName;
+  tone: "good" | "bad" | "muted";
+  title: string;
+  detail: string;
+  spin?: boolean;
+  href?: string;
+  onClick?: () => void;
+}
+
+const sessionLabel = (runs: TestRun[], r: TestRun) => {
+  const sessions = [...new Set(runs.map((x) => x.session))];
+  return sessions.length > 1 ? `session ${sessions.indexOf(r.session) + 1}, turn ${r.turn}` : `turn ${r.turn}`;
+};
+
+function ciFact(f: BriefingFacts, prUrl: string): Fact | null {
+  const ci = f.ci;
+  if (!ci) return null;
+  const checks = `${prUrl}/checks`;
+  const n = (b: string) => ci.checks.filter((c) => c.bucket === b);
+  switch (ci.state) {
+    case "passing":
+      return { icon: "check_circle", tone: "good", title: "CI passing", detail: plural(n("pass").length, "check"), href: checks };
+    case "failing": {
+      const bad = [...n("fail"), ...n("cancel")];
+      return { icon: "error", tone: "bad", title: "CI failing", detail: bad.map((c) => c.name).join(", "), href: bad.find((c) => c.url)?.url || checks };
+    }
+    case "pending":
+      return { icon: "progress_activity", tone: "muted", spin: true, title: "CI running", detail: `${ci.checks.length - n("pending").length} of ${plural(ci.checks.length, "check")} done`, href: checks };
+    case "none":
+      return { icon: "help", tone: "muted", title: "No CI", detail: "no checks reported on this head" };
+  }
+}
+
+/** What the session's own test runs say: the last one's outcome, and the first failure if it recovered. */
+function testRunFact(f: BriefingFacts, hasSession: boolean): Fact | null {
+  const runs = f.testRuns;
+  const tests = runs.filter((r) => r.kind === "test");
+  if (tests.length === 0) {
+    if (!hasSession) return null;
+    const lastCheck = runs.at(-1);
+    return {
+      icon: "science_off",
+      tone: "bad",
+      title: "No test run in the session",
+      detail: lastCheck ? `last ${lastCheck.command.split(" ").slice(0, 3).join(" ")} ${lastCheck.ok ? "passed" : "failed"}` : "nor a type-check or lint",
+    };
+  }
+  const last = tests.at(-1)!;
+  const firstFail = tests.find((r) => !r.ok);
+  if (!last.ok) return { icon: "error", tone: "bad", title: `Test run failed at ${sessionLabel(runs, last)}`, detail: `${last.command}, the last one the agent ran` };
+  if (firstFail) return { icon: "science", tone: "muted", title: `Test run failed at ${sessionLabel(runs, firstFail)}`, detail: `passed again by ${sessionLabel(runs, last)}` };
+  return { icon: "science", tone: "good", title: "Tests passed in the session", detail: `${plural(tests.length, "run")}, last at ${sessionLabel(runs, last)}` };
+}
+
+function testFilesFact(f: BriefingFacts, open: (file: string) => void): Fact {
+  const added = f.testFiles.filter((t) => t.status === "added").length;
+  const changed = f.testFiles.length - added;
+  if (f.testFiles.length === 0) return { icon: "science_off", tone: "bad", title: "No tests added", detail: "no test file in this PR" };
+  const first = f.testFiles[0]!.file;
+  return {
+    icon: "science",
+    tone: "good",
+    title: added ? `${plural(added, "test file")} added` : `${plural(changed, "test file")} changed`,
+    detail: added && changed ? `and ${changed} changed` : first,
+    onClick: () => open(first),
+  };
+}
+
+/** One row of plain facts above the flags: CI on the head, the session's test runs, tests in the diff. */
+function Facts() {
+  const s = useStore();
+  const facts = useFacts();
+  const items = (): Fact[] => {
+    const f = facts();
+    const pr = s.pr();
+    if (!f || !pr) return [];
+    const hasSession = (s.review()?.annotation?.transcripts.length ?? f.testRuns.length) > 0;
+    return [ciFact(f, pr.url), testRunFact(f, hasSession), testFilesFact(f, (file) => s.go("review", { file }))].filter((x): x is Fact => !!x);
+  };
+  const toneColor = { good: "var(--color-addt)", bad: "var(--color-delt)", muted: "var(--color-mu)" };
+  return (
+    <Show when={facts()} fallback={<p class="m-0 flex items-center gap-2 border-b border-ln py-3.5 text-sm text-mu"><Spinner /> Checking CI and the session's test runs…</p>}>
+      <div class="grid gap-px border-b border-ln sm:grid-cols-3">
+        <For each={items()}>
+          {(fact) => {
+            const body = (): JSX.Element => (
+              <>
+                <span class="row-span-2 mt-0.5 text-[18px]" style={{ color: toneColor[fact.tone] }}>
+                  <Icon name={fact.icon} class={fact.spin ? "animate-spin" : ""} />
+                </span>
+                <b class="text-sm font-semibold">{fact.title}</b>
+                <span class="truncate font-mono text-xs text-mu" title={fact.detail}>
+                  {fact.detail}
+                </span>
+              </>
+            );
+            const cls = "grid grid-cols-[22px_minmax(0,1fr)] gap-x-2 py-3.5 pr-3 text-left";
+            return (
+              <Switch fallback={<div class={cls}>{body()}</div>}>
+                <Match when={fact.href}>
+                  <a class={`${cls} hover:bg-hov`} href={fact.href} target="_blank" rel="noreferrer">
+                    {body()}
+                  </a>
+                </Match>
+                <Match when={fact.onClick}>
+                  <button class={`${cls} hover:bg-hov`} onClick={fact.onClick}>
+                    {body()}
+                  </button>
+                </Match>
+              </Switch>
+            );
+          }}
+        </For>
+      </div>
+    </Show>
   );
 }
 

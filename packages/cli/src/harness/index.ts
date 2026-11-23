@@ -1,3 +1,4 @@
+import type { TestRun } from "@changestack/schema";
 import type { z } from "zod";
 import { claudeCode } from "./claude-code";
 
@@ -43,6 +44,12 @@ export interface SessionContext {
   sources: string[];
 }
 
+export interface TestRunsRequest {
+  root: string;
+  /** The PR's head branch; sessions on other branches are ignored. */
+  branch: string;
+}
+
 /** A coding-agent CLI that changestack drives headlessly. */
 export interface Harness {
   name: string;
@@ -52,6 +59,8 @@ export interface Harness {
   runJson<T>(req: RunJsonRequest<T>): Promise<RunJsonResult<T>>;
   /** What the agent's own sessions say about this PR, or null when none are found. */
   sessionContext?(req: SessionContextRequest): SessionContext | null;
+  /** Test and check commands the agent ran in this PR's sessions, oldest first. */
+  testRuns?(req: TestRunsRequest): TestRun[];
 }
 
 /** The configured harness. Only Claude Code exists today. */

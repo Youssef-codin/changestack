@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { classify, diffHash, loadCached } from "./classify";
+import { gatherFacts } from "./facts";
 import { describePr, parsePrTarget, prDiff, resolvePr } from "./gh";
 import { splitDiff } from "./git";
 import { configuredModel, getHarness } from "./harness";
@@ -60,6 +61,7 @@ async function openPr(args: string[]): Promise<void> {
     pr,
     diff,
     annotation: cached,
+    facts: null,
     status: cached
       ? { state: "ready", cached: true }
       : files.length === 0
@@ -72,6 +74,9 @@ async function openPr(args: string[]): Promise<void> {
   console.error(`changestack: ${cached ? "using cached classification" : files.length ? "classifying in the background" : "nothing to classify"}`);
   console.error(`changestack: open ${url}  (Ctrl+C to stop)`);
   if (!args.includes("--no-open")) openBrowser(url);
+
+  // Not cached with the annotation: CI moves, and new sessions may have run tests since.
+  void gatherFacts(root, pr, files, harness).then((facts) => (state.facts = facts));
 
   if (state.status.state !== "classifying") return;
   const started = state.status;

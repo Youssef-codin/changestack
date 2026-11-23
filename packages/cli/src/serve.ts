@@ -1,6 +1,7 @@
 import { join, normalize, resolve } from "node:path";
-import { type Annotation, type ClassifyStatus, Draft, DraftScope, type ReviewPayload, type SubmitResult } from "@changestack/schema";
+import { type Annotation, type BriefingFacts, type ClassifyStatus, Draft, DraftScope, type ReviewPayload, type SubmitResult } from "@changestack/schema";
 import { z } from "zod";
+import { refreshCi } from "./facts";
 import { deleteDraft, loadDrafts, prScope, removeDrafts, upsertDrafts } from "./drafts";
 import { type PullRequest, type ReviewComment, submitReview } from "./gh";
 
@@ -14,6 +15,8 @@ export interface ReviewState {
   diff: string;
   status: ClassifyStatus;
   annotation: Annotation | null;
+  /** Null until gathered; see facts.ts. */
+  facts: BriefingFacts | null;
 }
 
 const DraftsPut = z.object({ drafts: z.array(Draft).max(1000) });
@@ -85,10 +88,12 @@ async function handleSubmit(req: Request, state: ReviewState): Promise<Response>
 
 /** Serve the viewer and API for one PR. Tries `port`, then any free port. */
 export function startServer(state: ReviewState, port: number) {
+  const ciTries = { busy: false, at: Date.now() };
   const fetch = async (req: Request) => {
     const url = new URL(req.url);
 
     if (url.pathname === "/api/review") {
+      if (state.facts) refreshCi(state.root, state.pr, state.facts, ciTries);
       const payload: ReviewPayload = {
         pr: {
           number: state.pr.number,
@@ -102,6 +107,7 @@ export function startServer(state: ReviewState, port: number) {
         status: state.status,
         annotation: state.annotation,
         diff: state.diff,
+        facts: state.facts,
       };
       return Response.json(payload);
     }
