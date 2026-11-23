@@ -8,6 +8,7 @@ import NumberFlow, { define } from "number-flow";
 define("number-flow", NumberFlow);
 import { commentPrefix, highlight } from "./highlight";
 import { type OutlineItem, outlineOf } from "./outline";
+import { DefPeek, defClick, defHover, defLeave } from "./GoToDef";
 import { Icon } from "./icons";
 import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, type ReviewFile, rowIndex, tierGroups } from "./model";
 import { LINE_CAP, useStore } from "./store";
@@ -205,6 +206,7 @@ export function Review() {
 
   return (
     <div class="flex h-dvh flex-col">
+      <DefPeek store={s} />
       <TopBar
         right={
           <>
@@ -820,7 +822,15 @@ function FileBlock(props: { file: ReviewFile }) {
         <div class="fade-in mt-2">
           <div class="min-w-0">
             <div class="overflow-x-auto" classList={{ "mr-5": s.notesOpen() }}>
-              <div class="w-max min-w-full font-mono text-[13px] leading-6 text-codetx" onMouseLeave={() => s.setHoverLine(null)}>
+              <div
+                class="w-max min-w-full font-mono text-[13px] leading-6 text-codetx"
+                onMouseLeave={() => {
+                  s.setHoverLine(null);
+                  defLeave();
+                }}
+                onMouseMove={(e) => defHover(s, f, e)}
+                onClick={(e) => defClick(s, f, e)}
+              >
                 {/* One tinted block per run of added or removed lines, not one per line: thousands of
                     separately painted line backgrounds were the biggest scroll cost. */}
                 <For each={runs()}>

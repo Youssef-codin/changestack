@@ -35,7 +35,7 @@ const DECLS: [RegExp, string][] = [
   [/^\s*(?:(?:public|private|protected|static|readonly|override|async|get|set)\s+)*(?!(?:if|for|while|switch|catch|return|else|do|with)\b)([A-Za-z_$][\w$]*)\s*(?:<[^>]*>)?\([^)]*\)?\s*(?::[^{]*)?\{?\s*$/, "method"],
 ];
 
-function declOf(text: string): { kind: string; name: string } | null {
+export function declOf(text: string): { kind: string; name: string } | null {
   for (const [re, kind] of DECLS) {
     const m = re.exec(text);
     if (m) return { kind, name: m[1] ?? "imports" };
