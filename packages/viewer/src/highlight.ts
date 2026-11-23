@@ -5,7 +5,7 @@
  * Returns escaped HTML. Good enough to read a diff by; not a parser.
  */
 
-const KEYWORDS = new Set(
+export const KEYWORDS = new Set(
   (
     // JS / TS
     "import from export default async function const let var await return if else for while do new class interface type " +
@@ -19,7 +19,7 @@ const KEYWORDS = new Set(
 );
 
 /** Language literals and the receiver words, colored like numbers. */
-const LITERALS = new Set("true false null undefined nil None True False this self super iota".split(" "));
+export const LITERALS = new Set("true false null undefined nil None True False this self super iota".split(" "));
 
 /** Line-comment prefix by file extension; files not listed get `//`. */
 const COMMENT: Record<string, string> = {

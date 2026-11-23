@@ -1,7 +1,8 @@
 import type { Draft, ReviewPayload, SubmitResult } from "@changestack/schema";
 import { batch, createContext, createEffect, createMemo, createResource, createSelector, createSignal, onCleanup, useContext } from "solid-js";
 import type { Region } from "./folds";
-import { regionsFor } from "./syntaxFolds";
+import { syntaxFor } from "./syntaxFolds";
+import { type Def, indexDefs } from "./definitions";
 import { anchorKey, copyText, draftsPrompt, fetchDrafts, newId, putDrafts, reanchor, removeDraft, type Side, submitReview } from "./drafts";
 import {
   buildModel,
@@ -124,16 +125,24 @@ export function createStore() {
 
   // Foldable blocks per file, from a real parse (syntaxFolds.ts). Grammars load on demand,
   // so this fills in a moment after the diff shows; until then files have no fold arrows.
+  // The same parse finds each file's definitions, for go to definition (definitions.ts).
   const [regions, setRegions] = createSignal(new Map<string, Region[]>());
   const regionsOf = (file: string) => regions().get(file) ?? [];
+  const [defs, setDefs] = createSignal(new Map<string, Def[]>());
   createEffect(() => {
     const files = model().files;
     let stale = false;
     onCleanup(() => (stale = true));
-    void Promise.all(files.map(async (f) => [f.file, await regionsFor(f.file, f.lines)] as const)).then((list) => {
-      if (!stale) setRegions(new Map(list));
+    void Promise.all(files.map(async (f) => [f.file, await syntaxFor(f.file, f.lines)] as const)).then((list) => {
+      if (stale) return;
+      batch(() => {
+        setRegions(new Map(list.map(([file, x]) => [file, x.regions])));
+        setDefs(new Map(list.map(([file, x]) => [file, x.defs])));
+      });
     });
   });
+  /** Every definition in the PR's diff, by name. */
+  const defIndex = createMemo(() => indexDefs(defs()));
 
   // Folded blocks inside files, keyed `file\0startIndex`. Not saved: a fold is a moment's tidying.
   const [folds, setFolds] = createSignal(new Set<string>());
@@ -358,6 +367,7 @@ export function createStore() {
     toggleCollapsed,
     folds,
     regionsOf,
+    defIndex,
     isFolded,
     toggleFold,
     foldMany,

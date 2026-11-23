@@ -2,6 +2,7 @@ import type { Parser, Tree } from "@lezer/common";
 import type { DiffLine } from "./diff";
 import { foldRegions as guessRegions, type Region } from "./folds";
 import { commentPrefix } from "./highlight";
+import { type Def, defsIn, guessDefs, type ParsedHunk } from "./definitions";
 
 /**
  * Folding from a real parse. Each language's Lezer grammar (the parsers behind CodeMirror) is
@@ -55,34 +56,23 @@ const MIN_HIDDEN = 2;
 /** Closing lines stay visible under a fold (`}`, `)`, `]`, `</div>`); anything else folds too. */
 const CLOSER = /^\s*([)}\]]|<\/|end\b)/;
 
-/**
- * Foldable blocks for one file's diff. The new side of each hunk (added and unchanged lines)
- * is parsed on its own, since the code between hunks isn't in the diff; removed lines inside a
- * block fold with it. Indexes are into `lines`.
- */
-export async function regionsFor(file: string, lines: DiffLine[]): Promise<Region[]> {
-  const grammar = grammarFor(file);
-  if (!grammar) return guessRegions(lines, commentPrefix(file));
-  let parser: Parser;
-  try {
-    parser = await grammar;
-  } catch {
-    return guessRegions(lines, commentPrefix(file));
-  }
-
-  // Split into hunks of new-side lines, remembering each line's index in `lines`.
+/** Split into hunks of one side's lines (removed lines skipped for "new", added for "old") and parse each. */
+function parseHunks(parser: Parser, lines: DiffLine[], side: "old" | "new"): ParsedHunk[] {
+  const skip = side === "new" ? "del" : "add";
   const hunks: number[][] = [];
   let cur: number[] = [];
   lines.forEach((l, i) => {
     if (l.kind === "hunk") {
       if (cur.length) hunks.push(cur);
       cur = [];
-    } else if (l.kind !== "del") cur.push(i);
+    } else if (l.kind !== skip) cur.push(i);
   });
   if (cur.length) hunks.push(cur);
 
-  const best = new Map<number, number>(); // start index → end index (exclusive of hidden range)
+  const out: ParsedHunk[] = [];
   for (const idx of hunks) {
+    // The old side only matters where something was removed.
+    if (side === "old" && !idx.some((i) => lines[i]!.kind === "del")) continue;
     const text = idx.map((i) => lines[i]!.text).join("\n");
     const starts: number[] = [];
     let at = 0;
@@ -106,6 +96,19 @@ export async function regionsFor(file: string, lines: DiffLine[]): Promise<Regio
     } catch {
       continue;
     }
+    out.push({ tree, text, idx, lineOf, starts });
+  }
+  return out;
+}
+
+/**
+ * Foldable blocks for one file's diff. The new side of each hunk (added and unchanged lines)
+ * is parsed on its own, since the code between hunks isn't in the diff; removed lines inside a
+ * block fold with it. Indexes are into `lines`.
+ */
+function regionsIn(hunks: ParsedHunk[], lines: DiffLine[]): Region[] {
+  const best = new Map<number, number>(); // start index → end index (exclusive of hidden range)
+  for (const { tree, idx, lineOf } of hunks) {
     tree.iterate({
       enter(node) {
         if (node.type.isTop || node.type.isError) return;
@@ -129,4 +132,23 @@ export async function regionsFor(file: string, lines: DiffLine[]): Promise<Regio
     if (hidden >= MIN_HIDDEN) regions.push({ start, end: Math.min(end, lines.length) });
   }
   return regions.sort((a, b) => a.start - b.start);
+}
+
+/** One file's foldable blocks and the definitions in its diff, from one parse per side. */
+export async function syntaxFor(file: string, lines: DiffLine[]): Promise<{ regions: Region[]; defs: Def[] }> {
+  const guess = () => ({ regions: guessRegions(lines, commentPrefix(file)), defs: guessDefs(file, lines) });
+  const grammar = grammarFor(file);
+  if (!grammar) return guess();
+  let parser: Parser;
+  try {
+    parser = await grammar;
+  } catch {
+    return guess();
+  }
+  const fresh = parseHunks(parser, lines, "new");
+  const removed = parseHunks(parser, lines, "old");
+  return {
+    regions: regionsIn(fresh, lines),
+    defs: [...fresh.flatMap((h) => defsIn(file, h, "new", lines)), ...removed.flatMap((h) => defsIn(file, h, "old", lines))],
+  };
 }

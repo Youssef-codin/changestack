@@ -381,3 +381,13 @@ details.fold:not([open])::details-content {
     transition: none !important;
   }
 }
+
+/* Go to definition (GoToDef.tsx): the name under the pointer while Cmd/Ctrl is held. */
+::highlight(cs-def) {
+  text-decoration: underline 1.5px;
+  text-underline-offset: 3px;
+  color: var(--color-fn);
+}
+.cs-def-hover {
+  cursor: pointer;
+}
