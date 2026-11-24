@@ -9,14 +9,14 @@ import type { FileDiff } from "./git";
  * - The level comes from the most important tier touched:
  *   core with a deviation, risky or untested flag → careful;
  *   core otherwise → core; glue at most → skim;
- *   only tests, docs, boilerplate, generated (or config-rule glue) → merge.
+ *   only tests, docs, comments, boilerplate, generated (or config-rule glue) → merge.
  *   Core is never `merge`.
  * - The level picks a score range; the size of the change picks the spot in it,
  *   on a log scale, so bigger changes score lower.
  */
 
 /** How much one changed line in each tier counts toward size. Generated code is free. */
-const WEIGHT: Record<Tier, number> = { core: 1, glue: 1 / 3, tests: 1 / 6, docs: 1 / 8, boilerplate: 1 / 10, generated: 0 };
+const WEIGHT: Record<Tier, number> = { core: 1, glue: 1 / 3, tests: 1 / 6, docs: 1 / 8, comments: 0, boilerplate: 1 / 10, generated: 0 };
 
 const SERIOUS: ReadonlySet<Flag["kind"]> = new Set(["deviation", "risky", "untested"]);
 

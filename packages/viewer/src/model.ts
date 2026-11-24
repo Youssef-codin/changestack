@@ -9,6 +9,7 @@ export const TIER_ICON: Record<Tier, IconName> = {
   glue: "cable",
   tests: "science",
   docs: "description",
+  comments: "comments_disabled",
   boilerplate: "inventory_2",
   generated: "settings",
 };
@@ -23,8 +24,8 @@ export const FLAG_ICON: Record<Flag["kind"], IconName> = {
 export const tierColor = (t: Tier) => `var(--color-${t})`;
 export const flagColor = (k: Flag["kind"]) => `var(--color-${k})`;
 
-/** Tiers whose files start collapsed: nothing in them changes behavior. */
-export const COLLAPSED_BY_DEFAULT: readonly Tier[] = ["boilerplate", "generated"];
+/** Tiers you skim or skip: their files and their sidebar groups start collapsed. */
+export const COLLAPSED_BY_DEFAULT: readonly Tier[] = ["docs", "comments", "boilerplate", "generated"];
 
 /** The group for files that serve no single feature. */
 export const OTHER = "Setup and other";

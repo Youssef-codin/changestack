@@ -10,7 +10,7 @@ import { commentPrefix, highlight } from "./highlight";
 import { type OutlineItem, outlineOf } from "./outline";
 import { DefPeek, defClick, defHover, defLeave } from "./GoToDef";
 import { Icon } from "./icons";
-import { FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, RABBIT_ICON, type RabbitItem, type ReviewFile, rabbitColor, rowIndex, tierGroups } from "./model";
+import { COLLAPSED_BY_DEFAULT, FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, RABBIT_ICON, type RabbitItem, type ReviewFile, rabbitColor, rowIndex, tierGroups } from "./model";
 import { Prose } from "./prose";
 import { LINE_CAP, useStore } from "./store";
 import { FileName, FlagIcon, GroupSwitch, plural, TierBadge, TierTag, TopBar, VerdictChip } from "./ui";
@@ -406,6 +406,7 @@ function Rail() {
   const total = () => s.files().length;
   const done = () => s.files().filter((f) => s.reviewed().has(f.file)).length;
   const count = (files: ReviewFile[]) => `${files.filter((f) => s.reviewed().has(f.file)).length}/${files.length}`;
+  const markAll = (files: ReviewFile[]) => s.toggleReviewedAll(files.map((f) => f.file));
   return (
     <aside
       class="flex min-h-0 flex-col overflow-hidden bg-(--side) max-lg:hidden [&>*]:w-[300px] [&>*]:shrink-0"
@@ -420,7 +421,10 @@ function Rail() {
           fallback={
             <For each={tierGroups(s.files())}>
               {(g) => (
-                <Fold summary={<GroupHead icon={<TierBadge tier={g.tier} size="lg" />} label={g.tier} count={count(g.files)} />}>
+                <Fold
+                  open={!COLLAPSED_BY_DEFAULT.includes(g.tier)}
+                  summary={<GroupHead icon={<TierBadge tier={g.tier} size="lg" />} label={g.tier} count={count(g.files)} onMark={() => markAll(g.files)} />}
+                >
                   <div class="kids">
                     <For each={g.files}>{(f) => <FileRow file={f} />}</For>
                   </div>
@@ -431,12 +435,27 @@ function Rail() {
         >
           <For each={featureGroups(s.model())}>
             {(g) => (
-              <Fold summary={<GroupHead icon={<Icon name={g.name === OTHER ? "folder_open" : "category"} class="text-[16px]" />} label={g.name} count={count(g.files)} title={g.why} />}>
+              <Fold
+                summary={
+                  <GroupHead
+                    icon={<Icon name={g.name === OTHER ? "folder_open" : "category"} class="text-[16px]" />}
+                    label={g.name}
+                    count={count(g.files)}
+                    title={g.why ? `${g.why}\n${MARK_ALL_HINT}` : undefined}
+                    onMark={() => markAll(g.files)}
+                  />
+                }
+              >
                 <div class="kids">
                   <For each={tierGroups(g.files)}>
                     {(t) => (
-                      <details class="fold" open>
-                        <summary class="flex cursor-pointer items-center gap-1.5 rounded-full py-1 pr-1 pl-0.5 text-xs font-semibold capitalize hover:bg-hov">
+                      <details class="fold" open={!COLLAPSED_BY_DEFAULT.includes(t.tier)}>
+                        <summary
+                          class="flex cursor-pointer items-center gap-1.5 rounded-full py-1 pr-1 pl-0.5 text-xs font-semibold capitalize hover:bg-hov"
+                          title={MARK_ALL_HINT}
+                          onClick={markAllOn(() => markAll(t.files))}
+                          onContextMenu={markAllOn(() => markAll(t.files))}
+                        >
                           <Icon name="keyboard_arrow_down" class="chev -mr-[5px] -ml-1 text-[18px] text-mu" />
                           <TierBadge tier={t.tier} size="sm" />
                           {t.tier}
@@ -493,21 +512,38 @@ function Rail() {
   );
 }
 
+const MARK_ALL_HINT = "Ctrl+click or right-click: mark every file here reviewed (again to unmark)";
+
+/**
+ * Handler for a group header: a right-click, or a click with Ctrl or Cmd, marks the
+ * group instead of folding it or opening the browser menu. A plain click still folds.
+ */
+function markAllOn(mark: () => void) {
+  return (e: MouseEvent) => {
+    if (e.type === "click" && !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    mark();
+  };
+}
+
 /** A collapsible group in the file column. */
-function Fold(props: { summary: JSX.Element; children: JSX.Element }) {
+function Fold(props: { summary: JSX.Element; children: JSX.Element; open?: boolean }) {
   return (
-    <details class="fold" open>
+    <details class="fold" open={props.open ?? true}>
       {props.summary}
       {props.children}
     </details>
   );
 }
 
-function GroupHead(props: { icon: JSX.Element; label: string; count: string; title?: string }) {
+function GroupHead(props: { icon: JSX.Element; label: string; count: string; title?: string; onMark?: () => void }) {
+  const mark = props.onMark ? markAllOn(props.onMark) : undefined;
   return (
     <summary
       class="mt-4 mb-1 flex cursor-pointer items-center gap-2 text-xs font-semibold tracking-[.07em] text-mu uppercase hover:text-tx"
-      title={props.title}
+      title={props.title ?? (props.onMark ? MARK_ALL_HINT : undefined)}
+      onClick={mark}
+      onContextMenu={mark}
     >
       <Icon name="keyboard_arrow_down" class="chev -mr-[5px] -ml-1 text-[18px]" />
       {props.icon}
@@ -777,9 +813,48 @@ function RollingNumber(props: { value: number }) {
   return el;
 }
 
+/**
+ * Calls `onNear` once `el` comes within a couple of screens of the diff column's viewport.
+ * One observer for every file: building all of a big PR's rows up front took seconds.
+ */
+const nearCallbacks = new Map<Element, () => void>();
+let nearIo: IntersectionObserver | undefined;
+function whenNear(el: HTMLElement, onNear: () => void): () => void {
+  // The Review screen remounts with a new scroller after a trip to the Briefing.
+  const root = el.closest("main");
+  if (nearIo && nearIo.root !== root) {
+    nearIo.disconnect();
+    nearIo = undefined;
+  }
+  if (!nearIo) {
+    nearIo = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          nearIo!.unobserve(e.target);
+          const cb = nearCallbacks.get(e.target);
+          nearCallbacks.delete(e.target);
+          cb?.();
+        }
+      },
+      { root, rootMargin: "2000px 0px" },
+    );
+  }
+  nearCallbacks.set(el, onNear);
+  nearIo.observe(el);
+  return () => {
+    nearCallbacks.delete(el);
+    nearIo?.unobserve(el);
+  };
+}
+
 function FileBlock(props: { file: ReviewFile }) {
   const s = useStore();
   const f = props.file;
+  // Rows are built once the file nears the screen, or a jump heads for it; then they stay.
+  const [near, setNear] = createSignal(false);
+  const live = createMemo(() => near() || s.jump()?.file === f.file);
+  createEffect(() => live() && setNear(true));
   // Memos, so folding or marking one file doesn't re-run every file that reads the shared sets.
   const open = createMemo(() => !s.collapsed().has(f.file));
   const done = createMemo(() => s.reviewed().has(f.file));
@@ -838,9 +913,12 @@ function FileBlock(props: { file: ReviewFile }) {
   const whyCard = () => s.notesOpen() && f.whys.length > 0;
   let head!: HTMLDivElement;
   let body!: HTMLDivElement;
+  let section!: HTMLElement;
+  onMount(() => onCleanup(whenNear(section, () => setNear(true))));
 
   return (
     <section
+      ref={section}
       id={`F:${f.file}`}
       data-file={f.file}
       // Right under a feature heading, the divider (and the Why card beside it) sits close to it.
@@ -975,6 +1053,7 @@ function FileBlock(props: { file: ReviewFile }) {
               >
                 {/* One tinted block per run of added or removed lines, not one per line: thousands of
                     separately painted line backgrounds were the biggest scroll cost. */}
+                <Show when={live()} fallback={<div style={{ height: `${display().length * LINE_H}px` }} />}>
                 <For each={runs()}>
                   {(run) => (
                     <div class="rounded-lg" classList={{ "bg-add": run.kind === "add", "bg-del": run.kind === "del" }}>
@@ -1006,6 +1085,7 @@ function FileBlock(props: { file: ReviewFile }) {
                     </div>
                   )}
                 </For>
+                </Show>
               </div>
             </div>
             <Show when={shownCount() < f.lines.length}>

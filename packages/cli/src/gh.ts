@@ -115,24 +115,31 @@ function prRemote(root: string, pr: PullRequest): string {
 }
 
 /**
- * The PR's diff from local git: base and head commits (fetched by SHA if missing, which
- * only adds objects and FETCH_HEAD, never touches the working tree), diffed from their
- * merge base the way GitHub does. Fixed prefixes and no external diff, whatever the user's config.
+ * Make the PR's base and head commits available locally, fetching them by SHA if missing.
+ * That only adds objects and FETCH_HEAD; it never touches the working tree. Returns an error
+ * message, or null once both commits are here.
+ */
+export function ensurePrCommits(root: string, pr: PullRequest): string | null {
+  const missing = [pr.baseRefOid, pr.headRefOid].filter((oid) => !hasCommit(root, oid));
+  if (!missing.length) return null;
+  const remote = prRemote(root, pr);
+  const fetched = git(root, ["fetch", "--no-tags", "--quiet", remote, ...missing]);
+  // Some servers refuse a bare SHA; the PR's head ref and base branch carry the same commits.
+  if (!fetched.ok || missing.some((oid) => !hasCommit(root, oid))) {
+    git(root, ["fetch", "--no-tags", "--quiet", remote, `refs/pull/${pr.number}/head`, `refs/heads/${pr.baseRefName}`]);
+  }
+  const still = missing.filter((oid) => !hasCommit(root, oid));
+  if (!still.length) return null;
+  return `git couldn't fetch ${still.map((o) => o.slice(0, 7)).join(", ")} from ${remote}: ${fetched.stderr || "unknown error"}`;
+}
+
+/**
+ * The PR's diff from local git, diffed from the merge base the way GitHub does.
+ * Fixed prefixes and no external diff, whatever the user's config.
  */
 function localPrDiff(root: string, pr: PullRequest): string {
-  const missing = [pr.baseRefOid, pr.headRefOid].filter((oid) => !hasCommit(root, oid));
-  if (missing.length) {
-    const remote = prRemote(root, pr);
-    const fetched = git(root, ["fetch", "--no-tags", "--quiet", remote, ...missing]);
-    // Some servers refuse a bare SHA; the PR's head ref and base branch carry the same commits.
-    if (!fetched.ok || missing.some((oid) => !hasCommit(root, oid))) {
-      git(root, ["fetch", "--no-tags", "--quiet", remote, `refs/pull/${pr.number}/head`, `refs/heads/${pr.baseRefName}`]);
-    }
-    const still = missing.filter((oid) => !hasCommit(root, oid));
-    if (still.length) {
-      throw new GhError(`GitHub won't serve this PR's diff (over 300 files) and git couldn't fetch ${still.map((o) => o.slice(0, 7)).join(", ")} from ${remote}: ${fetched.stderr || "unknown error"}`);
-    }
-  }
+  const err = ensurePrCommits(root, pr);
+  if (err) throw new GhError(`GitHub won't serve this PR's diff (over 300 files) and ${err}`);
   const res = git(root, [
     "-c", "core.quotePath=false",
     "diff", "--no-color", "--no-ext-diff", "--no-textconv", "--find-renames",

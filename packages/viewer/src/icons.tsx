@@ -10,6 +10,7 @@ import i_adjust from "@material-symbols/svg-400/sharp/adjust.svg?raw";
 import i_cable from "@material-symbols/svg-400/sharp/cable.svg?raw";
 import i_science from "@material-symbols/svg-400/sharp/science.svg?raw";
 import i_description from "@material-symbols/svg-400/sharp/description.svg?raw";
+import i_comments_disabled from "@material-symbols/svg-400/sharp/comments_disabled.svg?raw";
 import i_inventory_2 from "@material-symbols/svg-400/sharp/inventory_2.svg?raw";
 import i_settings from "@material-symbols/svg-400/sharp/settings.svg?raw";
 import i_flag from "@material-symbols/svg-400/sharp/flag.svg?raw";
@@ -74,6 +75,7 @@ const ICONS = {
   "cable": i_cable,
   "science": i_science,
   "description": i_description,
+  "comments_disabled": i_comments_disabled,
   "inventory_2": i_inventory_2,
   "settings": i_settings,
   "flag": i_flag,

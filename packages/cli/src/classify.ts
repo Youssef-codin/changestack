@@ -2,6 +2,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { Annotation, AnnotationDraft, type Section } from "@changestack/schema";
 import type { PullRequest } from "./gh";
 import type { FileDiff } from "./git";
+import { commentOnlyFiles } from "./comments";
 import { condenseDiff } from "./condense";
 import { configuredModel, getHarness } from "./harness";
 import { reviewCachePath } from "./paths";
@@ -12,7 +13,7 @@ import { computeVerdict } from "./verdict";
 /** Default transcript budget. Every char costs the user's usage, so keep it modest. Override with CHANGESTACK_TRANSCRIPT_CHARS (0 = off). */
 const DEFAULT_TRANSCRIPT_CHARS = 24_000;
 /** Bump when the prompt changes, so cached classifications from the old prompt are not reused. */
-const PROMPT_VERSION = "6";
+const PROMPT_VERSION = "7";
 
 const SYSTEM = `You help a human review code changes written by an AI coding agent.
 Your job is to order and classify the changed code so the reviewer spends attention where it matters.
@@ -26,6 +27,7 @@ Tiers, most to least important:
 - docs: READMEs, markdown, changelogs, and changes that only touch comments or doc comments.
 - boilerplate: imports, re-exports, routing tables, trivial getters, formatting, renames with no behavior change.
 - generated: lockfiles, codegen output, snapshots.
+Files listed in <comments_only> were checked by a parser: only their comments changed. They are already classified, so leave them out of sections and features, and never flag them risky or untested. A deviation or uncertain flag from the session may still point at one.
 
 Features:
 - List what the change builds as the user would name it (1 to 5 features, most important first), e.g. "Reminder scheduling", "Confirm and cancel links".
@@ -45,7 +47,7 @@ Flags tell the reviewer what the session shows about how the code was written, p
 - Give each flag the "quote" of the one added line it is about, copied exactly from the diff without the leading +, only when you can see it and it is the point of the flag. Otherwise null (most "risky" and "untested" flags are about the whole file).
 - Keep "why" and flag notes to one short sentence. Be concrete.`;
 
-function renderPrompt(pr: PullRequest, files: FileDiff[], transcript: string | null): string {
+function renderPrompt(pr: PullRequest, files: FileDiff[], commentOnly: string[], transcript: string | null): string {
   return [
     `<pull_request number="${pr.number}" base="${pr.baseRefName}" head="${pr.headRefName}">${pr.title}</pull_request>`,
     "",
@@ -54,18 +56,24 @@ function renderPrompt(pr: PullRequest, files: FileDiff[], transcript: string | n
     "</session_transcript>",
     "",
     "<diff>",
-    condenseDiff(files),
+    files.length ? condenseDiff(files) : "(no files besides the comments-only ones)",
     "</diff>",
+    ...(commentOnly.length ? ["", "<comments_only>", ...commentOnly, "</comments_only>"] : []),
   ].join("\n");
 }
 
-/** Make sure every changed file is covered, then apply deterministic tier overrides. */
-function finalize(sections: Section[], files: FileDiff[]) {
+/**
+ * Make sure every changed file is covered, then apply deterministic tier overrides.
+ * Comments-only files get their tier from code and skip the rules: a comment edit in
+ * `crypto.ts` changes no crypto.
+ */
+function finalize(sections: Section[], files: FileDiff[], commentOnly: Set<string>) {
+  const rest = files.filter((f) => !commentOnly.has(f.file));
   const covered = new Set(sections.map((s) => s.file));
-  const missing: Section[] = files
+  const missing: Section[] = rest
     .filter((f) => !covered.has(f.file))
     .map((f) => ({ file: f.file, symbol: null, tier: "glue", why: "Not classified by the annotator.", feature: null }));
-  const known = new Set(files.map((f) => f.file));
+  const known = new Set(rest.map((f) => f.file));
 
   const overrides: Annotation["overrides"] = [];
   const out = [...sections.filter((s) => known.has(s.file)), ...missing].map((s) => {
@@ -73,6 +81,9 @@ function finalize(sections: Section[], files: FileDiff[]) {
     if (rule) overrides.push({ file: s.file, from: s.tier, to: tier, rule });
     return { ...s, tier };
   });
+  for (const f of files) {
+    if (commentOnly.has(f.file)) out.push({ file: f.file, symbol: null, tier: "comments", why: "Only comments changed.", feature: null });
+  }
   return { sections: out, overrides };
 }
 
@@ -123,6 +134,10 @@ export async function classify(req: ClassifyRequest): Promise<Annotation> {
   const harness = getHarness();
   const model = configuredModel(harness);
 
+  onProgress("Finding files where only comments changed…");
+  const commentOnly = commentOnlyFiles(root, pr, files);
+  const rest = files.filter((f) => !commentOnly.has(f.file));
+
   onProgress("Reading session transcripts…");
   const session = harness.sessionContext?.({
     root,
@@ -131,25 +146,36 @@ export async function classify(req: ClassifyRequest): Promise<Annotation> {
     budget: transcriptBudget(),
   }) ?? null;
 
-  onProgress(
-    session
-      ? `Asking ${model} with ${session.sources.length} session transcript${session.sources.length === 1 ? "" : "s"}…`
-      : `Asking ${model} (no session transcript found, diff only)…`,
-  );
-  const { data: draft, model: used, usage } = await harness.runJson({
-    system: SYSTEM,
-    prompt: renderPrompt(pr, files, session?.text ?? null),
-    schema: AnnotationDraft,
-    model,
-  });
+  let draft: AnnotationDraft;
+  let used: string;
+  let usage: Annotation["usage"];
+  if (!rest.length && !session) {
+    // Only comments changed and there's no session to read flags from: nothing for a model to add.
+    draft = { summary: `Only comments changed, in ${files.length} file${files.length === 1 ? "" : "s"}.`, features: [], sections: [], flags: [] };
+    used = "no model (comments only)";
+  } else {
+    onProgress(
+      session
+        ? `Asking ${model} with ${session.sources.length} session transcript${session.sources.length === 1 ? "" : "s"}…`
+        : `Asking ${model} (no session transcript found, diff only)…`,
+    );
+    ({ data: draft, model: used, usage } = await harness.runJson({
+      system: SYSTEM,
+      prompt: renderPrompt(pr, rest, [...commentOnly], session?.text ?? null),
+      schema: AnnotationDraft,
+      model,
+    }));
+  }
 
-  const { sections, overrides } = finalize(draft.sections, files);
+  const { sections, overrides } = finalize(draft.sections, files, commentOnly);
   // Drop feature names the sections don't use, and section features that aren't listed.
   const named = new Set(draft.features.map((f) => f.name));
   const fixed = sections.map((s) => (s.feature && !named.has(s.feature) ? { ...s, feature: null } : s));
   const inUse = new Set(fixed.map((s) => s.feature));
   const features = draft.features.filter((f) => inUse.has(f.name));
-  const flags = resolveFlagLines(draft.flags, files);
+  // Nothing a comment edit does is risky or untested, whatever the file is about.
+  const kept = draft.flags.filter((f) => !(f.file && commentOnly.has(f.file) && (f.kind === "risky" || f.kind === "untested")));
+  const flags = resolveFlagLines(kept, files);
   const annotation: Annotation = {
     version: 3,
     pr: pr.number,

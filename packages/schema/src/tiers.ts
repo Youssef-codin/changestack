@@ -1,5 +1,6 @@
 /** Zod-free constants, so the viewer can import them without bundling zod. */
-export const TIERS = ["core", "glue", "tests", "docs", "boilerplate", "generated"] as const;
+/** `comments` is set by code, never by the model: files whose change only touches comments (cli/src/comments.ts). */
+export const TIERS = ["core", "glue", "tests", "docs", "comments", "boilerplate", "generated"] as const;
 export type Tier = (typeof TIERS)[number];
 export const TIER_ORDER: readonly Tier[] = TIERS;
 

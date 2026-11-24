@@ -44,6 +44,7 @@
   --color-glue: light-dark(#f2711c, #ff8a3d);
   --color-tests: light-dark(#f5c400, #ffd43b);
   --color-docs: light-dark(#4c8df6, #74a8ff);
+  --color-comments: light-dark(#7c8db5, #98a8cc);
   --color-boilerplate: light-dark(#3fae5a, #5cc977);
   --color-generated: light-dark(#9a9ca6, #7d7f89);
 

@@ -155,6 +155,15 @@ export function createStore() {
     // Reviewing a file folds it, so the next one moves up.
     if (next.has(file)) setCollapsed(toggled(collapsed(), file, true));
   };
+  /** Mark a whole group reviewed, or unmark it when every file in it already is. */
+  const toggleReviewedAll = (files: string[]) => {
+    const on = !files.every((f) => reviewed().has(f));
+    const next = new Set(reviewed());
+    for (const f of files) on ? next.add(f) : next.delete(f);
+    setReviewed(next);
+    saveJson(reviewedKey(), [...next]);
+    if (on) setCollapsed(new Set([...collapsed(), ...files]));
+  };
   const setFlagResolved = (id: string, on?: boolean) => {
     const next = toggled(resolved(), id, on);
     setResolved(next);
@@ -401,6 +410,7 @@ export function createStore() {
     setRailOpen,
     reviewed,
     toggleReviewed,
+    toggleReviewedAll,
     resolved,
     setFlagResolved,
     openFlags,
