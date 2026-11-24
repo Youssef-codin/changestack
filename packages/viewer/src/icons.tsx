@@ -46,6 +46,9 @@ import i_layers from "@material-symbols/svg-400/sharp/layers.svg?raw";
 import i_close from "@material-symbols/svg-400/sharp/close.svg?raw";
 import i_content_copy from "@material-symbols/svg-400/sharp/content_copy.svg?raw";
 import i_open_in_new from "@material-symbols/svg-400/sharp/open_in_new.svg?raw";
+import i_refresh from "@material-symbols/svg-400/sharp/refresh.svg?raw";
+import i_cloud_off from "@material-symbols/svg-400/sharp/cloud_off.svg?raw";
+import i_inbox from "@material-symbols/svg-400/sharp/inbox.svg?raw";
 import i_error from "@material-symbols/svg-400/sharp/error.svg?raw";
 import i_progress_activity from "@material-symbols/svg-400/sharp/progress_activity.svg?raw";
 import i_speed from "@material-symbols/svg-400/sharp/speed.svg?raw";
@@ -108,6 +111,9 @@ const ICONS = {
   "content_copy": i_content_copy,
   "open_in_new": i_open_in_new,
   "error": i_error,
+  "refresh": i_refresh,
+  "cloud_off": i_cloud_off,
+  "inbox": i_inbox,
   "progress_activity": i_progress_activity,
   "speed": i_speed,
   "done_all": i_done_all,

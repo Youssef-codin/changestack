@@ -263,6 +263,24 @@ export function Review() {
               Classifying with {(s.status() as { model: string }).model}. Showing the diff in GitHub order until it finishes.
             </div>
           </Show>
+          <Show when={s.status()?.state === "error" && !s.isEmpty() && (s.status() as { message: string })}>
+            {(st) => (
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-ln bg-risky/8 px-8 py-2 text-[13px]" role="alert">
+                <Icon name="error" class="text-[16px] text-risky" />
+                <span class="min-w-0 flex-1">
+                  <b class="font-semibold">Couldn't classify.</b> <span class="text-mu">{st().message} Showing the diff in GitHub order.</span>
+                </span>
+                <button
+                  class="inline-flex items-center gap-1 rounded-full px-3 py-1 font-medium shadow-[inset_0_0_0_1px_var(--color-ln)] hover:bg-hov disabled:opacity-50"
+                  disabled={s.retrying() || s.offline()}
+                  onClick={() => void s.retry()}
+                >
+                  <Icon name="refresh" class={`text-[14px] ${s.retrying() ? "spin" : ""}`} />
+                  Try again
+                </button>
+              </div>
+            )}
+          </Show>
           <For each={entries()} fallback={<EmptyDiff />}>
             {(e) => ("file" in e ? <FileBlock file={e} /> : <FeatureHead group={e} />)}
           </For>

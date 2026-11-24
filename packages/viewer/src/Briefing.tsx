@@ -19,6 +19,7 @@ export function Briefing() {
       <TopBar middle={<Show when={s.pr()}>{(pr) => <span class="font-mono text-[13px] text-mu max-md:hidden">{pr().headRefName}</span>}</Show>} right={<ModelChip />} />
       <div class="flex flex-1 flex-col">
         <Band />
+        <Show when={!s.isEmpty()}>
         <div class="grid w-full flex-1 gap-x-10 px-4 pt-7 pb-6 sm:px-9 lg:grid-cols-[minmax(0,1fr)_1px_340px]">
           <section class="order-2 lg:order-1">
             <CheckFirst />
@@ -35,6 +36,7 @@ export function Briefing() {
           </section>
         </div>
         <Footer />
+        </Show>
       </div>
     </div>
   );
@@ -64,11 +66,14 @@ function Band() {
       {/* Inset from the page edges; the inner padding keeps its text lined up with the page below. */}
       <div class="px-2 pt-9 pb-7 sm:px-5">
         <Switch>
+          <Match when={s.isEmpty()}>
+            <EmptyBand />
+          </Match>
           <Match when={verdict()}>{(v) => <VerdictBand verdict={v()} />}</Match>
           <Match when={s.status()?.state === "classifying" && (s.status() as Extract<ClassifyStatus, { state: "classifying" }>)}>{(st) => <WorkingBand status={st()} />}</Match>
           <Match when={s.status()?.state === "error" && (s.status() as Extract<ClassifyStatus, { state: "error" }>)}>{(st) => <FailedBand message={st().message} />}</Match>
           <Match when={s.payload.error}>
-            <FailedBand message={`Couldn't reach changestack: ${String(s.payload.error)}`} />
+            <FailedBand message={`Couldn't reach changestack: ${String(s.payload.error)}`} unreachable />
           </Match>
           <Match when={true}>
             <div class="flex items-center gap-3 text-lg font-semibold">
@@ -251,17 +256,64 @@ function WorkingBand(props: { status: Extract<ClassifyStatus, { state: "classify
   );
 }
 
-function FailedBand(props: { message: string }) {
+function FailedBand(props: { message: string; unreachable?: boolean }) {
+  const s = useStore();
   return (
     <div class="grid gap-3" role="alert">
-      <div class="flex items-center gap-3 text-[40px] leading-none font-semibold tracking-[-.04em]">
-        <Icon name="error" class="text-[40px]" />
-        Couldn't classify
+      <div class="text-[13px] font-semibold opacity-75">Merge score</div>
+      <div class="flex items-center gap-3 text-[40px] leading-none font-semibold tracking-[-.04em] sm:text-[52px]">
+        <Icon name={props.unreachable ? "cloud_off" : "error"} class="text-[40px] sm:text-[46px]" />
+        {props.unreachable ? "changestack isn't running" : "Couldn't classify"}
       </div>
-      <p class="m-0 text-lg opacity-85">{props.message}</p>
-      <p class="m-0 text-sm opacity-70">
-        The raw diff is still in Review. Run <code class="rounded bg-ink/10 px-1.5 font-mono">changestack --refresh</code> to try again.
+      <p class="m-0 max-w-[70ch] text-lg break-words opacity-85">{props.message}</p>
+      <Show
+        when={!props.unreachable}
+        fallback={
+          <p class="m-0 text-sm opacity-70">
+            Run <code class="rounded bg-ink/10 px-1.5 font-mono">changestack {s.pr()?.number ?? "<pr>"}</code> in the repo again, then reload this page.
+          </p>
+        }
+      >
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <button
+            class="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-ink/85 disabled:opacity-60"
+            disabled={s.retrying() || s.offline()}
+            onClick={() => void s.retry()}
+          >
+            <Icon name="refresh" class={`text-[16px] ${s.retrying() ? "spin" : ""}`} />
+            {s.retrying() ? "Starting…" : "Try again"}
+          </button>
+          <Show when={s.files().length}>
+            <button class="text-sm underline underline-offset-2 opacity-80 hover:opacity-100" onClick={() => s.go("review")}>
+              Read the raw diff meanwhile
+            </button>
+          </Show>
+        </div>
+      </Show>
+    </div>
+  );
+}
+
+/** A PR with no file changes: one message, nothing else on the page. */
+function EmptyBand() {
+  const s = useStore();
+  return (
+    <div class="grid gap-3" role="status">
+      <div class="flex items-center gap-3 text-[40px] leading-none font-semibold tracking-[-.04em] sm:text-[52px]">
+        <Icon name="inbox" class="text-[40px] sm:text-[46px]" />
+        Nothing to review
+      </div>
+      <p class="m-0 text-lg opacity-85">
+        #{s.pr()?.number} has no file changes against <span class="font-mono">{s.pr()?.baseRefName}</span>.
       </p>
+      <Show when={s.pr()?.url}>
+        {(url) => (
+          <a href={url()} target="_blank" rel="noreferrer" class="inline-flex w-fit items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-ink/85">
+            Open on GitHub
+            <Icon name="open_in_new" class="text-[16px]" />
+          </a>
+        )}
+      </Show>
     </div>
   );
 }
@@ -277,7 +329,11 @@ function CheckFirst() {
         when={s.model().flags.length}
         fallback={
           <p class="m-0 border-b border-ln py-3.5 text-mu">
-            {s.review()?.annotation ? "No flags. Nothing in the session or the diff asked for a closer look." : "Flags show here once classification finishes."}
+            {s.review()?.annotation
+              ? "No flags. Nothing in the session or the diff asked for a closer look."
+              : s.status()?.state === "error"
+                ? "No flags: classification didn't finish. Try again above."
+                : "Flags show here once classification finishes."}
           </p>
         }
       >

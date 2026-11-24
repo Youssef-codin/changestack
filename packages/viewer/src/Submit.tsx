@@ -116,7 +116,7 @@ function Confirm() {
           </button>
           <button
             class="inline-flex items-center gap-1.5 rounded-full bg-pk px-4 py-2 text-sm font-semibold text-ink disabled:opacity-50"
-            disabled={!s.drafts().length || s.submitting()}
+            disabled={!s.drafts().length || s.submitting() || s.offline()}
             onClick={() => void s.submit()}
           >
             <Icon name={s.submitting() ? "progress_activity" : "send"} class={`text-[16px] ${s.submitting() ? "spin" : ""}`} />

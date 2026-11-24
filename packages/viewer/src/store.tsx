@@ -48,6 +48,8 @@ async function fetchReview(): Promise<ReviewPayload> {
 const screenFromHash = (): Screen => (location.hash === "#review" ? "review" : "briefing");
 
 export function createStore() {
+  const [error, setError] = createSignal<string | null>(null);
+
   // ---------- review payload, polled while the model runs ----------
   const [payload, { refetch }] = createResource(fetchReview);
   const status = () => payload.latest?.status;
@@ -56,6 +58,41 @@ export function createStore() {
     const timer = setTimeout(() => void refetch(), POLL_MS);
     onCleanup(() => clearTimeout(timer));
   });
+  // Classify again after a failure; polling picks up once the status reads classifying.
+  const [retrying, setRetrying] = createSignal(false);
+  const retry = async () => {
+    setRetrying(true);
+    try {
+      const res = await fetch("/api/classify", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? `POST /api/classify → ${res.status}`);
+      await refetch();
+    } catch (e) {
+      setError(`Couldn't start classifying again: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  // Is the CLI still there? Drafts save through it, so say so plainly when it's gone.
+  const [offline, setOffline] = createSignal(false);
+  const ping = async () => {
+    try {
+      const res = await fetch("/api/ping", { cache: "no-store" });
+      // Back after a restart: the new run may have a different status or classification.
+      if (res.ok && offline()) void refetch();
+      setOffline(!res.ok);
+    } catch {
+      setOffline(true);
+    }
+  };
+  const heartbeat = setInterval(() => void ping(), 5000);
+  const onVisible = () => document.visibilityState === "visible" && void ping();
+  document.addEventListener("visibilitychange", onVisible);
+  onCleanup(() => {
+    clearInterval(heartbeat);
+    document.removeEventListener("visibilitychange", onVisible);
+  });
+
   const [now, setNow] = createSignal(Date.now());
   const clock = setInterval(() => setNow(Date.now()), 1000);
   onCleanup(() => clearInterval(clock));
@@ -172,7 +209,6 @@ export function createStore() {
   // ---------- drafts, saved on the server under .git/changestack/drafts/ ----------
   const [draftSet, { mutate: setDraftSet }] = createResource(fetchDrafts);
   const drafts = () => draftSet()?.drafts ?? [];
-  const [error, setError] = createSignal<string | null>(null);
   const [composer, setComposer] = createSignal<Composer | null>(null);
   const [composerText, setComposerText] = createSignal("");
 
@@ -345,12 +381,17 @@ export function createStore() {
   return {
     payload,
     status,
+    retry,
+    retrying,
+    offline,
     now,
     review,
     pr,
     model,
     order,
     files: () => model().files,
+    /** The PR loaded and changes no files. */
+    isEmpty: () => !!review() && review()!.diff.trim() === "",
     fileByName: (name: string): ReviewFile | undefined => model().files.find((f) => f.file === name),
     groupBy,
     setGroupBy,

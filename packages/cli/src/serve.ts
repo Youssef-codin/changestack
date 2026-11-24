@@ -88,8 +88,11 @@ async function handleSubmit(req: Request, state: ReviewState): Promise<Response>
   }
 }
 
-/** Serve the viewer and API for one PR. Tries `port`, then any free port. */
-export function startServer(state: ReviewState, port: number) {
+/**
+ * Serve the viewer and API for one PR. Tries `port`, then any free port.
+ * `retry` starts classification again after it failed; it returns false when there's nothing to retry.
+ */
+export function startServer(state: ReviewState, port: number, retry: () => boolean) {
   const ciTries = { busy: false, at: Date.now() };
   const fetch = async (req: Request) => {
     const url = new URL(req.url);
@@ -113,6 +116,13 @@ export function startServer(state: ReviewState, port: number) {
         coderabbit: state.coderabbit,
       };
       return Response.json(payload);
+    }
+    // Cheap liveness check, so the viewer can tell when the CLI has stopped.
+    if (url.pathname === "/api/ping") return Response.json({ ok: true });
+    if (url.pathname === "/api/classify" && req.method === "POST") {
+      if (!isJson(req)) return Response.json({ error: "expected application/json" }, { status: 415 });
+      if (!retry()) return Response.json({ error: `can't classify while ${state.status.state}` }, { status: 409 });
+      return Response.json(state.status);
     }
     if (url.pathname === "/api/drafts" || url.pathname.startsWith("/api/drafts/")) return handleDrafts(req, url, state);
     if (url.pathname === "/api/submit" && req.method === "POST") return handleSubmit(req, state);

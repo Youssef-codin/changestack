@@ -79,7 +79,38 @@ async function openPr(args: string[]): Promise<void> {
         : { state: "classifying", startedAt: new Date().toISOString(), files: files.length, model: configuredModel(harness), detail: "Starting…" },
   };
 
-  const server = startServer(state, port);
+  const run = async () => {
+    if (state.status.state !== "classifying") return;
+    const started = state.status;
+    try {
+      state.annotation = await classify({
+        root,
+        pr,
+        files,
+        hash,
+        onProgress: (detail) => {
+          if (state.status.state === "classifying") state.status = { ...started, detail };
+        },
+      });
+      state.status = { state: "ready", cached: false };
+      const a = state.annotation;
+      console.error(`changestack: classified ${a.sections.length} section(s), ${a.flags.length} flag(s) with ${a.model}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      state.status = { state: "error", message };
+      console.error(`changestack: classification failed: ${message}`);
+    }
+  };
+  // Retry from the viewer: only after a failure, and only when there are files to classify.
+  const retry = () => {
+    if (state.status.state !== "error" || files.length === 0) return false;
+    state.status = { state: "classifying", startedAt: new Date().toISOString(), files: files.length, model: configuredModel(harness), detail: "Starting…" };
+    console.error("changestack: classifying again");
+    void run();
+    return true;
+  };
+
+  const server = startServer(state, port, retry);
   const url = `http://${server.hostname}:${server.port}`;
   if (state.coderabbit.length) console.error(`changestack: ${state.coderabbit.length} CodeRabbit comment(s)`);
   console.error(`changestack: ${cached ? "using cached classification" : files.length ? "classifying in the background" : "nothing to classify"}`);
@@ -89,26 +120,7 @@ async function openPr(args: string[]): Promise<void> {
   // Not cached with the annotation: CI moves, and new sessions may have run tests since.
   void gatherFacts(root, pr, files, harness).then((facts) => (state.facts = facts));
 
-  if (state.status.state !== "classifying") return;
-  const started = state.status;
-  try {
-    state.annotation = await classify({
-      root,
-      pr,
-      files,
-      hash,
-      onProgress: (detail) => {
-        if (state.status.state === "classifying") state.status = { ...started, detail };
-      },
-    });
-    state.status = { state: "ready", cached: false };
-    const a = state.annotation;
-    console.error(`changestack: classified ${a.sections.length} section(s), ${a.flags.length} flag(s) with ${a.model}`);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    state.status = { state: "error", message };
-    console.error(`changestack: classification failed: ${message}`);
-  }
+  await run();
 }
 
 const [cmd, ...args] = process.argv.slice(2);
