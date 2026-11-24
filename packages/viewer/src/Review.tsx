@@ -1,5 +1,5 @@
 import type { Draft } from "@changestack/schema";
-import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, type JSX, on, onCleanup, onMount, Show, untrack } from "solid-js";
 import { type DiffLine } from "./diff";
 import { type DisplayRow, displayRows, outermost } from "./folds";
 import { anchorOf } from "./drafts";
@@ -12,7 +12,8 @@ import { DefPeek, defClick, defHover, defLeave } from "./GoToDef";
 import { Icon } from "./icons";
 import { COLLAPSED_BY_DEFAULT, FLAG_ICON, type FlagItem, featureGroups, flagColor, type Group, LINE_H, OTHER, RABBIT_ICON, type RabbitItem, type ReviewFile, rabbitColor, rowIndex, tierGroups } from "./model";
 import { Prose } from "./prose";
-import { LINE_CAP, useStore } from "./store";
+import { openMenu } from "./Menu";
+import { LINE_CAP, type Store, useStore } from "./store";
 import { FileName, FlagIcon, GroupSwitch, plural, TierBadge, TierTag, TopBar, VerdictChip } from "./ui";
 
 /** Height of the sticky tool row over the diff. */
@@ -58,6 +59,22 @@ export function Review() {
   // Files whose own header is on screen: the tool row leaves out what that header already shows.
   const [headsShown, setHeadsShown] = createSignal<ReadonlySet<string>>(new Set());
   let headIo: IntersectionObserver | undefined;
+  // Headers come and go as their files near the screen (see FileBlock), so each registers here.
+  const heads = new Set<HTMLElement>();
+  const watchHead = (el: HTMLElement) => {
+    heads.add(el);
+    headIo?.observe(el);
+    onCleanup(() => {
+      heads.delete(el);
+      headIo?.unobserve(el);
+      const file = el.dataset.head!;
+      if (headsShown().has(file)) {
+        const next = new Set(headsShown());
+        next.delete(file);
+        setHeadsShown(next);
+      }
+    });
+  };
   const observeAll = () => {
     if (!io || !headIo) return;
     io.disconnect();
@@ -65,7 +82,7 @@ export function Review() {
     atTop.clear();
     setHeadsShown(new Set<string>());
     for (const el of scroller.querySelectorAll<HTMLElement>("section[data-file]")) io.observe(el);
-    for (const el of scroller.querySelectorAll<HTMLElement>("[data-head]")) headIo.observe(el);
+    for (const el of heads) headIo.observe(el);
   };
   onMount(() => {
     io = new IntersectionObserver(
@@ -288,7 +305,7 @@ export function Review() {
             )}
           </Show>
           <For each={entries()} fallback={<EmptyDiff />}>
-            {(e) => ("file" in e ? <FileBlock file={e} /> : <FeatureHead group={e} />)}
+            {(e) => ("file" in e ? <FileBlock file={e} watchHead={watchHead} /> : <FeatureHead group={e} />)}
           </For>
           <Show when={s.order().length}>
             <EndOfDiff />
@@ -406,7 +423,6 @@ function Rail() {
   const total = () => s.files().length;
   const done = () => s.files().filter((f) => s.reviewed().has(f.file)).length;
   const count = (files: ReviewFile[]) => `${files.filter((f) => s.reviewed().has(f.file)).length}/${files.length}`;
-  const markAll = (files: ReviewFile[]) => s.toggleReviewedAll(files.map((f) => f.file));
   return (
     <aside
       class="flex min-h-0 flex-col overflow-hidden bg-(--side) max-lg:hidden [&>*]:w-[300px] [&>*]:shrink-0"
@@ -423,7 +439,7 @@ function Rail() {
               {(g) => (
                 <Fold
                   open={!COLLAPSED_BY_DEFAULT.includes(g.tier)}
-                  summary={<GroupHead icon={<TierBadge tier={g.tier} size="lg" />} label={g.tier} count={count(g.files)} onMark={() => markAll(g.files)} />}
+                  summary={<GroupHead icon={<TierBadge tier={g.tier} size="lg" />} label={g.tier} count={count(g.files)} actions={groupActions(s, () => g.files)} />}
                 >
                   <div class="kids">
                     <For each={g.files}>{(f) => <FileRow file={f} />}</For>
@@ -442,7 +458,7 @@ function Rail() {
                     label={g.name}
                     count={count(g.files)}
                     title={g.why ? `${g.why}\n${MARK_ALL_HINT}` : undefined}
-                    onMark={() => markAll(g.files)}
+                    actions={groupActions(s, () => g.files)}
                   />
                 }
               >
@@ -453,8 +469,7 @@ function Rail() {
                         <summary
                           class="flex cursor-pointer items-center gap-1.5 rounded-full py-1 pr-1 pl-0.5 text-xs font-semibold capitalize hover:bg-hov"
                           title={MARK_ALL_HINT}
-                          onClick={markAllOn(() => markAll(t.files))}
-                          onContextMenu={markAllOn(() => markAll(t.files))}
+                          {...groupActions(s, () => t.files)}
                         >
                           <Icon name="keyboard_arrow_down" class="chev -mr-[5px] -ml-1 text-[18px] text-mu" />
                           <TierBadge tier={t.tier} size="sm" />
@@ -512,17 +527,40 @@ function Rail() {
   );
 }
 
-const MARK_ALL_HINT = "Ctrl+click or right-click: mark every file here reviewed (again to unmark)";
+const MOD = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
+const MARK_ALL_HINT = `${MOD}+click: mark every file here reviewed (again to unmark). Right-click for more.`;
 
 /**
- * Handler for a group header: a right-click, or a click with Ctrl or Cmd, marks the
- * group instead of folding it or opening the browser menu. A plain click still folds.
+ * Handlers for a group header: a click with Ctrl or Cmd marks the group reviewed instead
+ * of folding it; a right-click opens the group's menu. A plain click still folds.
  */
-function markAllOn(mark: () => void) {
-  return (e: MouseEvent) => {
-    if (e.type === "click" && !(e.ctrlKey || e.metaKey)) return;
-    e.preventDefault();
-    mark();
+function groupActions(s: Store, files: () => ReviewFile[]) {
+  const names = () => files().map((f) => f.file);
+  return {
+    onClick: (e: MouseEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      s.toggleReviewedAll(names());
+    },
+    onContextMenu: (e: MouseEvent) => {
+      const list = names();
+      const n = list.length;
+      const allReviewed = list.every((f) => s.reviewed().has(f));
+      const allFolded = list.every((f) => s.collapsed().has(f));
+      openMenu(e, [
+        {
+          label: allReviewed ? `Unmark ${plural(n, "file")}` : `Mark ${plural(n, "file")} reviewed`,
+          icon: allReviewed ? "radio_button_unchecked" : "check_circle",
+          hint: `${MOD}+click`,
+          onSelect: () => s.toggleReviewedAll(list),
+        },
+        {
+          label: allFolded ? "Unfold these files" : "Fold these files",
+          icon: allFolded ? "keyboard_arrow_down" : "keyboard_arrow_up",
+          onSelect: () => s.setCollapsedAll(list, !allFolded),
+        },
+      ]);
+    },
   };
 }
 
@@ -536,14 +574,19 @@ function Fold(props: { summary: JSX.Element; children: JSX.Element; open?: boole
   );
 }
 
-function GroupHead(props: { icon: JSX.Element; label: string; count: string; title?: string; onMark?: () => void }) {
-  const mark = props.onMark ? markAllOn(props.onMark) : undefined;
+function GroupHead(props: {
+  icon: JSX.Element;
+  label: string;
+  count: string;
+  title?: string;
+  actions?: { onClick: (e: MouseEvent) => void; onContextMenu: (e: MouseEvent) => void };
+}) {
   return (
     <summary
       class="mt-4 mb-1 flex cursor-pointer items-center gap-2 text-xs font-semibold tracking-[.07em] text-mu uppercase hover:text-tx"
-      title={props.title ?? (props.onMark ? MARK_ALL_HINT : undefined)}
-      onClick={mark}
-      onContextMenu={mark}
+      title={props.title ?? (props.actions ? MARK_ALL_HINT : undefined)}
+      onClick={(e) => props.actions?.onClick(e)}
+      onContextMenu={(e) => props.actions?.onContextMenu(e)}
     >
       <Icon name="keyboard_arrow_down" class="chev -mr-[5px] -ml-1 text-[18px]" />
       {props.icon}
@@ -813,50 +856,98 @@ function RollingNumber(props: { value: number }) {
   return el;
 }
 
-/**
- * Calls `onNear` once `el` comes within a couple of screens of the diff column's viewport.
- * One observer for every file: building all of a big PR's rows up front took seconds.
+/*
+ * Diff rows exist only for open files near the diff column's viewport. A file's rows are built
+ * once it comes within NEAR_PX of the screen and dropped once it is FAR_PX away; the gap between
+ * the two keeps a file at the edge from building and dropping as you scroll back and forth. A
+ * spacer of the same height stands in for dropped rows, so nothing moves when they go. On a PR
+ * with hundreds of files, keeping every row ever built (or building every unfolded file at once)
+ * meant hundreds of thousands of nodes and multi-second freezes.
  */
-const nearCallbacks = new Map<Element, () => void>();
+const NEAR_PX = 1500;
+const FAR_PX = 6000;
+
+const rangeCallbacks = new Map<Element, (on: boolean) => void>();
 let nearIo: IntersectionObserver | undefined;
-function whenNear(el: HTMLElement, onNear: () => void): () => void {
+let farIo: IntersectionObserver | undefined;
+/** Calls `set(true)` when `el` comes within NEAR_PX of the diff viewport, `set(false)` once it is past FAR_PX. */
+function watchRange(el: HTMLElement, set: (on: boolean) => void): () => void {
   // The Review screen remounts with a new scroller after a trip to the Briefing.
   const root = el.closest("main");
   if (nearIo && nearIo.root !== root) {
     nearIo.disconnect();
-    nearIo = undefined;
+    farIo?.disconnect();
+    nearIo = farIo = undefined;
   }
-  if (!nearIo) {
-    nearIo = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          nearIo!.unobserve(e.target);
-          const cb = nearCallbacks.get(e.target);
-          nearCallbacks.delete(e.target);
-          cb?.();
-        }
-      },
-      { root, rootMargin: "2000px 0px" },
-    );
+  if (!nearIo || !farIo) {
+    const report = (want: boolean) => (entries: IntersectionObserverEntry[]) => {
+      for (const e of entries) if (e.isIntersecting === want) rangeCallbacks.get(e.target)?.(want);
+    };
+    nearIo = new IntersectionObserver(report(true), { root, rootMargin: `${NEAR_PX}px 0px` });
+    farIo = new IntersectionObserver(report(false), { root, rootMargin: `${FAR_PX}px 0px` });
   }
-  nearCallbacks.set(el, onNear);
+  rangeCallbacks.set(el, set);
   nearIo.observe(el);
+  farIo.observe(el);
   return () => {
-    nearCallbacks.delete(el);
+    rangeCallbacks.delete(el);
     nearIo?.unobserve(el);
+    farIo?.unobserve(el);
   };
 }
 
-function FileBlock(props: { file: ReviewFile }) {
+/*
+ * Files waiting for their rows. Each frame builds the nearest ones first until BUDGET_MS is
+ * spent, so unfolding a whole tier fills in over a few frames instead of blocking one for
+ * seconds. A file that turns out to be past NEAR_PX by then (the observers report a frame late
+ * after a big layout change) is skipped and waits for the near observer to report it again.
+ */
+const BUDGET_MS = 8;
+const buildQueue = new Map<HTMLElement, { build: () => void; skip: () => void }>();
+let buildFrame = 0;
+function queueBuild(el: HTMLElement, build: () => void, skip: () => void): () => void {
+  buildQueue.set(el, { build, skip });
+  if (!buildFrame) buildFrame = requestAnimationFrame(runBuilds);
+  return () => buildQueue.delete(el);
+}
+function runBuilds() {
+  buildFrame = 0;
+  const view = nearIo?.root instanceof Element ? nearIo.root.getBoundingClientRect() : { top: 0, bottom: innerHeight };
+  const jobs = [...buildQueue].map(([el, job]) => {
+    const r = el.getBoundingClientRect();
+    return { el, job, d: r.bottom < view.top ? view.top - r.bottom : r.top > view.bottom ? r.top - view.bottom : 0 };
+  });
+  jobs.sort((a, b) => a.d - b.d);
+  const start = performance.now();
+  for (const { el, job, d } of jobs) {
+    if (performance.now() - start > BUDGET_MS) break;
+    buildQueue.delete(el);
+    if (d > NEAR_PX) job.skip();
+    else job.build();
+  }
+  if (buildQueue.size) buildFrame = requestAnimationFrame(runBuilds);
+}
+
+function FileBlock(props: { file: ReviewFile; watchHead: (el: HTMLElement) => void }) {
   const s = useStore();
   const f = props.file;
-  // Rows are built once the file nears the screen, or a jump heads for it; then they stay.
-  const [near, setNear] = createSignal(false);
-  const live = createMemo(() => near() || s.jump()?.file === f.file);
-  createEffect(() => live() && setNear(true));
   // Memos, so folding or marking one file doesn't re-run every file that reads the shared sets.
   const open = createMemo(() => !s.collapsed().has(f.file));
+  // Rows exist while the file is open and near the screen (see watchRange). A jump heading
+  // here builds them at once, since it needs the target line to aim at.
+  const [inRange, setInRange] = createSignal(false);
+  const [built, setBuilt] = createSignal(false);
+  const target = createMemo(() => s.jump()?.file === f.file);
+  createEffect(() => {
+    if (!open()) return setBuilt(false);
+    if (target()) {
+      setInRange(true);
+      return setBuilt(true);
+    }
+    if (!inRange()) return setBuilt(false);
+    if (untrack(built)) return;
+    onCleanup(queueBuild(section, () => setBuilt(true), () => setInRange(false)));
+  });
   const done = createMemo(() => s.reviewed().has(f.file));
   const shownCount = createMemo(() => (s.uncapped().has(f.file) ? f.lines.length : Math.min(f.lines.length, LINE_CAP)));
   // This file's folded block starts, as a string so other files' folds don't rebuild this one.
@@ -907,6 +998,15 @@ function FileBlock(props: { file: ReviewFile }) {
   const gutter = () => Math.max(48, String(maxNo).length * 8 + (f.flags.some((fl) => fl.placed) ? 30 : 12)) + (regions().length ? 14 : 0);
   // A guess at the rendered height, used while the file is off screen (see .file-section).
   const estimate = () => 130 + (s.notesOpen() ? 0 : f.whys.length * 26) + (open() ? display().length * LINE_H + 24 : 30);
+  // The spacer stands in at the height the file was last drawn, while nothing it depends on has
+  // changed; otherwise at the estimate (less the section's own padding).
+  let drawn: { height: number; key: string } | null = null;
+  const drawnKey = () => `${open()}:${s.notesOpen()}:${display().length}`;
+  const spacer = () => (drawn && drawn.key === drawnKey() ? drawn.height : estimate() - 44);
+  const keepHeight = (el: HTMLElement) =>
+    onCleanup(() => {
+      if (untrack(painted)) drawn = { height: el.offsetHeight, key: untrack(drawnKey) };
+    });
   // "In this file": the declarations the diff changes, from the parsed blocks.
   const outline = createMemo(() => outlineOf(f.lines, regions()));
   // With the margin open, the why moves out of the header into a card beside the divider.
@@ -914,7 +1014,16 @@ function FileBlock(props: { file: ReviewFile }) {
   let head!: HTMLDivElement;
   let body!: HTMLDivElement;
   let section!: HTMLElement;
-  onMount(() => onCleanup(whenNear(section, () => setNear(true))));
+  // Whether the browser is laying the section out (content-visibility skips it far off screen).
+  // Without the event, near the screen stands in for it.
+  const [painted, setPainted] = createSignal(false);
+  onMount(() => {
+    onCleanup(watchRange(section, setInRange));
+    if (!("oncontentvisibilityautostatechange" in section)) return createEffect(() => setPainted(inRange()));
+    const onState = (e: Event) => setPainted(!(e as Event & { skipped: boolean }).skipped);
+    section.addEventListener("contentvisibilityautostatechange", onState);
+    onCleanup(() => section.removeEventListener("contentvisibilityautostatechange", onState));
+  });
 
   return (
     <section
@@ -926,12 +1035,15 @@ function FileBlock(props: { file: ReviewFile }) {
       style={{ "--est": `${estimate()}px` }}
     >
       {/* Divider, header and code share the left column, so the context margin starts level with the divider. */}
-      <div class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(.2,.7,.2,1)]" style={{ "grid-template-columns": `minmax(0,1fr) ${s.notesOpen() ? NOTES_W : MARKERS_W}px` }}>
+      {/* Far from the screen a file is only a spacer as tall as it was last drawn: re-rendering every
+          header and margin on each fold or unfold of a big group was what still made it slow. */}
+      <Show when={inRange()} fallback={<div style={{ height: `${spacer()}px` }} />}>
+      <div ref={keepHeight} class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(.2,.7,.2,1)]" style={{ "grid-template-columns": `minmax(0,1fr) ${s.notesOpen() ? NOTES_W : MARKERS_W}px` }}>
       <div class="min-w-0">
       <div ref={head}>
       <FileDivider joined={whyCard()} />
       {/* Not sticky: one sticky header per file cost real frames while scrolling. The tool row shows the current file instead. */}
-      <div data-head={f.file} class="flex flex-wrap items-center gap-2.5 py-2.5 pr-5">
+      <div ref={props.watchHead} data-head={f.file} class="flex flex-wrap items-center gap-2.5 py-2.5 pr-5">
         <button
           class="-ml-1 grid size-6 place-items-center rounded-full text-[20px] text-mu hover:bg-hov hover:text-tx"
           title={open() ? "Fold this file (x)" : "Show this file (x)"}
@@ -1053,7 +1165,7 @@ function FileBlock(props: { file: ReviewFile }) {
               >
                 {/* One tinted block per run of added or removed lines, not one per line: thousands of
                     separately painted line backgrounds were the biggest scroll cost. */}
-                <Show when={live()} fallback={<div style={{ height: `${display().length * LINE_H}px` }} />}>
+                <Show when={built()} fallback={<div style={{ height: `${display().length * LINE_H}px` }} />}>
                 <For each={runs()}>
                   {(run) => (
                     <div class="rounded-lg" classList={{ "bg-add": run.kind === "add", "bg-del": run.kind === "del" }}>
@@ -1102,8 +1214,9 @@ function FileBlock(props: { file: ReviewFile }) {
       </Show>
       </div>
       </div>
-      <Notes file={f} rows={rows()} shown={display().length} open={open()} outline={outline()} head={() => head} body={() => body} />
+      <Notes file={f} rows={rows()} shown={display().length} open={open()} near={inRange()} painted={painted()} outline={outline()} head={() => head} body={() => body} />
       </div>
+      </Show>
     </section>
   );
 }
@@ -1259,6 +1372,24 @@ const OUTLINE_ROW = -2;
  * later notes down when they'd overlap; whole-file notes sit at the top. Folded, each
  * note is a small marker at its line.
  */
+/**
+ * Every file's notes column places itself in one shared pass: all measuring first, then all
+ * writing. Laid out file by file, each read forced a reflow of the whole diff after the
+ * previous file's writes, which took seconds on a PR with hundreds of files.
+ */
+const layoutQueue = new Set<() => (() => void) | null>();
+function queueLayout(measure: () => (() => void) | null): void {
+  if (!layoutQueue.size) {
+    queueMicrotask(() => {
+      const jobs = [...layoutQueue];
+      layoutQueue.clear();
+      const writes = jobs.map((m) => m());
+      for (const w of writes) w?.();
+    });
+  }
+  layoutQueue.add(measure);
+}
+
 function Notes(props: {
   file: ReviewFile;
   rows: Map<string, number>;
@@ -1269,6 +1400,10 @@ function Notes(props: {
   /** The divider and header, and the diff below them: line rows are measured from the diff's top. */
   head: () => HTMLElement;
   body: () => HTMLElement;
+  /** Near the screen (see watchRange): the cards exist only then. */
+  near: boolean;
+  /** The browser is laying the file out: the cards are only measured and placed then (see layout). */
+  painted: boolean;
 }) {
   const s = useStore();
   const f = props.file;
@@ -1313,24 +1448,50 @@ function Notes(props: {
     return stable;
   });
 
-  const layout = () => {
-    if (!col) return;
+  /** Measure now, place later: see queueLayout. */
+  const measure = (): (() => void) | null => {
+    if (!col) return null;
     const openNotes = s.notesOpen();
+    const els = Array.from(col.children) as HTMLElement[];
+    if (!els.length) {
+      if (col.style.minHeight === "" || col.style.minHeight === "0px") return null;
+      return () => (col.style.minHeight = "0px");
+    }
     // Line rows count from the top of the diff, which sits below the divider and header.
     const diffTop = props.body().offsetTop - col.offsetTop + 8;
-    let y = -Infinity;
-    for (const el of Array.from(col.children) as HTMLElement[]) {
-      const row = Number(el.dataset.row);
-      // The Why card's title row lines up with the divider (20px tall) at the top of the column.
-      const want = row === WHY_ROW ? -9 : row < 0 ? 0 : diffTop + row * LINE_H - (openNotes ? 0 : 1);
-      const top = Math.max(want, y);
-      el.style.top = `${top}px`;
-      y = top + el.offsetHeight + (openNotes ? 12 : 4);
-      // Place first without motion; after that, moves glide.
-      if (!el.classList.contains("note-placed")) requestAnimationFrame(() => el.classList.add("note-placed"));
-    }
-    col.style.minHeight = `${Math.max(0, y)}px`;
+    const heights = els.map((el) => el.offsetHeight);
+    return () => {
+      let y = -Infinity;
+      els.forEach((el, i) => {
+        const row = Number(el.dataset.row);
+        // The Why card's title row lines up with the divider (20px tall) at the top of the column.
+        const want = row === WHY_ROW ? -9 : row < 0 ? 0 : diffTop + row * LINE_H - (openNotes ? 0 : 1);
+        const top = Math.max(want, y);
+        el.style.top = `${top}px`;
+        y = top + heights[i]! + (openNotes ? 12 : 4);
+        // Place first without motion; after that, moves glide.
+        if (!el.classList.contains("note-placed")) requestAnimationFrame(() => el.classList.add("note-placed"));
+      });
+      col.style.minHeight = `${Math.max(0, y)}px`;
+    };
   };
+  /*
+   * Placed only while the browser is laying the file out. Off screen the section skips layout
+   * (content-visibility), and measuring inside it forces that file to be laid out anyway:
+   * folding a tier of 546 files spent most of a second doing that for files nobody could see.
+   * Changes made meanwhile are placed when the file comes back.
+   */
+  let stale = false;
+  const layout = () => {
+    if (untrack(() => props.painted && props.near)) queueLayout(measure);
+    else stale = true;
+  };
+  createEffect(() => {
+    if (props.painted && props.near && stale) {
+      stale = false;
+      queueLayout(measure);
+    }
+  });
   const ro = new ResizeObserver(() => layout());
   onCleanup(() => ro.disconnect());
   // The header can wrap and the diff can grow or fold: either moves where line rows start.
@@ -1341,7 +1502,7 @@ function Notes(props: {
   createEffect(() => {
     items();
     s.notesOpen();
-    queueMicrotask(layout);
+    layout();
   });
   const watch = (el: HTMLElement) => {
     ro.observe(el);
@@ -1357,7 +1518,9 @@ function Notes(props: {
 
   return (
     <div ref={col} class="relative overflow-x-clip">
-      <For each={items()}>
+      {/* Off screen the column keeps its height but not its cards: building every file's cards
+          again on each fold or unfold of a big group cost as much as the rest put together. */}
+      <For each={props.near ? items() : []}>
         {(it) => (
           <div
             ref={watch}

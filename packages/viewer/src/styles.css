@@ -199,6 +199,39 @@
   display: none;
 }
 
+/* The context menu (Menu.tsx): the tooltip's surface, with rows you can pick. */
+.menu {
+  position: fixed;
+  z-index: 61;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--color-sf);
+  color: var(--color-tx);
+  box-shadow:
+    0 8px 30px rgb(0 0 0 / 0.18),
+    inset 0 0 0 1px var(--color-ln);
+  animation: appear 0.12s ease-out;
+}
+.menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font: 500 13px/1.3 var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+.menu-item:hover,
+.menu-item:focus-visible,
+.menu-item:focus {
+  background: var(--color-hov);
+}
+
 /* Resolved: a pen line drawn across the word, left to right. */
 @keyframes strike {
   from {

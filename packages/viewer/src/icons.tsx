@@ -1,5 +1,6 @@
 // Material Symbols Sharp, imported one SVG at a time so only these ship.
 // To add one: import it and add it to ICONS (name as on fonts.google.com/icons; "-fill" for filled).
+import { createRenderEffect } from "solid-js";
 import i_stacks from "@material-symbols/svg-400/sharp/stacks.svg?raw";
 import i_merge from "@material-symbols/svg-400/sharp/merge.svg?raw";
 import i_send from "@material-symbols/svg-400/sharp/send.svg?raw";
@@ -132,16 +133,30 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
+/** Each icon's SVG, parsed once; icons are clones of it. Parsing the markup for every icon cost real time when hundreds of files re-render at once. */
+const parsed = new Map<IconName, Node>();
+function iconNode(name: IconName): Node {
+  let node = parsed.get(name);
+  if (!node) {
+    const t = document.createElement("template");
+    t.innerHTML = ICONS[name];
+    node = t.content.firstChild ?? document.createTextNode("");
+    parsed.set(name, node);
+  }
+  return node.cloneNode(true);
+}
+
 /** An icon sized by the surrounding font-size; color follows `currentColor`. */
 export function Icon(props: { name: IconName; class?: string; title?: string }) {
-  return (
+  const el = (
     <span
       class={`icon ${props.class ?? ""}`}
       aria-hidden={props.title ? undefined : "true"}
       role={props.title ? "img" : undefined}
       aria-label={props.title}
       title={props.title}
-      innerHTML={ICONS[props.name]}
     />
-  );
+  ) as HTMLSpanElement;
+  createRenderEffect(() => el.replaceChildren(iconNode(props.name)));
+  return el;
 }

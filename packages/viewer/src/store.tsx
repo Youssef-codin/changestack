@@ -170,6 +170,12 @@ export function createStore() {
     saveJson(`${keyBase()}:resolved`, [...next]);
   };
   const toggleCollapsed = (file: string, on?: boolean) => setCollapsed(toggled(collapsed(), file, on));
+  /** Fold or unfold many files in the diff at once. */
+  const setCollapsedAll = (files: string[], on: boolean) => {
+    const next = new Set(collapsed());
+    for (const f of files) on ? next.add(f) : next.delete(f);
+    setCollapsed(next);
+  };
 
   // Foldable blocks per file, from a real parse (syntaxFolds.ts). Grammars load on demand,
   // so this fills in a moment after the diff shows; until then files have no fold arrows.
@@ -181,8 +187,22 @@ export function createStore() {
     const files = model().files;
     let stale = false;
     onCleanup(() => (stale = true));
-    void Promise.all(files.map(async (f) => [f.file, await syntaxFor(f.file, f.lines)] as const)).then((list) => {
-      if (stale) return;
+    // Parsed a few files at a time with a break between, so a PR with hundreds of files
+    // doesn't freeze the page for seconds while it parses.
+    void (async () => {
+      const list: (readonly [string, Awaited<ReturnType<typeof syntaxFor>>])[] = [];
+      let slice = performance.now();
+      for (const f of files) {
+        if (stale) return;
+        list.push([f.file, await syntaxFor(f.file, f.lines)]);
+        if (performance.now() - slice > 12) {
+          await new Promise((r) => setTimeout(r, 0));
+          slice = performance.now();
+        }
+      }
+      return list;
+    })().then((list) => {
+      if (stale || !list) return;
       batch(() => {
         setRegions(new Map(list.map(([file, x]) => [file, x.regions])));
         setDefs(new Map(list.map(([file, x]) => [file, x.defs])));
@@ -411,6 +431,7 @@ export function createStore() {
     reviewed,
     toggleReviewed,
     toggleReviewedAll,
+    setCollapsedAll,
     resolved,
     setFlagResolved,
     openFlags,

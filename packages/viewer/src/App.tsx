@@ -1,6 +1,7 @@
 import { Match, Show, Switch } from "solid-js";
 import { Briefing } from "./Briefing";
 import { Icon } from "./icons";
+import { Menu } from "./Menu";
 import { Review } from "./Review";
 import { createStore, StoreProvider, useStore } from "./store";
 import { SubmitDrawer } from "./Submit";
@@ -23,6 +24,7 @@ export function App() {
       <OfflineBanner />
       <ErrorToast />
       <Tooltip />
+      <Menu />
     </StoreProvider>
   );
 }
