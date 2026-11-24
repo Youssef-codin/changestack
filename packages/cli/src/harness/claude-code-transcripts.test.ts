@@ -58,3 +58,26 @@ test("sessions from a removed worktree named after the repo's first word still c
   process.env.CLAUDE_CONFIG_DIR = join(tmp, "config");
   expect(sessionTestRuns({ root, branch: "feat" }).map((r) => r.session)).toEqual(["t-acme-day"]);
 });
+
+test("a worktree with an unrelated name counts when its session edits one of the PR's files", () => {
+  const root = join(tmp, "widget-app");
+  mkdirSync(root, { recursive: true });
+  const projects = join(tmp, "config", "projects");
+  const edit = (file: string) => ({ type: "assistant", message: { content: [{ type: "tool_use", id: "e", name: "Edit", input: { file_path: file } }] } });
+  for (const [dir, branch, file] of [
+    ["scratch-wt", "fix", "src/pay.ts"],
+    ["unrelated", "fix", "src/other.ts"],
+    ["elsewhere", "main", "src/pay.ts"],
+  ] as const) {
+    const d = join(projects, join(tmp, dir).replace(/[^a-zA-Z0-9]/g, "-"));
+    mkdirSync(d, { recursive: true });
+    writeFileSync(
+      join(d, "s.jsonl"),
+      [user("go"), edit(join(tmp, dir, file)), bash(dir, "bun test"), result(dir, false)].map((l) => JSON.stringify({ gitBranch: branch, timestamp: `t-${dir}`, ...l })).join("\n"),
+    );
+  }
+  process.env.CLAUDE_CONFIG_DIR = join(tmp, "config");
+  expect(sessionTestRuns({ root, branch: "fix", files: ["src/pay.ts"] }).map((r) => r.session)).toEqual(["t-scratch-wt"]);
+  // Without the PR's files there's nothing to vouch for an unrelated dir.
+  expect(sessionTestRuns({ root, branch: "fix" })).toEqual([]);
+});

@@ -32,8 +32,37 @@ function worktrees(root: string): string[] {
   return [...new Set([root, ...paths])];
 }
 
-/** Transcript files for `branch`, newest first. */
-export function findTranscripts(root: string, branch: string): { file: string; roots: string[] }[] {
+/** Session files under these project dirs, newest first. */
+function sessionFiles(dir: string, dirs: string[]) {
+  return dirs
+    .flatMap((d) =>
+      readdirSync(join(dir, d))
+        .filter((f) => f.endsWith(".jsonl"))
+        .map((f) => join(dir, d, f)),
+    )
+    .map((file) => ({ file, mtime: statSync(file).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime)
+    .map(({ file }) => file);
+}
+
+/** The newest `MAX_SESSIONS` files that pass `keep`, reading no further than needed. */
+function newest(files: string[], keep: (text: string) => boolean): string[] {
+  const out: string[] = [];
+  for (const file of files) {
+    if (out.length >= MAX_SESSIONS) break;
+    if (keep(readFileSync(file, "utf8"))) out.push(file);
+  }
+  return out;
+}
+
+/**
+ * Transcript files for `branch`, newest first.
+ *
+ * With `files` (the PR's changed paths), a worktree named anything at all still counts: when the
+ * repo's own dirs have no session on the branch, any sibling dir's session does if it is on the
+ * branch and edits or names one of those files.
+ */
+export function findTranscripts(root: string, branch: string, files: string[] = []): { file: string; roots: string[] }[] {
   const dir = projectsDir();
   if (!existsSync(dir)) return [];
   const trees = worktrees(root);
@@ -43,19 +72,18 @@ export function findTranscripts(root: string, branch: string): { file: string; r
   const parent = root.slice(0, root.lastIndexOf("/"));
   const stem = root.slice(parent.length + 1).split("-")[0]!;
   if (stem && stem !== root.slice(parent.length + 1)) prefixes.push(encode(`${parent}/${stem}`));
-  const dirs = readdirSync(dir).filter((name) => prefixes.some((p) => name === p || name.startsWith(`${p}-`)));
+  const all = readdirSync(dir);
+  const ours = all.filter((name) => prefixes.some((p) => name === p || name.startsWith(`${p}-`)));
+  const onBranch = (text: string) => text.includes(`"gitBranch":${JSON.stringify(branch)}`);
 
-  const files = dirs.flatMap((d) =>
-    readdirSync(join(dir, d))
-      .filter((f) => f.endsWith(".jsonl"))
-      .map((f) => join(dir, d, f)),
-  );
-  return files
-    .map((file) => ({ file, mtime: statSync(file).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime)
-    .filter(({ file }) => readFileSync(file, "utf8").includes(`"gitBranch":${JSON.stringify(branch)}`))
-    .slice(0, MAX_SESSIONS)
-    .map(({ file }) => ({ file, roots: trees }));
+  let found = newest(sessionFiles(dir, ours), onBranch);
+  if (found.length === 0 && files.length) {
+    const sibling = encode(`${parent}/`);
+    const others = all.filter((name) => name.startsWith(sibling) && !ours.includes(name));
+    const named = files.map((f) => `/${f}"`);
+    found = newest(sessionFiles(dir, others), (text) => onBranch(text) && named.some((n) => text.includes(n)));
+  }
+  return found.map((file) => ({ file, roots: trees }));
 }
 
 type Block =
@@ -209,7 +237,7 @@ function fit(snippets: Snippet[], budget: number): Snippet[] {
 
 export function sessionContext(req: SessionContextRequest): SessionContext | null {
   if (req.budget <= 0) return null;
-  const found = findTranscripts(req.root, req.branch);
+  const found = findTranscripts(req.root, req.branch, req.files);
   if (found.length === 0) return null;
 
   const changed = new Set(req.files);
@@ -246,7 +274,7 @@ export function sessionContext(req: SessionContextRequest): SessionContext | nul
 
 /** Every test, type-check and lint run in the PR's sessions, oldest first. */
 export function sessionTestRuns(req: TestRunsRequest): TestRun[] {
-  return [...findTranscripts(req.root, req.branch)].reverse().flatMap(({ file, roots }) => {
+  return [...findTranscripts(req.root, req.branch, req.files)].reverse().flatMap(({ file, roots }) => {
     const { runs, started } = readSession(file, roots, req.branch, new Set());
     return runs.map((r) => ({ ...r, session: started ?? "?" }));
   });

@@ -16,7 +16,7 @@ export async function gatherFacts(root: string, pr: PullRequest, files: FileDiff
     .map((f) => ({ file: f.file, status: f.status === "added" ? ("added" as const) : ("modified" as const) }));
   let testRuns: BriefingFacts["testRuns"] = [];
   try {
-    testRuns = harness.testRuns?.({ root, branch: pr.headRefName }) ?? [];
+    testRuns = harness.testRuns?.({ root, branch: pr.headRefName, files: files.map((f) => f.file) }) ?? [];
   } catch {
     // An unreadable transcript only costs this fact.
   }

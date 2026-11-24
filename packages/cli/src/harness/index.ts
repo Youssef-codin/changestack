@@ -48,6 +48,8 @@ export interface TestRunsRequest {
   root: string;
   /** The PR's head branch; sessions on other branches are ignored. */
   branch: string;
+  /** Repo-relative paths changed in the PR; lets a worktree with an unrelated name be matched. */
+  files?: string[];
 }
 
 /** A coding-agent CLI that changestack drives headlessly. */
