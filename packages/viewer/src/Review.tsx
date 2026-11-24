@@ -107,6 +107,8 @@ export function Review() {
   let settleTimer = 0;
   let passes = 0;
   let waits = 0;
+  /** A smooth scroll is in flight. Presses then re-aim it; an instant skip would cancel it, and fast presses kept restarting it. */
+  let gliding = false;
   const destination = (j: NonNullable<ReturnType<typeof s.jump>>) => {
     const lineEl = j.line != null ? document.getElementById(`L:${j.file}:${j.side ?? "new"}:${j.line}`) : null;
     const el = lineEl ?? document.getElementById(`F:${j.file}`);
@@ -115,6 +117,7 @@ export function Review() {
     return Math.max(0, Math.min(want, scroller.scrollHeight - scroller.clientHeight));
   };
   const land = (j: NonNullable<ReturnType<typeof s.jump>>) => {
+    gliding = false;
     clearTimeout(settleTimer);
     scroller.removeEventListener("scrollend", onEnd);
     if (s.jump() !== j) return;
@@ -143,7 +146,8 @@ export function Review() {
       return void requestAnimationFrame(glide);
     }
     const skip = scroller.clientHeight * SKIP_SCREENS;
-    if (Math.abs(left) > skip) scroller.scrollTop = want - Math.sign(left) * skip;
+    if (!gliding && Math.abs(left) > skip) scroller.scrollTop = want - Math.sign(left) * skip;
+    gliding = true;
     scroller.addEventListener("scrollend", onEnd);
     clearTimeout(settleTimer);
     // If the browser never reports the end, check anyway.
@@ -151,6 +155,7 @@ export function Review() {
     scroller.scrollTo({ top: want, behavior: "smooth" });
   };
   function onEnd() {
+    gliding = false;
     scroller.removeEventListener("scrollend", onEnd);
     clearTimeout(settleTimer);
     requestAnimationFrame(glide);
@@ -163,6 +168,7 @@ export function Review() {
   const takeOver = () => {
     const j = s.jump();
     if (!j) return;
+    gliding = false;
     clearTimeout(settleTimer);
     scroller.removeEventListener("scrollend", onEnd);
     s.setJump(null);
