@@ -5,8 +5,18 @@ import { refreshCi } from "./facts";
 import { deleteDraft, loadDrafts, prScope, removeDrafts, upsertDrafts } from "./drafts";
 import { type PullRequest, type ReviewComment, submitReview } from "./gh";
 
-/** Built viewer location. Override with CHANGESTACK_VIEWER_DIR (e.g. for the compiled binary). */
+/** Built viewer location when running from source. Override with CHANGESTACK_VIEWER_DIR. */
 const VIEWER_DIR = process.env.CHANGESTACK_VIEWER_DIR ?? resolve(import.meta.dir, "../../viewer/dist");
+/** The viewer embedded in the compiled binary (scripts/build.ts): URL path → embedded file. */
+const EMBEDDED = (globalThis as { __CHANGESTACK_VIEWER__?: Record<string, string> }).__CHANGESTACK_VIEWER__;
+
+/** A viewer file by URL path; unknown paths get index.html, so the page handles them. */
+async function viewerFile(path: string) {
+  const rel = normalize(path === "/" ? "/index.html" : path);
+  if (EMBEDDED && !process.env.CHANGESTACK_VIEWER_DIR) return Bun.file(EMBEDDED[rel] ?? EMBEDDED["/index.html"]!);
+  const file = Bun.file(join(VIEWER_DIR, rel));
+  return (await file.exists()) ? file : Bun.file(join(VIEWER_DIR, "index.html"));
+}
 
 /** What the server shows. The open command mutates `status` and `annotation` as classification runs. */
 export interface ReviewState {
@@ -128,10 +138,7 @@ export function startServer(state: ReviewState, port: number, retry: () => boole
     if (url.pathname === "/api/submit" && req.method === "POST") return handleSubmit(req, state);
     if (url.pathname.startsWith("/api/")) return Response.json({ error: "not found" }, { status: 404 });
 
-    const rel = normalize(url.pathname === "/" ? "/index.html" : url.pathname);
-    const file = Bun.file(join(VIEWER_DIR, rel));
-    if (await file.exists()) return new Response(file);
-    return new Response(Bun.file(join(VIEWER_DIR, "index.html")));
+    return new Response(await viewerFile(url.pathname));
   };
 
   try {
