@@ -82,9 +82,65 @@ export function openPrs(root: string, limit = 30): PullRequest[] {
   return JSON.parse(ghOrThrow(root, ["pr", "list", "--state", "open", "--limit", String(limit), "--json", PR_FIELDS])) as PullRequest[];
 }
 
-/** Unified diff of a PR straight from GitHub; no checkout. */
+/**
+ * Unified diff of a PR straight from GitHub; no checkout. GitHub won't serve a diff
+ * over 300 files (HTTP 406), so those are diffed locally with git instead.
+ */
 export function prDiff(root: string, pr: PullRequest): string {
-  return ghOrThrow(root, ["pr", "diff", String(pr.number), "--color", "never"]);
+  const res = gh(root, ["pr", "diff", String(pr.number), "--color", "never"]);
+  if (res.ok) return res.stdout;
+  if (/HTTP 406|exceeded the maximum number of files|too_large/i.test(res.stderr)) {
+    console.error(`changestack: GitHub won't serve a diff this large; diffing #${pr.number} locally with git`);
+    return localPrDiff(root, pr);
+  }
+  throw new GhError(`gh pr diff failed: ${res.stderr || "unknown error"}`);
+}
+
+function git(root: string, args: string[]): { ok: boolean; stdout: string; stderr: string } {
+  const res = Bun.spawnSync(["git", ...args], { cwd: root, stdout: "pipe", stderr: "pipe" });
+  return { ok: res.exitCode === 0, stdout: res.stdout.toString(), stderr: res.stderr.toString().trim() };
+}
+
+const hasCommit = (root: string, oid: string) => git(root, ["cat-file", "-e", `${oid}^{commit}`]).ok;
+
+/** The remote whose URL names the PR's repository, else `origin`. */
+function prRemote(root: string, pr: PullRequest): string {
+  const slug = pr.url.match(/^https?:\/\/[^/]+\/([^/]+\/[^/]+)\/pull\//)?.[1]?.toLowerCase();
+  const lines = git(root, ["remote", "-v"]).stdout.split("\n");
+  for (const line of lines) {
+    const [name, url] = line.split(/\s+/);
+    if (name && url && slug && url.toLowerCase().replace(/\.git$/, "").endsWith(slug)) return name;
+  }
+  return "origin";
+}
+
+/**
+ * The PR's diff from local git: base and head commits (fetched by SHA if missing, which
+ * only adds objects and FETCH_HEAD, never touches the working tree), diffed from their
+ * merge base the way GitHub does. Fixed prefixes and no external diff, whatever the user's config.
+ */
+function localPrDiff(root: string, pr: PullRequest): string {
+  const missing = [pr.baseRefOid, pr.headRefOid].filter((oid) => !hasCommit(root, oid));
+  if (missing.length) {
+    const remote = prRemote(root, pr);
+    const fetched = git(root, ["fetch", "--no-tags", "--quiet", remote, ...missing]);
+    // Some servers refuse a bare SHA; the PR's head ref and base branch carry the same commits.
+    if (!fetched.ok || missing.some((oid) => !hasCommit(root, oid))) {
+      git(root, ["fetch", "--no-tags", "--quiet", remote, `refs/pull/${pr.number}/head`, `refs/heads/${pr.baseRefName}`]);
+    }
+    const still = missing.filter((oid) => !hasCommit(root, oid));
+    if (still.length) {
+      throw new GhError(`GitHub won't serve this PR's diff (over 300 files) and git couldn't fetch ${still.map((o) => o.slice(0, 7)).join(", ")} from ${remote}: ${fetched.stderr || "unknown error"}`);
+    }
+  }
+  const res = git(root, [
+    "-c", "core.quotePath=false",
+    "diff", "--no-color", "--no-ext-diff", "--no-textconv", "--find-renames",
+    "--src-prefix=a/", "--dst-prefix=b/",
+    `${pr.baseRefOid}...${pr.headRefOid}`,
+  ]);
+  if (!res.ok) throw new GhError(`git diff failed: ${res.stderr || "unknown error"}`);
+  return res.stdout;
 }
 
 function label(pr: PullRequest): string {
