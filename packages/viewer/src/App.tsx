@@ -4,6 +4,7 @@ import { Icon } from "./icons";
 import { Review } from "./Review";
 import { createStore, StoreProvider, useStore } from "./store";
 import { SubmitDrawer } from "./Submit";
+import { Tooltip } from "./Tooltip";
 
 /** Two screens: the Briefing opens first, Review is the diff. Submit is a drawer over either. */
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
       </Switch>
       <SubmitDrawer />
       <ErrorToast />
+      <Tooltip />
     </StoreProvider>
   );
 }

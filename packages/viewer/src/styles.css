@@ -176,6 +176,28 @@
   animation: appear var(--t-toggle) linear;
 }
 
+/* Every title="…" in the app renders here (Tooltip.tsx): a surface chip, like the definition peek. */
+.tooltip {
+  position: fixed;
+  z-index: 60;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--color-sf);
+  color: var(--color-tx);
+  font: 500 12px/1.4 var(--font-sans);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  box-shadow:
+    0 8px 30px rgb(0 0 0 / 0.18),
+    inset 0 0 0 1px var(--color-ln);
+  animation: appear 0.15s ease-out;
+}
+.tooltip[hidden] {
+  display: none;
+}
+
 /* Resolved: a pen line drawn across the word, left to right. */
 @keyframes strike {
   from {
