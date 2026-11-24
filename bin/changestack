@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Launcher for a local install: symlink it onto PATH (e.g. ~/.local/bin/changestack).
+# Rebuilds the compiled binary whenever the checkout's commit differs from the one it was
+# built from, then runs it. Uncommitted edits aren't picked up until they're committed, so
+# work in progress can't break the installed tool. If a rebuild fails, the last good binary runs.
+set -euo pipefail
+
+repo="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+bin="$repo/packages/cli/dist/changestack"
+stamp="$repo/packages/cli/dist/.built-from"
+
+head="$(git -C "$repo" rev-parse HEAD 2>/dev/null || echo unknown)"
+
+if [[ ! -x "$bin" || "$(cat "$stamp" 2>/dev/null)" != "$head" ]]; then
+  mkdir -p "$repo/packages/cli/dist"
+  (
+    # One build at a time; a second launch waits, then finds it already done.
+    flock 9
+    if [[ ! -x "$bin" || "$(cat "$stamp" 2>/dev/null)" != "$head" ]]; then
+      echo "changestack: rebuilding for ${head:0:7}…" >&2
+      log="$repo/packages/cli/dist/build.log"
+      if (cd "$repo" && bun install --frozen-lockfile && bun run build) >"$log" 2>&1; then
+        echo "$head" >"$stamp"
+      else
+        tail -n 20 "$log" >&2
+        if [[ -x "$bin" ]]; then
+          echo "changestack: rebuild failed (full log: $log); running the previous build" >&2
+        else
+          echo "changestack: build failed (full log: $log) and there's no previous build to run" >&2
+          exit 1
+        fi
+      fi
+    fi
+  ) 9>"$repo/packages/cli/dist/.build.lock"
+fi
+
+exec "$bin" "$@"

@@ -81,8 +81,8 @@ packages/viewer   Solid + Vite + Tailwind viewer: Briefing, Review, Submit
 bun install
 bun run build       # viewer → packages/viewer/dist, then one CLI binary with the viewer inside: packages/cli/dist/changestack
 
-# put it on your PATH once; later builds update it in place
-ln -s "$PWD/packages/cli/dist/changestack" ~/.local/bin/changestack
+# put the launcher on your PATH once: it rebuilds whenever the checkout's commit changes
+ln -s "$PWD/bin/changestack" ~/.local/bin/changestack
 bun run typecheck
 
 # viewer hot reload: run `changestack --no-open` in a repo and `bun run dev` here (Vite proxies /api)
